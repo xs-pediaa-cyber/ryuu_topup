@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Deposits - FelixTopUp Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root { --sidebar-width: 260px; --topbar-height: 70px; --color-primary: #4e73df; --color-success: #1cc88a; --color-info: #36b9cc; --color-warning: #f6c23e; --color-danger: #e74a3b; --color-secondary: #858796; --color-dark: #5a5c69; --color-light: #f8f9fc; --color-white: #ffffff; --font-family: 'Poppins', sans-serif; --border-radius: 0.75rem; --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); }
+        *, *::before, *::after { box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { margin: 0; font-family: var(--font-family); background-color: var(--color-light); color: var(--color-dark); font-size: 1rem; }
+        a { text-decoration: none; color: var(--color-primary); }
+        .page-wrapper { display: flex; }
+        .sidebar { width: var(--sidebar-width); min-width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--color-primary); color: rgba(255, 255, 255, 0.8); z-index: 1030; transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; }
+        .content-wrapper { width: calc(100% - var(--sidebar-width)); margin-left: var(--sidebar-width); transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out; }
+        .topbar { height: var(--topbar-height); background-color: var(--color-white); box-shadow: var(--box-shadow); display: flex; align-items: center; padding: 0 2rem; }
+        .main-content { padding: 2rem; }
+        .sidebar-brand { padding: 1.5rem; font-size: 1.6rem; font-weight: 700; color: var(--color-white); text-align: center; }
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+        .nav-item .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.5rem; color: rgba(255, 255, 255, 0.7); font-weight: 500; transition: all 0.2s; border-left: 4px solid transparent; }
+        .nav-item .nav-link:hover, .nav-item .nav-link.active { color: var(--color-white); background: rgba(255, 255, 255, 0.1); border-left-color: var(--color-white); }
+        .nav-item.logout { margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.15); }
+        .sidebar-toggle-btn { background: none; border: none; font-size: 1.75rem; cursor: pointer; color: var(--color-dark); display: none; }
+        .dashboard-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem; }
+        .stat-card { background-color: var(--color-white); border: 1px solid #e3e6f0; border-radius: var(--border-radius); box-shadow: var(--box-shadow); border-left: 5px solid; padding: 1.5rem; }
+        .stat-card .card-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 0.5rem 0; }
+        .stat-card .card-value { font-size: 1.75rem; font-weight: 700; }
+        .stat-card.primary { border-left-color: var(--color-primary); } .stat-card.primary .card-title { color: var(--color-primary); }
+        .stat-card.success { border-left-color: var(--color-success); } .stat-card.success .card-title { color: var(--color-success); }
+        .stat-card.secondary { border-left-color: var(--color-secondary); } .stat-card.secondary .card-title { color: var(--color-secondary); }
+        .main-card { background-color: var(--color-white); border-radius: var(--border-radius); box-shadow: var(--box-shadow); overflow: hidden; }
+        .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e6f0; }
+        .search-bar { display: flex; align-items: center; gap: 0.5rem; border: 1px solid #d1d3e2; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
+        .search-bar input { border: none; outline: none; font-size: 1rem; }
+        .table-responsive { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 1rem 1.25rem; text-align: left; border-bottom: 1px solid #e3e6f0; }
+        .data-table th { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-secondary); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table tbody tr:hover { background-color: var(--color-light); }
+        .status-badge { padding: 0.25em 0.6em; font-size: 0.8em; font-weight: 600; border-radius: 0.5rem; color: var(--color-white); text-transform: capitalize; }
+        .status-success { background-color: var(--color-success); } .status-pending { background-color: var(--color-warning); } .status-failed, .status-cancel, .status-expired { background-color: var(--color-danger); }
+        .action-cell { display: flex; align-items: center; gap: 0.5rem; }
+        .action-select { font-size: 0.9rem; padding: 0.3rem 0.5rem; border: 1px solid #d1d3e2; border-radius: 0.3rem; }
+        .action-btn { background-color: var(--color-primary); color: var(--color-white); border: none; padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 2000; }
+        .toast-message { background-color: var(--color-dark); color: var(--color-white); padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1); margin-bottom: 1rem; opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        .toast-message.show { opacity: 1; transform: translateY(0); }
+        @media (max-width: 992px) { .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); } .sidebar.active { transform: translateX(0); } .content-wrapper { width: 100%; margin-left: 0; } .sidebar-toggle-btn { display: block; } }
+        @media (max-width: 576px) { .main-content, .topbar { padding: 1rem; } .card-header { flex-direction: column; align-items: flex-start; gap: 1rem; } }
+    </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="page-wrapper">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand"><i class="bi bi-shield-shaded"></i> FelixTopUp</div>
+        <ul class="sidebar-nav">
+            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
+            <li class="nav-item"><a class="nav-link active" href="/admin/deposit"><i class="bi bi-wallet2"></i> Global Deposit</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/order"><i class="bi bi-cart-check-fill"></i> Global Order</a></li>
+            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-clipboard-data-fill"></i> Rekap Transaksi</a></li>
+            <li class="nav-item logout"><a class="nav-link" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <div class="content-wrapper">
+        <header class="topbar">
+            <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="bi bi-list"></i></button>
+            <h5 style="margin-left: 1rem; margin-bottom: 0;">Manajemen Deposit</h5>
+        </header>
+        <main class="main-content">
+            <section class="dashboard-grid">
+                <article class="stat-card success"><div class="card-info"><div class="card-title">Total Deposit Sukses</div><div class="card-value" id="totalDepositSuccess"></div></div></article>
+                <article class="stat-card secondary"><div class="card-info"><div class="card-title">Total Deposit Lainnya</div><div class="card-value" id="totalDepositOther"></div></div></article>
+                <article class="stat-card primary"><div class="card-info"><div class="card-title">Total Semua Deposit</div><div class="card-value" id="totalAllDeposit"></div></div></article>
+            </section>
+            <div class="main-card">
+                <div class="card-header">
+                    <h3 style="margin: 0; font-size: 1.25rem;">Riwayat Semua Deposit</h3>
+                    <div class="search-bar">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchInput" placeholder="Cari ID Deposit atau Username...">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>ID</th><th>Username</th><th>Metode</th><th>Nominal</th><th>Saldo Didapat</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <tbody id="depositsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let allDeposits = [];
+    const modalOverlay = document.getElementById('modalOverlay');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    
+    const toggleSidebar = () => { sidebar.classList.toggle('active'); modalOverlay.classList.toggle('active'); };
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    sidebar.addEventListener('click', (e) => e.stopPropagation());
+    modalOverlay.addEventListener('click', () => { if (sidebar.classList.contains('active')) toggleSidebar(); });
+    
+    const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    const showToast = (message, isSuccess = true) => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        toast.style.backgroundColor = isSuccess ? 'var(--color-success)' : 'var(--color-danger)';
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+    };
+
+    const updateStatus = async (userId, depositId, selectElement) => {
+        const newStatus = selectElement.value;
+        const originalStatus = selectElement.dataset.originalStatus;
+        
+        try {
+            const response = await fetch('/admin/update-deposit-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, depositId, newStatus })
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.message);
+            showToast(result.message, true);
+            selectElement.dataset.originalStatus = newStatus;
+            
+            // Perbarui data di array dan re-render
+            const depositToUpdate = allDeposits.find(d => d.id === depositId);
+            if (depositToUpdate) {
+                depositToUpdate.status = newStatus;
+                renderPage(allDeposits);
+            }
+        } catch (error) {
+            showToast(error.message, false);
+            selectElement.value = originalStatus; // Kembalikan ke status semula jika gagal
+        }
+    };
+
+    const renderTable = (deposits) => {
+        const tableBody = document.getElementById('depositsTableBody');
+        if (!deposits || deposits.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 3rem;">Tidak ada data deposit.</td></tr>`;
+            return;
+        }
+        tableBody.innerHTML = deposits.map(item => `
+            <tr>
+                <td>${item.id}</td>
+                <td>${item.username}</td>
+                <td>${item.metode}</td>
+                <td>${formatRupiah(item.nominal)}</td>
+                <td>${formatRupiah(item.get_balance)}</td>
+                <td><span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span></td>
+                <td class="action-cell">
+                    <select class="action-select" data-original-status="${item.status}">
+                        <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="success" ${item.status === 'success' ? 'selected' : ''}>Success</option>
+                        <option value="failed" ${item.status === 'failed' ? 'selected' : ''}>Failed</option>
+                        <option value="cancel" ${item.status === 'cancel' ? 'selected' : ''}>Cancel</option>
+                        <option value="expired" ${item.status === 'expired' ? 'selected' : ''}>Expired</option>
+                    </select>
+                    <button class="action-btn save-status-btn" data-user-id="${item.userId}" data-deposit-id="${item.id}"><i class="bi bi-check-lg"></i></button>
+                </td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('.save-status-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const { userId, depositId } = e.currentTarget.dataset;
+                const selectElement = e.currentTarget.previousElementSibling;
+                updateStatus(userId, depositId, selectElement);
+            });
+        });
+    };
+    
+    const renderPage = (deposits) => {
+        let totalSuccess = 0, totalOther = 0;
+        deposits.forEach(d => {
+            if (d.status === 'success') {
+                totalSuccess += d.get_balance || 0;
+            } else {
+                totalOther += d.nominal || 0;
+            }
+        });
+        document.getElementById('totalDepositSuccess').textContent = formatRupiah(totalSuccess);
+        document.getElementById('totalDepositOther').textContent = formatRupiah(totalOther);
+        document.getElementById('totalAllDeposit').textContent = formatRupiah(totalSuccess + totalOther);
+        renderTable(deposits);
+    };
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filtered = allDeposits.filter(d => 
+            d.id.toLowerCase().includes(searchTerm) || 
+            d.username.toLowerCase().includes(searchTerm)
+        );
+        renderTable(filtered);
+    });
+
+    const loadData = async () => {
+        try {
+            const users = await (await fetch('/admin/data/users')).json();
+            const deposits = [];
+            users.forEach(user => {
+                if (Array.isArray(user.historyDeposit)) {
+                    user.historyDeposit.forEach(depo => {
+                        deposits.push({ ...depo, userId: user._id, username: user.username });
+                    });
+                }
+            });
+            allDeposits = deposits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            renderPage(allDeposits);
+        } catch (error) {
+            console.error('Gagal memuat data deposit:', error);
+            document.getElementById('depositsTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 3rem; color:var(--color-danger);">Gagal memuat data.</td></tr>`;
+        }
+    };
+    
+    loadData();
+});
+</script>
+</body>
+</html>

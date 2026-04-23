@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Produk</title>
+  <style>
+    /* ===== COMIC GREEN THEME (samakan feel dengan harga.html) ===== */
+    :root{
+      --g-900:#0b3d1e;
+      --g-800:#0f552a;
+      --g-700:#137a37;
+      --g-600:#1aa845;
+      --g-500:#2fd35a;
+      --g-200:#c8ffd8;
+      --paper:#f7fff9;
+      --ink:#101413;
+      --stroke:3px;
+      --radius:18px;
+      --shadow:6px 6px 0 rgba(0,0,0,.85);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 8px 8px, rgba(0,0,0,.08) 1.2px, transparent 1.3px) 0 0/16px 16px,
+        linear-gradient(180deg, var(--paper), #eafff0);
+      font-family:"Comic Neue","Comic Sans MS","Trebuchet MS",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    .app{max-width:520px;margin:0 auto;min-height:100dvh}
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      background:linear-gradient(180deg, var(--g-700), var(--g-800));
+      color:#fff;
+      padding:12px 12px 14px;
+      border-bottom:var(--stroke) solid #000;
+      box-shadow:0 6px 0 rgba(0,0,0,.25);
+    }
+    .toprow{display:flex;align-items:center;gap:10px}
+    .topbtn{
+      width:42px; height:38px;
+      display:grid; place-items:center;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:4px 4px 0 rgba(0,0,0,.85);
+      color:#111;
+      cursor:pointer;
+      text-decoration:none;
+      font-weight:900;
+      user-select:none;
+    }
+    .topbtn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(0,0,0,.85)}
+    .title{
+      flex:1;
+      font-weight:1000;
+      letter-spacing:.4px;
+      font-size:1.05rem;
+      text-shadow:2px 2px 0 rgba(0,0,0,.2);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    .content{padding:14px 12px 26px}
+    .section-head{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:4px 2px 10px;
+    }
+    .section-head h2{
+      margin:0;
+      font-size:1.05rem;
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+    .tools{display:flex; gap:10px; align-items:center}
+    .toolbtn{
+      width:38px; height:38px;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:4px 4px 0 rgba(0,0,0,.25);
+      display:grid;place-items:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:1000;
+    }
+    .toolbtn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(0,0,0,.25)}
+
+    .card{
+      border:var(--stroke) solid #000;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .field{
+      display:flex; align-items:center; gap:10px;
+      border:var(--stroke) solid #000;
+      border-radius:16px;
+      background:var(--paper);
+      box-shadow:4px 4px 0 rgba(0,0,0,.25);
+      padding:12px 12px;
+    }
+    .field input{
+      border:none; outline:none;
+      width:100%;
+      background:transparent;
+      font-weight:900;
+      font-size:0.95rem;
+    }
+    .icon{
+      width:34px;height:34px;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      display:grid;place-items:center;
+      background:linear-gradient(180deg,var(--g-200),#fff);
+      box-shadow:3px 3px 0 rgba(0,0,0,.75);
+      font-weight:900;
+      user-select:none;
+    }
+
+    .list{display:flex;flex-direction:column;gap:12px}
+    .item{
+      display:flex; align-items:center; gap:12px;
+      padding:14px;
+      border:var(--stroke) solid #000;
+      border-radius:20px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      user-select:none;
+    }
+    .item:active{transform:translate(2px,2px);box-shadow:3px 3px 0 rgba(0,0,0,.85)}
+    .thumb{
+      width:54px;height:44px;
+      border:var(--stroke) solid #000;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--g-200), #fff);
+      box-shadow:4px 4px 0 rgba(0,0,0,.35);
+      display:grid;place-items:center;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+    .thumb img{width:100%;height:100%;object-fit:contain;padding:6px}
+    .meta{flex:1; min-width:0}
+    .name{
+      margin:0;
+      font-weight:1000;
+      font-size:1.02rem;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      text-transform:uppercase;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:2px 0 0;
+      opacity:.72;
+      font-weight:900;
+      font-size:.85rem;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .arrow{
+      font-weight:1000;
+      color:var(--g-900);
+      font-size:1.2rem;
+      width:28px;
+      text-align:right;
+      flex:0 0 auto;
+    }
+    .empty{
+      border:var(--stroke) solid #000;
+      border-radius:20px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      padding:14px;
+      font-weight:900;
+      text-align:center;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="toprow">
+        <a class="topbtn" id="backBtn" href="javascript:history.back()" aria-label="Kembali">←</a>
+        <div class="title" id="pageTitle">Produk</div>
+        <button class="topbtn" id="reloadBtn" type="button" aria-label="Reload">⟳</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="section">
+        <div class="section-head">
+          <h2 id="judul">Memuat...</h2>
+          <div class="tools">
+            <button class="toolbtn" id="searchToggle" title="Cari">🔎</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:12px;display:none" id="searchWrap">
+          <div class="field" style="box-shadow:none">
+            <span class="icon">🔎</span>
+            <input id="search" type="text" placeholder="Cari provider... (nama)" />
+            <button class="topbtn" id="clearSearch" type="button" aria-label="Hapus">✖</button>
+          </div>
+        </div>
+
+        <div class="list" id="produkList" aria-label="Daftar produk">
+          <div class="item" style="cursor:default">
+            <div class="thumb">…</div>
+            <div class="meta">
+              <p class="name">Memuat...</p>
+              <p class="sub">Mohon tunggu</p>
+            </div>
+            <div class="arrow">›</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get("category");
+    const provider = params.get("provider"); // optional (kalau ada)
+
+    const judul = document.getElementById("judul");
+    const pageTitle = document.getElementById("pageTitle");
+    const reloadBtn = document.getElementById("reloadBtn");
+
+    if (!category) {
+      judul.textContent = "Semua Produk";
+      pageTitle.textContent = "Semua Produk";
+    } else if (provider) {
+      judul.textContent = `Produk: ${provider} (${category})`;
+      pageTitle.textContent = `${category}`;
+    } else {
+      judul.textContent = `Kategori: ${category}`;
+      pageTitle.textContent = `${category}`;
+    }
+
+    // ===== search UI =====
+    const searchToggle = document.getElementById("searchToggle");
+    const searchWrap = document.getElementById("searchWrap");
+    const search = document.getElementById("search");
+    const clearSearch = document.getElementById("clearSearch");
+
+    searchToggle.addEventListener("click", ()=>{
+      const open = (searchWrap.style.display !== "none" && searchWrap.style.display !== "");
+      searchWrap.style.display = open ? "none" : "block";
+      if(!open) setTimeout(()=>search.focus(), 50);
+    });
+    clearSearch.addEventListener("click", ()=>{
+      search.value = "";
+      applySearch();
+      search.focus();
+    });
+    search.addEventListener("input", ()=>{
+      clearTimeout(search._t);
+      search._t = setTimeout(applySearch, 120);
+    });
+
+    // ===== data =====
+    const produkList = document.getElementById("produkList");
+    let all = [];
+    let view = [];
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function render(rows){
+      produkList.innerHTML = "";
+      if(!rows.length){
+        produkList.innerHTML = `<div class="empty">Tidak ada produk tersedia.</div>`;
+        return;
+      }
+
+      rows.forEach(item=>{
+        const div = document.createElement("div");
+        div.className = "item";
+
+        const name = item.provider || "-";
+        const sub = "Klik untuk lihat harga layanan";
+
+        const img = (item.img_url || "").trim();
+
+        div.innerHTML = `
+          <div class="thumb">${img ? `<img src="${escapeHtml(img)}" alt="icon" onerror="this.remove();">` : "Rp"}</div>
+          <div class="meta">
+            <p class="name">${escapeHtml(name)}</p>
+            <p class="sub">${escapeHtml(sub)}</p>
+          </div>
+          <div class="arrow">›</div>
+        `;
+
+        div.addEventListener("click", ()=>{
+          const q = new URLSearchParams();
+          if (category) q.set("category", category);
+          if (item.provider) q.set("provider", item.provider);
+          window.location.href = `harga.html?${q.toString()}`;
+        });
+
+        produkList.appendChild(div);
+      });
+    }
+
+    function applySearch(){
+      const q = (search.value || "").toLowerCase().trim();
+      if(!q){ render(view); return; }
+      render(view.filter(x => String(x.provider||"").toLowerCase().includes(q)));
+    }
+
+    async function loadProduk(){
+      produkList.innerHTML = `<div class="item" style="cursor:default"><div class="thumb">…</div><div class="meta"><p class="name">Memuat...</p><p class="sub">Mohon tunggu</p></div><div class="arrow">›</div></div>`;
+
+      let url = "/api/webtrx/produk";
+      if (category) url += `?category=${encodeURIComponent(category)}`;
+
+      try{
+        const res = await fetch(url);
+        const json = await res.json();
+
+        if (!json.success || !Array.isArray(json.data) || json.data.length === 0){
+          produkList.innerHTML = `<div class="empty">Tidak ada produk tersedia.</div>`;
+          return;
+        }
+
+        // Dedup provider (kalau api mengembalikan banyak item provider yang sama)
+        const map = new Map();
+        json.data.forEach(x=>{
+          const key = String(x.provider||"").toLowerCase().trim();
+          if(!key) return;
+          if(!map.has(key)) map.set(key, x);
+        });
+
+        all = Array.from(map.values());
+
+        // kalau param provider dipakai untuk highlight / filter awal
+        if (provider){
+          view = all.filter(x => String(x.provider||"").toLowerCase() === String(provider).toLowerCase());
+          if(!view.length) view = all;
+        } else {
+          view = all;
+        }
+
+        // sort A-Z
+        view.sort((a,b)=>String(a.provider||"").localeCompare(String(b.provider||""), "id", {sensitivity:"base"}));
+
+        applySearch();
+      }catch(e){
+        produkList.innerHTML = `<div class="empty">Gagal memuat produk.</div>`;
+      }
+    }
+
+    reloadBtn.addEventListener("click", loadProduk);
+    loadProduk();
+  </script>
+</body>
+</html>

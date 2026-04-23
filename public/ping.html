@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dynamic GET API Tester</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        :root {
+            --primary-color: #34495e;
+            --primary-light: #4c6a8a;
+            --accent-color: #3498db;
+            --accent-dark: #2980b9;
+            --background-color: #ecf0f1;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --light-text-color: #7f8c8d;
+            --border-color: #e0e0e0;
+            --pre-background: #fdfdfd;
+            --shadow-light: rgba(0, 0, 0, 0.08);
+            --shadow-focus: rgba(52, 152, 219, 0.25);
+            --error-color: #e74c3c;
+            --success-color: #2ecc71;
+            --highlight-color: #fff3cd; /* Warna highlight */
+            --highlight-border: #ffeeba;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            box-sizing: border-box;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-background);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px var(--shadow-light);
+            width: 100%;
+            max-width: 90vw;
+            padding: 40px;
+            box-sizing: border-box;
+            margin: 50px auto;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 35px;
+            font-weight: 700;
+            font-size: 2.5em;
+            letter-spacing: -0.8px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.05em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1.1em;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            color: var(--text-color);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--light-text-color);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px var(--shadow-focus);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.15em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            width: 100%;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+        }
+
+        button:hover {
+            background-color: var(--accent-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            background-color: #2c7bb3;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.2);
+        }
+
+        .result-wrapper {
+            position: relative;
+            margin-top: 35px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .result-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .copy-button {
+            position: static;
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--primary-color);
+            border: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.8;
+            width: auto;
+            box-shadow: none;
+        }
+
+        .copy-button:hover {
+            background-color: var(--accent-color);
+            color: white;
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .copy-button:active {
+            transform: scale(0.95);
+        }
+
+        .copy-button .fa-solid {
+            margin-right: 0;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box input {
+            width: 150px;
+            padding: 8px 10px;
+            padding-right: 35px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9em;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 0;
+            color: var(--text-color);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px var(--shadow-focus);
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            right: 10px;
+            color: var(--light-text-color);
+            font-size: 0.9em;
+            pointer-events: none;
+        }
+
+        pre {
+            background: var(--pre-background);
+            padding: 25px;
+            padding-top: 60px; /* Ruang untuk kontrol */
+            padding-right: 25px; /* Sesuaikan padding agar tidak terlalu lebar */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95em;
+            color: var(--text-color);
+            line-height: 1.7;
+            height: 1000px;
+            overflow-y: auto;
+            border-radius: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        pre::-webkit-scrollbar {
+            width: 10px;
+        }
+        pre::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        pre::-webkit-scrollbar-thumb {
+            background: var(--light-text-color);
+            border-radius: 10px;
+        }
+        pre::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .highlight {
+            background-color: var(--highlight-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid var(--highlight-border);
+            box-shadow: 0 0 5px rgba(255, 239, 178, 0.8);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            .container {
+                padding: 25px;
+                max-width: 95vw;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 2em;
+                margin-bottom: 25px;
+            }
+            button, .input-section input[type="text"] {
+                font-size: 1em;
+                padding: 12px 15px;
+            }
+            pre {
+                padding: 20px;
+                padding-top: 55px;
+                font-size: 0.85em;
+                height: 700px;
+            }
+            .result-controls {
+                top: 8px;
+                right: 8px;
+                gap: 5px;
+            }
+            .copy-button {
+                padding: 6px 8px;
+                font-size: 0.8em;
+            }
+            .search-box input {
+                width: 120px;
+                padding: 6px 8px;
+                padding-right: 30px;
+                font-size: 0.8em;
+            }
+            .search-box .search-icon {
+                right: 8px;
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+                max-width: 100vw;
+                border-radius: 0;
+            }
+            body {
+                padding: 0;
+            }
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 20px;
+            }
+            pre {
+                font-size: 0.8em;
+                padding: 15px;
+                padding-top: 50px;
+                padding-right: 15px;
+                height: 500px;
+            }
+            .result-controls {
+                top: 5px;
+                right: 5px;
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 3px;
+            }
+            .copy-button {
+                padding: 5px 7px;
+                font-size: 0.7em;
+            }
+            .search-box input {
+                width: 100px;
+                padding: 5px 7px;
+                padding-right: 25px;
+                font-size: 0.7em;
+            }
+            .search-box .search-icon {
+                right: 7px;
+                font-size: 0.7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API GET Tester</h1>
+
+        <div class="input-section">
+            <label for="endpoint">Masukkan endpoint (contoh: /api/profile):</label>
+            <input type="text" id="endpoint" placeholder="/api/profile" />
+
+            <button id="btnFetch">Fetch Data</button>
+        </div>
+
+        <div class="result-wrapper">
+            <div class="result-controls">
+                <button class="copy-button" id="copyButton" title="Salin ke clipboard">
+                    <i class="fa-solid fa-clipboard" id="copyIcon"></i>
+                </button>
+                <div class="search-box">
+                    <input type="text" id="searchKeyword" placeholder="Cari..." />
+                    <i class="fa-solid fa-search search-icon"></i>
+                </div>
+            </div>
+            <pre id="result">Result akan muncul di sini...</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'Felix-TopUp-oz8lho3yjty809hu';
+
+        const endpointInput = document.getElementById('endpoint');
+        const btnFetch = document.getElementById('btnFetch');
+        const resultPre = document.getElementById('result');
+        const copyButton = document.getElementById('copyButton');
+        const copyIcon = document.getElementById('copyIcon');
+        const searchKeywordInput = document.getElementById('searchKeyword');
+
+        let originalResultContent = '';
+
+        const highlightMatches = (text, keyword) => {
+            if (!keyword) return text;
+            const regex = new RegExp(keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+            return text.replace(regex, (match) => `<span class="highlight">${match}</span>`);
+        };
+
+        const updateResultDisplay = (content, keyword = '') => {
+            if (keyword) {
+                resultPre.innerHTML = highlightMatches(content, keyword);
+            } else {
+                resultPre.textContent = content;
+            }
+        };
+
+        btnFetch.addEventListener('click', async () => {
+            const endpoint = endpointInput.value.trim();
+            resultPre.textContent = 'Loading...';
+            copyButton.style.display = 'none';
+            searchKeywordInput.style.display = 'none';
+            searchKeywordInput.value = '';
+
+            if (!endpoint) {
+                resultPre.textContent = `Error: Endpoint tidak boleh kosong.`;
+                resultPre.style.color = 'var(--error-color)';
+                return;
+            }
+            
+            if (!endpoint.startsWith('/')) {
+                resultPre.textContent = `Error: Endpoint harus diawali dengan "/"`;
+                resultPre.style.color = 'var(--error-color)';
+                return;
+            }
+
+            resultPre.style.color = 'var(--text-color)';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: { 
+                        'X-APIKEY': API_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await res.json().catch(() => ({ message: res.statusText || 'Gagal mem-parse JSON.' }));
+
+                let contentToDisplay;
+                if (!res.ok) {
+                    contentToDisplay = `Error ${res.status}: ${JSON.stringify(data, null, 2)}`;
+                    resultPre.style.color = 'var(--error-color)';
+                } else {
+                    contentToDisplay = JSON.stringify(data, null, 2);
+                    resultPre.style.color = 'var(--text-color)';
+                }
+                
+                originalResultContent = contentToDisplay;
+                updateResultDisplay(originalResultContent, searchKeywordInput.value);
+                copyButton.style.display = 'flex';
+                searchKeywordInput.style.display = 'block';
+
+            } catch (e) {
+                resultPre.textContent = `Error: ${e.message}. Pastikan endpoint benar dan API bisa diakses.`;
+                resultPre.style.color = 'var(--error-color)';
+                copyButton.style.display = 'none';
+                searchKeywordInput.style.display = 'none';
+            }
+        });
+
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(originalResultContent);
+                copyIcon.classList.remove('fa-clipboard');
+                copyIcon.classList.add('fa-check');
+                copyButton.title = 'Disalin!';
+
+                setTimeout(() => {
+                    copyIcon.classList.remove('fa-check');
+                    copyIcon.classList.add('fa-clipboard');
+                    copyButton.title = 'Salin ke clipboard';
+                }, 1500);
+            } catch (err) {
+                console.error('Gagal menyalin teks: ', err);
+                copyIcon.classList.remove('fa-clipboard');
+                copyIcon.classList.add('fa-times');
+                copyButton.title = 'Gagal menyalin!';
+
+                setTimeout(() => {
+                    copyIcon.classList.remove('fa-times');
+                    copyIcon.classList.add('fa-clipboard');
+                    copyButton.title = 'Salin ke clipboard';
+                }, 2000);
+            }
+        });
+
+        searchKeywordInput.addEventListener('input', () => {
+            updateResultDisplay(originalResultContent, searchKeywordInput.value.trim());
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            copyButton.style.display = 'none';
+            searchKeywordInput.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

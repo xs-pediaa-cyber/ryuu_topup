@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Orders - FelixTopUp Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root { --sidebar-width: 260px; --topbar-height: 70px; --color-primary: #4e73df; --color-success: #1cc88a; --color-info: #36b9cc; --color-warning: #f6c23e; --color-danger: #e74a3b; --color-secondary: #858796; --color-dark: #5a5c69; --color-light: #f8f9fc; --color-white: #ffffff; --font-family: 'Poppins', sans-serif; --border-radius: 0.75rem; --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); }
+        *, *::before, *::after { box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { margin: 0; font-family: var(--font-family); background-color: var(--color-light); color: var(--color-dark); font-size: 1rem; }
+        a { text-decoration: none; color: var(--color-primary); }
+        .page-wrapper { display: flex; }
+        .sidebar { width: var(--sidebar-width); min-width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--color-primary); color: rgba(255, 255, 255, 0.8); z-index: 1030; transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; }
+        .content-wrapper { width: calc(100% - var(--sidebar-width)); margin-left: var(--sidebar-width); transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out; }
+        .topbar { height: var(--topbar-height); background-color: var(--color-white); box-shadow: var(--box-shadow); display: flex; align-items: center; padding: 0 2rem; }
+        .main-content { padding: 2rem; }
+        .sidebar-brand { padding: 1.5rem; font-size: 1.6rem; font-weight: 700; color: var(--color-white); text-align: center; }
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+        .nav-item .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.5rem; color: rgba(255, 255, 255, 0.7); font-weight: 500; transition: all 0.2s; border-left: 4px solid transparent; }
+        .nav-item .nav-link:hover, .nav-item .nav-link.active { color: var(--color-white); background: rgba(255, 255, 255, 0.1); border-left-color: var(--color-white); }
+        .nav-item.logout { margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.15); }
+        .sidebar-toggle-btn { background: none; border: none; font-size: 1.75rem; cursor: pointer; color: var(--color-dark); display: none; }
+        .dashboard-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem; }
+        .stat-card { background-color: var(--color-white); border: 1px solid #e3e6f0; border-radius: var(--border-radius); box-shadow: var(--box-shadow); border-left: 5px solid; padding: 1.5rem; }
+        .stat-card .card-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 0.5rem 0; }
+        .stat-card .card-value { font-size: 1.75rem; font-weight: 700; }
+        .stat-card.success { border-left-color: var(--color-success); } .stat-card.success .card-title { color: var(--color-success); }
+        .stat-card.secondary { border-left-color: var(--color-secondary); } .stat-card.secondary .card-title { color: var(--color-secondary); }
+        .stat-card.primary { border-left-color: var(--color-primary); } .stat-card.primary .card-title { color: var(--color-primary); }
+        .main-card { background-color: var(--color-white); border-radius: var(--border-radius); box-shadow: var(--box-shadow); overflow: hidden; }
+        .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e6f0; flex-wrap: wrap; gap: 1rem; }
+        .card-header h3 { margin: 0; font-size: 1.25rem; }
+        .header-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .form-group { display: flex; align-items: center; gap: 0.5rem; }
+        .form-group input { border: 1px solid #d1d3e2; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 1rem; }
+        .form-group button { background-color: var(--color-info); color: white; }
+        .search-bar { display: flex; align-items: center; gap: 0.5rem; border: 1px solid #d1d3e2; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
+        .search-bar input { border: none; outline: none; font-size: 1rem; }
+        .table-responsive { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th, .data-table td { padding: 1rem 1.25rem; text-align: left; border-bottom: 1px solid #e3e6f0; white-space: nowrap; }
+        .data-table th { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: var(--color-secondary); }
+        .data-table tbody tr:hover { background-color: var(--color-light); }
+        .status-badge { padding: 0.25em 0.6em; font-size: 0.8em; font-weight: 600; border-radius: 0.5rem; color: var(--color-white); text-transform: capitalize; }
+        .status-success { background-color: var(--color-success); } .status-pending { background-color: var(--color-warning); } .status-failed, .status-cancel, .status-expired { background-color: var(--color-danger); }
+        .action-cell { display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; }
+        .action-select, .action-input { font-size: 0.9rem; padding: 0.3rem 0.5rem; border: 1px solid #d1d3e2; border-radius: 0.3rem; }
+        .action-input { max-width: 150px; }
+        .action-btn { background-color: var(--color-primary); color: var(--color-white); border: none; padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1029; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); z-index: 1050; background: var(--color-white); border-radius: var(--border-radius); width: 95%; max-width: 700px; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); opacity: 0; visibility: hidden; transition: all 0.3s ease; display: flex; flex-direction: column; }
+        .modal.active, .modal-overlay.active { opacity: 1; visibility: visible; } .modal.active { transform: translate(-50%, -50%) scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; }
+        .modal-title { margin: 0; font-size: 1.25rem; }
+        .modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        .modal-body { padding: 1.5rem; overflow-y: auto; flex-grow: 1; max-height: 80vh; }
+        .detail-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem 1.5rem; } .detail-grid dt { font-weight: 600; color: var(--color-secondary); } .detail-grid dd { margin: 0; word-break: break-all; }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 2000; }
+        .toast-message { background-color: var(--color-dark); color: var(--color-white); padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1); margin-bottom: 1rem; opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        .toast-message.show { opacity: 1; transform: translateY(0); }
+        .spinner { width: 1.5rem; height: 1.5rem; border: 3px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spinner-border .75s linear infinite; } @keyframes spinner-border { to { transform: rotate(360deg); } }
+        @media (max-width: 992px) { .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); } .sidebar.active { transform: translateX(0); } .content-wrapper { width: 100%; margin-left: 0; } .sidebar-toggle-btn { display: block; } }
+        @media (max-width: 768px) { .card-header { flex-direction: column; align-items: stretch; } }
+    </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="page-wrapper">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand"><i class="bi bi-shield-shaded"></i> FelixTopUp</div>
+        <ul class="sidebar-nav">
+            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/deposit"><i class="bi bi-wallet2"></i> Global Deposit</a></li>
+            <li class="nav-item"><a class="nav-link active" href="/admin/order"><i class="bi bi-cart-check-fill"></i> Global Order</a></li>
+            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-clipboard-data-fill"></i> Rekap Transaksi</a></li>
+            <li class="nav-item logout"><a class="nav-link" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <div class="content-wrapper">
+        <header class="topbar">
+            <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="bi bi-list"></i></button>
+            <h5 style="margin-left: 1rem; margin-bottom: 0;">Manajemen Order</h5>
+        </header>
+        <main class="main-content">
+            <section class="dashboard-grid">
+                <article class="stat-card success"><div class="card-info"><div class="card-title">Total Omset Sukses</div><div class="card-value" id="totalOrderSuccess"></div></div></article>
+                <article class="stat-card secondary"><div class="card-info"><div class="card-title">Total Omset Lainnya</div><div class="card-value" id="totalOrderOther"></div></div></article>
+                <article class="stat-card primary"><div class="card-info"><div class="card-title">Total Semua Omset</div><div class="card-value" id="totalAllOrder"></div></div></article>
+            </section>
+            <div class="main-card">
+                <div class="card-header">
+                    <h3>Riwayat Semua Order</h3>
+                    <div class="header-actions">
+                        <form class="form-group" id="checkStatusForm">
+                            <input type="text" id="checkStatusId" placeholder="ID Transaksi Provider...">
+                            <button type="submit" class="action-btn"><i class="bi bi-search"></i> Cek</button>
+                        </form>
+                        <div class="search-bar">
+                            <i class="bi bi-funnel-fill"></i>
+                            <input type="text" id="searchInput" placeholder="Filter ID atau Username...">
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead><tr><th>ID</th><th>Username</th><th>Layanan</th><th>Target</th><th>SN</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <tbody id="ordersTableBody"><tr><td colspan="8" style="text-align: center; padding: 3rem;"><span class="spinner"></span> Memuat data...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<div class="modal" id="statusModal">
+    <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="statusModalLabel">Hasil Pengecekan Status</h5><button type="button" class="modal-close-btn" id="modalCloseBtn"><i class="bi bi-x-lg"></i></button></div>
+        <div class="modal-body" id="statusModalBody"></div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let allOrders = [];
+    const statusModal = document.getElementById('statusModal');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    
+    const toggleSidebar = () => { sidebar.classList.toggle('active'); modalOverlay.classList.toggle('active'); };
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    sidebar.addEventListener('click', (e) => e.stopPropagation());
+    
+    const closeModal = () => { statusModal.classList.remove('active'); if (!sidebar.classList.contains('active')) modalOverlay.classList.remove('active'); };
+    modalOverlay.addEventListener('click', () => { if (sidebar.classList.contains('active')) toggleSidebar(); if (statusModal.classList.contains('active')) closeModal(); });
+    modalCloseBtn.addEventListener('click', closeModal);
+    
+    const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    const showToast = (message, isSuccess = true) => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        toast.style.backgroundColor = isSuccess ? 'var(--color-success)' : 'var(--color-danger)';
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+    };
+
+    const updateOrder = async (userId, orderId, actionCell) => {
+        const newStatus = actionCell.querySelector('.action-select').value;
+        const newSn = actionCell.querySelector('.action-input').value;
+        const button = actionCell.querySelector('.save-status-btn');
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px;"></span>';
+
+        try {
+            const response = await fetch('/admin/update-order-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, orderId, newStatus, newSn })
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.message);
+            showToast(result.message, true);
+            const orderToUpdate = allOrders.find(d => d.id === orderId);
+            if (orderToUpdate) {
+                orderToUpdate.status = newStatus;
+                orderToUpdate.sn = newSn;
+            }
+            renderPage(allOrders);
+        } catch (error) {
+            showToast(error.message, false);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-check-lg"></i>';
+        }
+    };
+
+    const renderTable = (orders) => {
+        const tableBody = document.getElementById('ordersTableBody');
+        if (!orders || orders.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 3rem;">Tidak ada data order ditemukan.</td></tr>`;
+            return;
+        }
+        tableBody.innerHTML = orders.map(item => `
+            <tr>
+                <td>${item.id}</td><td>${item.username}</td><td>${item.layanan}</td><td>${item.target}</td><td>${item.sn || '-'}</td><td>${formatRupiah(item.price)}</td>
+                <td><span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span></td>
+                <td class="action-cell">
+                    <select class="action-select">
+                        <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="success" ${item.status === 'success' ? 'selected' : ''}>Success</option>
+                        <option value="failed" ${item.status === 'failed' ? 'selected' : ''}>Failed</option>
+                    </select>
+                    <input type="text" class="action-input" placeholder="SN baru..." value="${item.sn || ''}">
+                    <button class="action-btn save-status-btn" data-user-id="${item.userId}" data-order-id="${item.id}"><i class="bi bi-check-lg"></i></button>
+                </td>
+            </tr>`).join('');
+        document.querySelectorAll('.save-status-btn').forEach(button => button.addEventListener('click', (e) => {
+            const { userId, orderId } = e.currentTarget.dataset;
+            updateOrder(userId, orderId, e.currentTarget.parentElement);
+        }));
+    };
+    
+    const renderPage = (orders) => {
+        let totalSuccess = 0, totalOther = 0;
+        orders.forEach(o => {
+            const price = parseFloat(o.price) || 0;
+            if (o.status === 'success') {
+                totalSuccess += price;
+            } else {
+                totalOther += price;
+            }
+        });
+        document.getElementById('totalOrderSuccess').textContent = formatRupiah(totalSuccess);
+        document.getElementById('totalOrderOther').textContent = formatRupiah(totalOther);
+        document.getElementById('totalAllOrder').textContent = formatRupiah(totalSuccess + totalOther);
+        renderTable(orders);
+    };
+
+    document.getElementById('checkStatusForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const trxId = document.getElementById('checkStatusId').value;
+        if (!trxId) { showToast('ID Transaksi tidak boleh kosong.', false); return; }
+        const button = e.currentTarget.querySelector('button');
+        button.disabled = true; button.innerHTML = '<span class="spinner"></span>';
+        try {
+            const response = await (await fetch(`/admin/check-order?id=${trxId}`)).json();
+            const body = document.getElementById('statusModalBody');
+            if (response.success) {
+                const d = response.detail;
+                body.innerHTML = `<dl class="detail-grid">
+                    <dt>Status</dt><dd><span class="status-badge status-${response.status.toLowerCase()}">${response.status}</span></dd>
+                    <dt>ID</dt><dd>${d.id}</dd><dt>Ref ID</dt><dd>${d.reff_id}</dd>
+                    <dt>Layanan</dt><dd>${d.layanan}</dd><dt>Target</dt><dd>${d.target}</dd>
+                    <dt>Harga Provider</dt><dd>${formatRupiah(d.harga)}</dd>
+                    <dt>SN/Keterangan</dt><dd><code>${d.sn || '-'}</code></dd>
+                    <dt>Waktu</dt><dd>${new Date(d.waktu).toLocaleString('id-ID')}</dd>
+                </dl>`;
+            } else { body.innerHTML = `<p style="text-align:center;color:var(--color-danger);">${response.message}</p>`; }
+            statusModal.classList.add('active'); modalOverlay.classList.add('active');
+        } catch (error) { showToast('Gagal menghubungi server.', false); } 
+        finally { button.disabled = false; button.innerHTML = '<i class="bi bi-search"></i> Cek'; }
+    });
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filtered = allOrders.filter(o => o.id.toLowerCase().includes(searchTerm) || o.username.toLowerCase().includes(searchTerm) || o.layanan.toLowerCase().includes(searchTerm) || o.target.toLowerCase().includes(searchTerm) );
+        renderTable(filtered);
+    });
+
+    const loadData = async () => {
+        try {
+            const users = await (await fetch('/admin/data/users')).json();
+            const orders = [];
+            users.forEach(user => {
+                if (Array.isArray(user.historyOrder)) {
+                    user.historyOrder.forEach(order => orders.push({ ...order, userId: user._id, username: user.username }));
+                }
+            });
+            allOrders = orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            renderPage(allOrders);
+        } catch (error) {
+            console.error('Gagal memuat data order:', error);
+            document.getElementById('ordersTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 3rem; color:var(--color-danger);">Gagal memuat data.</td></tr>`;
+        }
+    };
+    
+    loadData();
+});
+</script>
+</body>
+</html>

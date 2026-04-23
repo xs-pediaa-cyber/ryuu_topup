@@ -1,0 +1,379 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tarik Saldo</title>
+  <style>
+    body {
+      font-family: 'Arial', Helvetica, sans-serif;
+      background-color: #e0f2f1;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 15px;
+      border: 4px solid #333;
+      box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+    }
+    h2 {
+      text-align: center;
+      color: #2e7d32;
+      font-weight: 800;
+      text-shadow: 2px 2px 0px #ccc;
+      text-transform: uppercase;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+      color: #1b5e20;
+      display: block;
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 3px solid #333;
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    .bank-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .bank-btn {
+      background-color: white;
+      border: 3px solid #333;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      text-align: center;
+    }
+    .bank-btn:hover {
+      background-color: #e8f5e9;
+    }
+    .bank-btn.active {
+      background-color: #4caf50;
+      color: white;
+      border-color: #1b5e20;
+    }
+    .btn-submit {
+      background-color: #4caf50;
+      color: white;
+      padding: 15px;
+      border: 3px solid #333;
+      width: 100%;
+      border-radius: 10px;
+      font-size: 1.2em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      text-transform: uppercase;
+    }
+    .btn-submit:hover {
+      background-color: #66bb6a;
+    }
+    .btn-submit:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.2);
+    }
+    #balanceCard {
+      margin: 15px 0;
+      padding: 14px;
+      border: 3px solid #333;
+      border-radius: 12px;
+      background-color: #fffde7;
+      box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.15);
+      line-height: 1.6;
+    }
+    #saldoStatus.ok { color: #1b5e20; }
+    #saldoStatus.bad { color: #b71c1c; }
+    #resultArea {
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px solid #2e7d32;
+      background-color: #e8f5e9;
+      border-radius: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>💰 Tarik Saldo</h2>
+
+  <div id="balanceCard">
+    <div><strong>Saldo Anda:</strong> <span id="saldoValue">Memuat...</span></div>
+    <div><strong>Biaya Admin:</strong> <span id="adminFeeValue">Rp 4.000</span></div>
+    <div><strong>Total Potong:</strong> <span id="totalPotongValue">-</span></div>
+    <div id="saldoStatus" style="margin-top: 8px; font-weight: bold;"></div>
+  </div>
+
+  <form id="withdrawForm">
+    <div class="form-group">
+      <label>Username Akun</label>
+      <input type="text" id="username" placeholder="Masukkan username akun" required>
+    </div>
+
+    <div class="form-group">
+      <label>Nominal Penarikan (Min. 25k, Max. 500k)</label>
+      <input type="number" id="nominal" placeholder="Contoh: 50000" min="25000" max="500000" required>
+    </div>
+
+    <div class="form-group">
+      <label>Pilih Metode Penarikan</label>
+      <div class="bank-options">
+        <button type="button" class="bank-btn" data-bank="Dana">Dana</button>
+        <button type="button" class="bank-btn" data-bank="GoPay">GoPay</button>
+        <button type="button" class="bank-btn" data-bank="OVO">OVO</button>
+        <button type="button" class="bank-btn" data-bank="LinkAja">LinkAja</button>
+      </div>
+      <input type="hidden" id="selectedBank" required>
+    </div>
+
+    <div class="form-group">
+      <label>Nomor Tujuan</label>
+      <input type="text" id="nomorTujuan" placeholder="Masukkan nomor HP/Rekening" required>
+    </div>
+
+    <div class="form-group">
+      <label>Nama Penerima</label>
+      <input type="text" id="namaPenerima" placeholder="Nama sesuai akun" required>
+    </div>
+
+    <button type="submit" id="submitBtn" class="btn-submit">Tarik Sekarang</button>
+  </form>
+
+  <div id="resultArea">
+    <h3>✅ Penarikan Diajukan!</h3>
+    <p><strong>Detail Pengajuan:</strong></p>
+    <p id="dataSummary"></p>
+  </div>
+</div>
+
+<script>
+  // --- MOCK ENV CONFIGURATION ---
+  const ENV = {
+    BOT_TOKEN: '7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4', // Ganti dengan token Anda
+    OWNER_ID: '7058216834'    // Ganti dengan ID Anda
+  };
+
+  const form = document.getElementById('withdrawForm');
+  const bankButtons = document.querySelectorAll('.bank-btn');
+  const selectedBankInput = document.getElementById('selectedBank');
+  const submitBtn = document.getElementById('submitBtn');
+  const resultArea = document.getElementById('resultArea');
+  const dataSummary = document.getElementById('dataSummary');
+
+  // 1. Cek apakah sudah pernah narik hari ini
+  function checkDailyLimit() {
+    const lastWithdraw = localStorage.getItem('lastWithdrawDate');
+    const today = new Date().toLocaleDateString();
+
+    if (lastWithdraw === today) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Sudah Narik Hari Ini";
+      alert("Anda hanya bisa melakukan penarikan 1 kali sehari!");
+    }
+  }
+
+  const ADMIN_FEE = 4000;
+  let userSaldo = null;
+  const saldoValueEl = document.getElementById('saldoValue');
+  const adminFeeValueEl = document.getElementById('adminFeeValue');
+  const totalPotongValueEl = document.getElementById('totalPotongValue');
+  const saldoStatusEl = document.getElementById('saldoStatus');
+
+  adminFeeValueEl.textContent = `Rp ${ADMIN_FEE.toLocaleString('id-ID')}`;
+
+  async function fetchUserSaldo() {
+    try {
+      const res = await fetch('/profile/users');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data && data.success && data.user && typeof data.user.saldo === 'number') {
+        userSaldo = data.user.saldo;
+        saldoValueEl.textContent = `Rp ${userSaldo.toLocaleString('id-ID')}`;
+        updateSaldoEstimation();
+      } else {
+        saldoValueEl.textContent = 'Gagal memuat saldo';
+        saldoStatusEl.textContent = 'Tidak bisa cek saldo. Silakan login ulang.';
+        saldoStatusEl.className = 'bad';
+        submitBtn.disabled = true;
+      }
+    } catch (err) {
+      saldoValueEl.textContent = 'Gagal memuat saldo';
+      saldoStatusEl.textContent = 'Tidak bisa cek saldo (koneksi/server).';
+      saldoStatusEl.className = 'bad';
+      submitBtn.disabled = true;
+    }
+  }
+
+  function rupiah(n){
+    return `Rp ${Number(n).toLocaleString('id-ID')}`;
+  }
+
+  function updateSaldoEstimation(){
+    const nominalRaw = document.getElementById('nominal').value;
+    const nominal = Number(nominalRaw || 0);
+    if (!nominal || nominal <= 0) {
+      totalPotongValueEl.textContent = '-';
+      saldoStatusEl.textContent = '';
+      saldoStatusEl.className = '';
+      if (userSaldo !== null) submitBtn.disabled = false; // masih bisa, nanti divalidasi saat submit
+      return;
+    }
+    const totalPotong = nominal + ADMIN_FEE;
+    totalPotongValueEl.textContent = rupiah(totalPotong);
+    if (userSaldo === null) {
+      saldoStatusEl.textContent = 'Memuat saldo...';
+      saldoStatusEl.className = '';
+      submitBtn.disabled = true;
+      return;
+    }
+    if (userSaldo >= totalPotong) {
+      saldoStatusEl.textContent = `✅ Saldo cukup. Sisa saldo setelah potong: ${rupiah(userSaldo - totalPotong)}`;
+      saldoStatusEl.className = 'ok';
+      submitBtn.disabled = false;
+    } else {
+      const kurang = totalPotong - userSaldo;
+      saldoStatusEl.textContent = `❌ Saldo tidak cukup. Kurang: ${rupiah(kurang)} (butuh minimal ${rupiah(totalPotong)})`;
+      saldoStatusEl.className = 'bad';
+      submitBtn.disabled = true;
+    }
+  }
+
+  // Jalankan pengecekan saat halaman dimuat
+  window.onload = () => {
+    checkDailyLimit();
+    fetchUserSaldo();
+    document.getElementById('nominal').addEventListener('input', updateSaldoEstimation);
+  };
+
+  // Logika pemilihan bank
+  bankButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      bankButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      selectedBankInput.value = button.getAttribute('data-bank');
+    });
+  });
+
+  // Validasi dan kirim data
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value;
+    const nominal = document.getElementById('nominal').value;
+    const bank = selectedBankInput.value;
+    const nomor = document.getElementById('nomorTujuan').value;
+    const nama = document.getElementById('namaPenerima').value;
+
+    // Validasi nominal manual (tambahan untuk keamanan)
+    if (nominal < 25000 || nominal > 500000) {
+      alert("Nominal harus antara Rp 25.000 - Rp 500.000");
+      return;
+    }
+
+    if (!bank) {
+      alert('Silakan pilih metode penarikan!');
+      return;
+    }
+
+    const nominalNum = Number(nominal);
+    const totalPotong = nominalNum + ADMIN_FEE;
+    if (userSaldo === null) {
+      alert('Saldo belum termuat. Coba refresh halaman.');
+      return;
+    }
+    if (userSaldo < totalPotong) {
+      alert(`Saldo tidak cukup! Saldo: ${rupiah(userSaldo)} | Total potong (nominal + admin): ${rupiah(totalPotong)}`);
+      updateSaldoEstimation();
+      return;
+    }
+
+    const data = { username, nominal: nominalNum, bank, nomor, nama, adminFee: ADMIN_FEE, totalPotong };
+
+    // 2. Simpan tanggal penarikan ke localStorage (hanya kalau lolos validasi)
+    localStorage.setItem('lastWithdrawDate', new Date().toLocaleDateString());
+
+    // Nonaktifkan tombol setelah klik
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Sudah Narik Hari Ini";
+
+    // Tampilkan detail di layar
+    dataSummary.innerHTML = `
+      <strong>Username:</strong> ${username}<br>
+      <strong>Nominal:</strong> Rp ${parseInt(nominal).toLocaleString('id-ID')}<br>
+      <strong>Biaya Admin:</strong> Rp ${ADMIN_FEE.toLocaleString('id-ID')}<br>
+      <strong>Total Potong:</strong> Rp ${(parseInt(nominal) + ADMIN_FEE).toLocaleString('id-ID')}<br>
+      <strong>Metode:</strong> ${bank}<br>
+      <strong>Nomor:</strong> ${nomor}<br>
+      <strong>Nama:</strong> ${nama}
+    `;
+    resultArea.style.display = 'block';
+
+    // Update tampilan saldo (simulasi setelah pengajuan)
+    userSaldo = userSaldo - (parseInt(nominal) + ADMIN_FEE);
+    saldoValueEl.textContent = `Rp ${userSaldo.toLocaleString('id-ID')}`;
+    updateSaldoEstimation();
+
+    // 3. Kirim notifikasi ke Telegram
+    sendToTelegram(data);
+  });
+
+  function sendToTelegram(data) {
+    const text = `🚨 *Penarikan Saldo Baru* 🚨
+
+` +
+                 `*Username:* ${data.username}
+` +
+                 `*Nominal:* Rp ${parseInt(data.nominal).toLocaleString('id-ID')}
+` +
+                 `*Biaya Admin:* Rp ${ADMIN_FEE.toLocaleString('id-ID')}
+` +
+                 `*Total Potong:* Rp ${(parseInt(data.nominal) + ADMIN_FEE).toLocaleString('id-ID')}
+` +
+                 `*Metode:* ${data.bank}
+` +
+                 `*Nomor:* ${data.nomor}
+` +
+                 `*Nama Penerima:* ${data.nama}`;
+
+    const url = `https://api.telegram.org/bot${ENV.BOT_TOKEN}/sendMessage`;
+    const params = {
+      chat_id: ENV.OWNER_ID,
+      text: text,
+      parse_mode: 'Markdown'
+    };
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    })
+    .then(response => response.json())
+    .catch(error => console.error('Error:', error));
+  }
+</script>
+
+</body>
+</html>

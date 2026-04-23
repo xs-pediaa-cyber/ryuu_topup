@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xiao TopUp API Documentation</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-hue: 140;
+            --primary-color: hsl(var(--primary-hue), 85%, 60%);
+            --primary-dark: hsl(var(--primary-hue), 85%, 50%);
+            --secondary-color: hsl(305, 75%, 65%);
+            --accent-color: hsl(285, 80%, 65%);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --bg-primary: #ffffff;
+            --bg-secondary: hsl(var(--primary-hue), 85%, 98%);
+            --bg-tertiary: hsl(var(--primary-hue), 85%, 96%);
+            --border-color: hsl(var(--primary-hue), 50%, 92%);
+            --shadow-sm: 0 1px 2px 0 hsla(var(--primary-hue), 50%, 50%, .05);
+            --shadow-md: 0 4px 6px -1px hsla(var(--primary-hue), 50%, 50%, .1), 0 2px 4px -1px hsla(var(--primary-hue), 50%, 50%, .06);
+            --shadow-lg: 0 10px 15px -3px hsla(var(--primary-hue), 50%, 50%, .1), 0 4px 6px -2px hsla(var(--primary-hue), 50%, 50%, .05);
+            --shadow-xl: 0 20px 25px -5px hsla(var(--primary-hue), 50%, 50%, .1), 0 10px 10px -5px hsla(var(--primary-hue), 50%, 50%, .04);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: hsl(140, 90%, 70%);
+            --primary-dark: hsl(140, 90%, 60%);
+            --secondary-color: hsl(305, 80%, 75%);
+            --accent-color: hsl(285, 85%, 75%);
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --bg-primary: #1f1218;
+            --bg-secondary: #2c1a24;
+            --bg-tertiary: #442837;
+            --border-color: #513243;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 80px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(45deg, #ffffff, #fce7f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 1000;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .theme-toggle #theme-icon i {
+            font-size: 1.1em;
+            transition: transform 0.3s ease;
+        }
+        .theme-toggle:hover #theme-icon i {
+            transform: rotate(15deg);
+        }
+
+
+        .main-content {
+            padding: 80px 0;
+        }
+
+        .nav-section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 48px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .nav-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .nav-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .nav-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .section {
+            margin-bottom: 64px;
+            scroll-margin-top: 100px; /* Adjust based on fixed header height if any */
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-description {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            line-height: 1.7;
+        }
+
+        .endpoint-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .endpoint-card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .method-badge {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .method-get {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+        }
+
+        .method-post {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+        }
+
+        .endpoint-url {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            background: var(--bg-primary);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            flex: 1;
+            min-width: 300px;
+            word-break: break-all;
+        }
+
+        .endpoint-title, .params-title, .auth-title, .footer h3 {
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .endpoint-title { font-size: 1.5rem; }
+        .params-title { font-size: 1.125rem; }
+        .auth-title { font-size: 1.75rem; }
+        .footer h3 { font-size: 1.5rem; }
+
+
+        .endpoint-description {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .params-section {
+            margin-bottom: 32px;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .params-table th {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .params-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+
+        .params-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .params-table .param-name {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .param-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .param-type {
+            background: var(--bg-tertiary);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .required-badge, .optional-badge {
+            padding: 3px 9px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            color: white;
+        }
+
+        .required-badge {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+        }
+
+        .optional-badge {
+            background: linear-gradient(135deg, var(--text-muted), #6b7280);
+        }
+
+        .code-section {
+            margin-bottom: 32px;
+        }
+
+        .code-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: var(--bg-tertiary);
+            padding: 4px;
+            border-radius: var(--radius-lg);
+        }
+
+        .code-tab {
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 1;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .code-tab.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .code-header {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .copy-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .copy-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .copy-button .fas {
+            transition: transform 0.2s ease;
+        }
+        .copy-button:active .fas {
+            transform: scale(0.9);
+        }
+
+        .code-content {
+            padding: 20px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            color: var(--text-primary);
+        }
+
+        .response-section {
+            margin-top: 32px;
+        }
+
+        .response-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            background: var(--bg-tertiary);
+            padding: 4px;
+            border-radius: var(--radius-lg);
+        }
+
+        .response-tab {
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 1;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .response-tab.active {
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+        .response-tab.active:not(.error) { background: var(--success-color); }
+        .response-tab.error.active { background: var(--error-color); }
+
+
+        .auth-section {
+            background: linear-gradient(135deg, var(--accent-color), #BE185D); /* Modified accent color */
+            color: white;
+            padding: 32px;
+            border-radius: var(--radius-xl);
+            margin-bottom: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E") repeat;
+        }
+
+        .auth-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-description {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .auth-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .auth-method {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .auth-method:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+
+        .auth-method h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .auth-method p {
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .status-badges {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-200 {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            color: white;
+        }
+
+        .status-400 {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            color: white;
+        }
+
+        .status-401 {
+            background: linear-gradient(135deg, var(--error-color), #dc2626);
+            color: white;
+        }
+
+        .status-403 {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+        }
+
+        .status-500 {
+            background: linear-gradient(135deg, #1f2937, #111827);
+            color: white;
+        }
+
+        .footer {
+            background: var(--bg-secondary);
+            padding: 48px 0;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .footer p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .header {
+                padding: 60px 0;
+            }
+
+            .header h1 {
+                font-size: 2.5rem;
+                gap: 0.5rem;
+            }
+
+            .header p {
+                font-size: 1.125rem;
+            }
+
+            .main-content {
+                padding: 60px 0;
+            }
+
+            .section-title {
+                font-size: 2rem;
+                gap: 0.5rem;
+            }
+
+            .endpoint-card {
+                padding: 24px;
+            }
+
+            .endpoint-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .endpoint-url {
+                min-width: auto;
+            }
+
+            .nav-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .code-tabs, .response-tabs {
+                flex-direction: column;
+            }
+            .code-tab, .response-tab {
+                 justify-content: flex-start;
+                 padding-left: 16px;
+            }
+
+            .auth-methods {
+                grid-template-columns: 1fr;
+            }
+
+            .theme-toggle {
+                top: 16px;
+                right: 16px;
+                padding: 10px 14px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .scroll-smooth {
+            scroll-behavior: smooth;
+        }
+
+        .me-1 { margin-right: 0.25rem !important; }
+        .me-2 { margin-right: 0.5rem !important; }
+        .fas, .fab {
+            vertical-align: middle; /* Better alignment with text */
+        }
+    </style>
+
+<style>
+:root {
+    --primary-hue: 145;
+    --primary-color: #22ff88;
+    --primary-dark: #18cc6a;
+    --secondary-color: #00cc66;
+    --accent-color: #00e676;
+}
+
+body {
+    background: linear-gradient(180deg, #f6fff9 0%, #ecfff5 100%);
+}
+
+.header {
+    background: linear-gradient(135deg, #1aff8c 0%, #00cc66 100%);
+    box-shadow: 0 0 40px rgba(0, 255, 140, 0.15);
+}
+
+.nav-card:hover,
+.endpoint-card:hover {
+    box-shadow: 0 0 25px rgba(0, 255, 140, 0.18);
+    border-color: #22ff88;
+}
+
+.method-post,
+.copy-button,
+.code-tab.active {
+    box-shadow: 0 0 12px rgba(0, 255, 140, 0.25);
+}
+
+.section-title {
+    text-shadow: 0 0 10px rgba(0, 255, 140, 0.15);
+}
+
+.endpoint-card {
+    backdrop-filter: blur(6px);
+}
+
+.footer {
+    background: linear-gradient(180deg, #f0fff7 0%, #e6fff2 100%);
+}
+</style>
+
+
+<style>
+/* ===== GLOBAL STABILITY FIX ===== */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+.container, .endpoint-card, .nav-card, table {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Prevent text overflow */
+code, pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Make tables responsive */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+/* Responsive typography */
+h1, h2, h3 {
+    word-wrap: break-word;
+}
+
+/* Fix buttons & badges overflow */
+button, .method-post, .method-get {
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+/* Mobile padding adjustment */
+@media (max-width: 768px) {
+    .endpoint-card {
+        padding: 16px;
+    }
+
+    .header {
+        padding: 20px 16px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+}
+</style>
+
+
+<style>
+/* ===== TABLE SCROLL FIX PERFECT ===== */
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    min-width: 600px; /* ensure table can scroll instead of shrinking */
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px 14px;
+    text-align: left;
+    white-space: nowrap; /* prevent vertical broken letters */
+}
+
+@media (max-width: 768px) {
+    table {
+        min-width: 700px; /* force scroll on small screens */
+    }
+}
+</style>
+
+
+<style>
+/* === Card Grid 2 Kolom Tengah === */
+.api-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.api-card {
+  padding: 14px !important;
+  border-radius: 14px !important;
+  font-size: 14px;
+}
+.api-card h3 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.api-card p {
+  font-size: 13px;
+  line-height: 1.4;
+}
+@media (max-width: 480px) {
+  .api-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+
+<style>
+/* === Samakan ukuran card response & contoh === */
+.response-box,
+.code-box,
+.example-box,
+pre,
+.code-block {
+  padding: 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+  line-height: 1.45;
+}
+
+.response-box h3,
+.code-box h3,
+.example-box h3 {
+  font-size: 15px !important;
+}
+
+/* Badge 200 OK */
+.status-badge {
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  border-radius: 999px;
+}
+
+/* Tab respons (QRIS / Bank / Gagal) */
+.response-tabs button {
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+}
+</style>
+
+
+<style>
+/* === GLOBAL SMALL CARD STANDARD === */
+.card,
+.box,
+.section-box,
+.api-card,
+.endpoint-box,
+.response-box,
+.example-box,
+.code-box,
+pre,
+.code-block,
+table,
+.param-table,
+.method-box {
+  padding: 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.card h1, .card h2, .card h3,
+.section-box h2, .section-box h3,
+.endpoint-box h3,
+.response-box h3 {
+  font-size: 15px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Status / badge */
+.badge,
+.status-badge {
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  border-radius: 999px !important;
+}
+
+/* Tabs & buttons */
+.tabs button,
+.response-tabs button,
+.method-tabs button {
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  border-radius: 12px !important;
+}
+
+/* Table spacing */
+table th, table td {
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+}
+</style>
+
+
+<style>
+/* === TEXT INTRO BOX (Profil, Deposit, dll) === */
+.section-intro,
+.section-desc,
+.intro-text {
+  background: rgba(255,255,255,0.65);
+  padding: 14px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  margin: 12px 0 16px 0 !important;
+}
+
+/* Heading dalam intro */
+.section-intro h1,
+.section-intro h2,
+.section-intro h3 {
+  font-size: 18px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Teks paragraf */
+.section-intro p,
+.section-desc p,
+.intro-text p {
+  font-size: 13px !important;
+  margin: 0 !important;
+}
+</style>
+
+
+<style>
+.deposit-box{
+  background:#fff;
+  padding:16px;
+  border-radius:12px;
+  border:2px solid #000;
+  max-width:92%;
+  margin:12px auto;
+  box-shadow:none;
+}
+</style>
+
+
+<style>
+/* Samakan ukuran dengan box endpoint/profile */
+.deposit-box{
+  width:100%;
+  padding:18px;
+  border-radius:14px;
+  margin-top:14px;
+  background:var(--card-bg);
+  border:1.5px solid #000;
+}
+
+/* Dark mode stroke neon putih */
+.dark .deposit-box{
+  border:1.5px solid #fff;
+  box-shadow:0 0 8px rgba(255,255,255,0.9);
+}
+</style>
+
+
+<style>
+/* Samakan persis dengan endpoint box */
+.api-card .deposit-box{
+  width:calc(100% - 32px);
+  margin:16px auto 0 auto;
+  padding:16px;
+  border-radius:12px;
+  border:1.5px solid #000;
+  box-sizing:border-box;
+}
+
+/* Dark mode */
+.dark .api-card .deposit-box{
+  border:1.5px solid #fff;
+  box-shadow:0 0 8px rgba(255,255,255,0.9);
+}
+</style>
+
+
+<style id="comic-style-overrides">
+/* ===== COMIC STYLE OVERRIDES ===== */
+:root{
+  --ink:#111827;
+  --paper:#ffffff;
+  --paper2:#f6fff9;
+  --panel:#ffffff;
+  --panel2:#f0fff7;
+  --shadow-comic: 6px 6px 0 var(--ink);
+  --shadow-comic-sm: 4px 4px 0 var(--ink);
+  --radius-comic: 18px;
+}
+
+/* Comic paper background */
+body{
+  font-family: "Comic Neue", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(17,24,39,.10) 1px, transparent 0) 0 0/16px 16px,
+    linear-gradient(180deg, var(--paper2) 0%, #ecfff5 100%) !important;
+  color: var(--text-primary);
+}
+
+/* Headings pop like comic */
+.header h1,
+.section-title,
+.auth-title,
+.endpoint-title{
+  font-family: "Bangers", "Comic Neue", system-ui, sans-serif !important;
+  letter-spacing: 1px;
+  -webkit-text-fill-color: unset !important;
+  background: none !important;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.15);
+}
+
+/* Panels / cards: thick outlines + offset shadow */
+.nav-section,
+.endpoint-card,
+.nav-card,
+.code-block,
+.params-table,
+.footer,
+.auth-section{
+  border: 3px solid var(--ink) !important;
+  border-radius: var(--radius-comic) !important;
+  box-shadow: var(--shadow-comic) !important;
+}
+
+/* Keep hover fun but not too floaty */
+.nav-card:hover,
+.endpoint-card:hover{
+  transform: translateY(-2px) !important;
+  box-shadow: 8px 8px 0 var(--ink) !important;
+}
+
+/* Card top highlight bar: make it comic strip */
+.nav-card::before{
+  height: 6px !important;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--primary-color),
+    var(--primary-color) 10px,
+    var(--secondary-color) 10px,
+    var(--secondary-color) 20px
+  ) !important;
+}
+
+/* Buttons: comic chunky but compact */
+button,
+.code-tab,
+.response-tab,
+.copy-button,
+.theme-toggle{
+  font-family: "Comic Neue", system-ui, sans-serif !important;
+  border: 3px solid var(--ink) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-comic-sm) !important;
+  padding: 8px 12px !important;
+  font-weight: 800 !important;
+}
+
+.theme-toggle{
+  border-radius: 999px !important;
+  padding: 10px 14px !important;
+}
+
+/* Active tabs */
+.code-tab.active,
+.response-tab.active{
+  filter: saturate(1.05);
+}
+
+/* Badge & pills */
+.method-badge,
+.status-badge,
+.required-badge,
+.optional-badge,
+.param-type{
+  border: 2px solid rgba(0,0,0,.35) !important;
+  box-shadow: 2px 2px 0 rgba(0,0,0,.25) !important;
+}
+
+/* Code blocks: readable but still comic */
+.code-content,
+.endpoint-url,
+.param-name{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+/* Tables */
+.params-table th, .params-table td{
+  border-bottom: 2px solid rgba(17,24,39,.15) !important;
+}
+
+/* Reduce giant paddings (keep neat) */
+.header{ padding: 64px 0 !important; }
+.main-content{ padding: 56px 0 !important; }
+.endpoint-card{ padding: 22px !important; }
+.nav-section{ padding: 22px !important; }
+
+/* Mobile: soften shadow offset */
+@media (max-width: 768px){
+  .nav-section,
+  .endpoint-card,
+  .nav-card,
+  .code-block,
+  .params-table,
+  .footer,
+  .auth-section{
+    box-shadow: 4px 4px 0 var(--ink) !important;
+  }
+}
+</style>
+
+</head>
+<body class="scroll-smooth">
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon"><i class="fas fa-moon"></i></span>
+        <span id="theme-text">Dark</span>
+    </button>
+
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1><i class="fas fa-book-open"></i>Xiao TopUp API</h1>
+                <p>Dokumentasi lengkap untuk API topup dan layanan digital Xiao TopUp. Bangun aplikasi hebat dengan endpoint kami yang kuat dan aman.</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <section class="nav-section">
+                <div class="nav-grid">
+
+                    <div class="nav-card" onclick="scrollToSection('profile')">
+                        <h3><i class="fas fa-user-circle"></i> Profil Pengguna</h3>
+                        <p>Ambil informasi profil pengguna dan detail akun</p>
+
+                    </div>
+                    <div class="nav-card" onclick="scrollToSection('deposits')">
+                        <h3><i class="fas fa-credit-card"></i> Manajemen Deposit</h3>
+                        <p>Tangani pembuatan, pengecekan status, dan pembatalan deposit</p>
+                    </div>
+                    <div class="nav-card" onclick="scrollToSection('services')">
+                        <h3><i class="fas fa-shopping-cart"></i> Pesanan Layanan</h3>
+                        <div class="section-intro"><p>Buat dan kelola pesanan layanan untuk produk digital</p></div>
+                    </div>
+            </section>
+
+
+            <section id="profile" class="section">
+                <h2 class="section-title"><i class="fas fa-id-card-alt"></i>Api Profile</h2>
+                <p class="section-description">
+                </p>
+
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/profile</code>
+                    </div>
+                    
+                    <h3 class="endpoint-title"><i class="fas fa-user"></i>Profil</h3>
+                    <p class="endpoint-description">
+                        Mengambil informasi profil Akun
+                    </p>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'profile-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'profile-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'profile-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="profile-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('profile-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="profile-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/profile" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="profile-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('profile-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="profile-js-code">const response = await fetch('https://topup.xiao-store.web.id/h2h/profile', {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="profile-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('profile-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="profile-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/profile"
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="response-tabs">
+                            <button class="response-tab active" onclick="showResponseTab(this, 'profile-success')"><i class="fas fa-check-circle"></i>Respons Sukses</button>
+                            <button class="response-tab error" onclick="showResponseTab(this, 'profile-error')"><i class="fas fa-exclamation-triangle"></i>Respons Gagal</button>
+                        </div>
+
+                        <div id="profile-success" class="code-block">
+                            <div class="code-header">
+                                <span>200 OK</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+                            <div class="code-content">{
+  "success": true,
+  "user": {
+    "fullname": "Xiao",
+    "username": "Xiao",
+    "nomor": "085143569870",
+    "email": "Xiao@example.com",
+    "profileUrl": "https://example.com/avatar.jpg",
+    "saldo": 15000,
+    "coin": 50,
+    "tanggalDaftar": "2024-01-15T10:30:00.000Z",
+    "role": "reseller",
+    "isVerified": true,
+    "lastLogin": "2024-12-26T08:15:30.000Z",
+    "referralCode": "JOHNDOE123"
+  }
+}</div>
+                        </div>
+
+                        <div id="profile-error" class="code-block hidden">
+                            <div class="code-header">
+                                <span>500 Internal Server Error</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-500"><i class="fas fa-bomb"></i>500 Error</span>
+                                </div>
+                            </div>
+                            <div class="code-content">{
+  "success": false,
+  "message": "Internal server error"
+}</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="deposits" class="section">
+                <h2 class="section-title"><i class="fas fa-money-bill-wave"></i>Api Deposit</h2>
+                <p class="section-description">
+                </p>
+
+               <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/deposit/create</code>
+                    </div>
+<div class="api-content"><h3 class="endpoint-title"><i class="fas fa-plus-circle"></i>Buat Deposit</h3>
+                    <p class="endpoint-description">
+                        Membuat transaksi deposit baru dengan jumlah dan metode pembayaran yang ditentukan.
+                    </p></div>
+
+                    <div class="params-section">
+                        <h4 class="params-title"><i class="fas fa-sliders-h"></i>Parameter Kueri</h4>
+                        <div class="table-responsive"><table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Tipe</th>
+                                    <th>Wajib</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="param-name">nominal</span></td>
+                                    <td><span class="param-type"><i class="fas fa-hashtag me-1"></i>integer</span></td>
+                                    <td><span class="required-badge"><i class="fas fa-exclamation-circle me-1"></i>Wajib</span></td>
+                                    <td></td>
+                                </tr>
+
+                                </tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'create-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'create-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'create-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="create-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('create-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="create-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/deposit/create?nominal=25000&metode=QRISFAST" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="create-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('create-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="create-js-code">const params = new URLSearchParams({
+  nominal: '25000',
+  metode: 'QRISFAST'
+});
+
+const response = await fetch(`https://topup.xiao-store.web.id/h2h/deposit/create?${params}`, {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="create-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('create-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="create-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/deposit/create"
+params = {
+    "nominal": "25000",
+    "metode": "QRISFAST"
+}
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="response-tabs">
+                            <button class="response-tab active" onclick="showResponseTab(this, 'create-success')"><i class="fas fa-qrcode"></i>Respons QRIS</button>
+                            <button class="response-tab" onclick="showResponseTab(this, 'create-bank')"><i class="fas fa-university"></i>Respons Bank</button>
+                            <button class="response-tab error" onclick="showResponseTab(this, 'create-error')"><i class="fas fa-exclamation-triangle"></i>Respons Gagal</button>
+                        </div>
+
+                        <div id="create-success" class="code-block">
+                            <div class="code-header">
+                                <span>200 OK - Pembayaran QRIS</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+<div class="code-content">{
+  "success": true,
+  "data": {
+    "id": "ID_TRX_DEPO",
+    "nominal": 2000,
+    "qr_image": "Link_Qris",
+    "fee": 2,
+    "get_balance": 1998,
+    "status": "pending"
+  }
+}</div>
+                        </div>
+
+                        <div id="create-bank" class="code-block hidden">
+                            <div class="code-header">
+                                <span>200 OK - Transfer Bank</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+<div class="code-content">{
+  "success": true,
+  "data": {
+    "id": "ID_TRX_DEPO",
+    "nominal": 2000,
+    "qr_image": "Link_Qris",
+    "fee": 2,
+    "get_balance": 1998,
+    "status": "pending"
+  }
+}</div>
+                        </div>
+
+                        <div id="create-error" class="code-block hidden">
+                            <div class="code-header">
+                                <span>400 Bad Request</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-400"><i class="fas fa-exclamation-triangle"></i>400 Error</span>
+                                </div>
+                            </div>
+                            <div class="code-content">{
+  "success": false,
+  "message": "Nominal harus diisi dan berupa angka."
+}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/deposit/status</code>
+                    </div>
+                    
+                    <h3 class="endpoint-title"><i class="fas fa-tasks"></i>Cek Status Deposit</h3>
+                    <p class="endpoint-description">
+                        Memeriksa status terkini dari transaksi deposit menggunakan ID deposit.
+                    </p>
+
+                    <div class="params-section">
+                        <h4 class="params-title"><i class="fas fa-sliders-h"></i>Parameter Kueri</h4>
+                        <div class="table-responsive"><table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Tipe</th>
+                                    <th>Wajib</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="param-name">id</span></td>
+                                    <td><span class="param-type"><i class="fas fa-font me-1"></i>string</span></td>
+                                    <td><span class="required-badge"><i class="fas fa-exclamation-circle me-1"></i>Wajib</span></td>
+                                    <td>ID deposit</td>
+                                </tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'status-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'status-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'status-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="status-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('status-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="status-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/deposit/status?id=ID_TRX_DEPO" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="status-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('status-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="status-js-code">const params = new URLSearchParams({
+  id: 'ID_TRX_DEPO'
+});
+
+const response = await fetch(`https://topup.xiao-store.web.id/h2h/deposit/status?${params}`, {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="status-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('status-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="status-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/deposit/status"
+params = {
+    "id": "ID_TRX_DEPO"
+}
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>200 OK</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+<div class="code-content">{
+  "success": true,
+  "data": {
+    "id": "ID_TRX_DEPO",
+    "status": "success",
+    "nominal": 2000,
+    "fee": 2,
+    "get_balance": 1998
+  }
+}</div>
+
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/deposit/cancel</code>
+                    </div>
+                    
+                    <h3 class="endpoint-title"><i class="fas fa-ban"></i>Batalkan Deposit</h3>
+                    <p class="endpoint-description">
+                        Membatalkan transaksi deposit yang tertunda menggunakan ID deposit.
+                    </p>
+
+                    <div class="params-section">
+                        <h4 class="params-title"><i class="fas fa-sliders-h"></i>Parameter Kueri</h4>
+                        <div class="table-responsive"><table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Tipe</th>
+                                    <th>Wajib</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="param-name">id</span></td>
+                                    <td><span class="param-type"><i class="fas fa-font me-1"></i>string</span></td>
+                                    <td><span class="required-badge"><i class="fas fa-exclamation-circle me-1"></i>Wajib</span></td>
+                                    <td>ID transaksi deposit untuk dibatalkan</td>
+                                </tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'cancel-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'cancel-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'cancel-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="cancel-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('cancel-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="cancel-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/deposit/cancel?id=ID_TRX_DEPO" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="cancel-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('cancel-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="cancel-js-code">const params = new URLSearchParams({
+  id: 'ID_TRX_DEPO'
+});
+
+const response = await fetch(`https://topup.xiao-store.web.id/h2h/deposit/cancel?${params}`, {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="cancel-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('cancel-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="cancel-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/deposit/cancel"
+params = {
+    "id": "ID_TRX_DEPO"
+}
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>200 OK</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+<div class="code-content">{
+  "status": "success",
+  "message": "Transaction cancelled successfully",
+  "data": {
+    "trx_id": "lD_TRX_DEPO",
+    "new_status": "CANCELLED"
+  }
+}</div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="services" class="section">
+                <h2 class="section-title"><i class="fas fa-tags"></i>Api Layanan</h2>
+                <p class="section-description">
+                </p>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/layanan/price-list</code>
+                    </div>
+                    
+                    <h3 class="endpoint-title"><i class="fas fa-dollar-sign"></i>Dapatkan Daftar Harga Layanan</h3>
+                    <p class="endpoint-description">
+                        Mengambil daftar harga lengkap untuk semua layanan digital yang tersedia termasuk pulsa, paket data, dan produk digital lainnya.
+                    </p>
+
+                    <div class="params-section">
+                        <h4 class="params-title"><i class="fas fa-sliders-h"></i>Parameter Kueri</h4>
+                        <div class="table-responsive"><table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Tipe</th>
+                                    <th>Wajib</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="param-name">code</span></td>
+                                    <td><span class="param-type"><i class="fas fa-font me-1"></i>string</span></td>
+                                    <td><span class="optional-badge"><i class="fas fa-info-circle me-1"></i>Opsional</span></td>
+                                    <td>Filter berdasarkan kode layanan tertentu</td>
+                                </tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'pricelist-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'pricelist-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'pricelist-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="pricelist-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('pricelist-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="pricelist-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/layanan/price-list" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="pricelist-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('pricelist-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="pricelist-js-code">const response = await fetch('https://topup.xiao-store.web.id/h2h/layanan/price-list', {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="pricelist-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('pricelist-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="pricelist-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/layanan/price-list"
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>200 OK</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+                            <div class="code-content">{
+  "success": true,
+  "data": [
+    {
+      "code": "TSEL5GB",
+      "name": "Telkomsel Data 5GB 30 Hari",
+      "category": "Data Internet",
+      "type": "Nasional",
+      "provider": "TELKOMSEL",
+      "price": "45000",
+      "note": "Telkomsel Data 5GB berlaku 30 hari",
+      "status": "available",
+      "img_url": "https://topup.xiao-store.web.id/images/telkomsel.png"
+    },
+    {
+      "code": "XL10K",
+      "name": "XL Pulsa 10.000",
+      "category": "Pulsa Reguler",
+      "type": "Nasional",
+      "provider": "XL",
+      "price": "10500",
+      "note": "XL Pulsa 10.000",
+      "status": "available",
+      "img_url": "https://topup.xiao-store.web.id/images/xl.png"
+    }
+  ]
+}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/order/create</code>
+                    </div>
+                    
+                    <h3 class="endpoint-title"><i class="fas fa-cart-plus"></i>Buat Pesanan Layanan</h3>
+                    <p class="endpoint-description">
+                        Membuat pesanan baru untuk layanan digital seperti pulsa, paket data, atau produk digital lainnya.
+                    </p>
+
+                    <div class="params-section">
+                        <h4 class="params-title"><i class="fas fa-sliders-h"></i>Parameter Kueri</h4>
+                        <div class="table-responsive"><table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Tipe</th>
+                                    <th>Wajib</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="param-name">code</span></td>
+                                    <td><span class="param-type"><i class="fas fa-font me-1"></i>string</span></td>
+                                    <td><span class="required-badge"><i class="fas fa-exclamation-circle me-1"></i>Wajib</span></td>
+                                    <td>Kode layanan dari daftar harga</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="param-name">tujuan</span></td>
+                                    <td><span class="param-type"><i class="fas fa-font me-1"></i>string</span></td>
+                                    <td><span class="required-badge"><i class="fas fa-exclamation-circle me-1"></i>Wajib</span></td>
+                                    <td>Nomor telepon atau akun tujuan</td>
+                                </tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'order-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'order-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'order-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="order-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('order-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="order-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/order/create?code=TSEL5GB&tujuan=081234567890" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="order-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('order-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="order-js-code">const params = new URLSearchParams({
+  code: 'TSEL5GB',
+  tujuan: '081234567890'
+});
+
+const response = await fetch(`https://topup.xiao-store.web.id/h2h/order/create?${params}`, {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="order-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('order-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="order-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/order/create"
+params = {
+    "code": "TSEL5GB",
+    "tujuan": "081234567890"
+}
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>200 OK</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+                            <div class="code-content">{
+  "success": true,
+  "data": {
+    "id": "ORDER123ABC456",
+    "reff_id": "TRX-ORDER789",
+    "layanan": "Telkomsel Data 5GB 30 Hari",
+    "code": "TSEL5GB",
+    "target": "081234567890",
+    "price": "45000",
+    "sn": null,
+    "status": "pending",
+    "created_at": "2024-12-26 16:45:00"
+  }
+}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method-badge method-get"><i class="fas fa-download"></i>GET</span>
+                        <code class="endpoint-url">https://topup.xiao-store.web.id/h2h/order/check</code>
+                    </div>
+                    
+                    <h3 class="endpoint-title"><i class="fas fa-search"></i>Cek Status Pesanan</h3>
+                    <p class="endpoint-description">
+                        Memeriksa status terkini dari pesanan layanan dan mengambil nomor seri jika pesanan telah selesai.
+                    </p>
+
+                    <div class="params-section">
+                        <h4 class="params-title"><i class="fas fa-sliders-h"></i>Parameter Kueri</h4>
+                        <div class="table-responsive"><table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Tipe</th>
+                                    <th>Wajib</th>
+                                    <th>Deskripsi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="param-name">id</span></td>
+                                    <td><span class="param-type"><i class="fas fa-font me-1"></i>string</span></td>
+                                    <td><span class="required-badge"><i class="fas fa-exclamation-circle me-1"></i>Wajib</span></td>
+                                    <td>ID transaksi pesanan</td>
+                                </tr>
+                            </tbody>
+                        </table></div>
+                    </div>
+
+                    <div class="code-section">
+                        <div class="code-tabs">
+                            <button class="code-tab active" onclick="showCodeTab(this, 'check-curl')"><i class="fas fa-terminal"></i>cURL</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'check-js')"><i class="fab fa-js-square"></i>JavaScript</button>
+                            <button class="code-tab" onclick="showCodeTab(this, 'check-python')"><i class="fab fa-python"></i>Python</button>
+                        </div>
+
+                        <div id="check-curl" class="code-block">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('check-curl-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="check-curl-code">curl -X GET "https://topup.xiao-store.web.id/h2h/order/check?id=ORDER123ABC456" \
+  -H "X-APIKEY: your_api_key_here"</div>
+                        </div>
+
+                        <div id="check-js" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('check-js-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="check-js-code">const params = new URLSearchParams({
+  id: 'ORDER123ABC456'
+});
+
+const response = await fetch(`https://topup.xiao-store.web.id/h2h/order/check?${params}`, {
+  method: 'GET',
+  headers: {
+    'X-APIKEY': 'your_api_key_here',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+console.log(data);</div>
+                        </div>
+
+                        <div id="check-python" class="code-block hidden">
+                            <div class="code-header">
+                                <span>Contoh Permintaan</span>
+                                <button class="copy-button" onclick="copyCode('check-python-code')"><i class="fas fa-copy"></i>Salin</button>
+                            </div>
+                            <div class="code-content" id="check-python-code">import requests
+
+url = "https://topup.xiao-store.web.id/h2h/order/check"
+params = {
+    "id": "ORDER123ABC456"
+}
+headers = {
+    "X-APIKEY": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+print(data)</div>
+                        </div>
+                    </div>
+
+                    <div class="response-section">
+                        <h4 class="params-title"><i class="fas fa-reply"></i>Respons</h4>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>200 OK</span>
+                                <div class="status-badges">
+                                    <span class="status-badge status-200"><i class="fas fa-check-circle"></i>200 OK</span>
+                                </div>
+                            </div>
+                            <div class="code-content">{
+  "status": true,
+  "data": {
+    "id": "ORDER123ABC456",
+    "reff_id": "TRX-ORDER789",
+    "layanan": "Telkomsel Data 5GB 30 Hari",
+    "code": "TSEL5GB",
+    "target": "081234567890",
+    "price": "45000",
+    "sn": "SN123456789012345678901234567890",
+    "status": "success",
+    "created_at": "2024-12-26 16:45:00"
+  },
+  "code": 200
+}</div>
+
+
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <h3><i class="fas fa-rocket"></i>Siap Memulai?</h3>
+                <p>
+                    Mulai berintegrasi dengan API Xiao TopUp hari ini. Dokumentasi dan contoh kami yang komprehensif akan membantu Anda membangun aplikasi yang hebat dengan cepat dan efisien.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeIcon.innerHTML = '<i class="fas fa-moon"></i>';
+                themeText.textContent = 'Dark';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.innerHTML = '<i class="fas fa-sun"></i>';
+                themeText.textContent = 'Light';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.body.setAttribute('data-theme', 'dark');
+                themeIcon.innerHTML = '<i class="fas fa-sun"></i>';
+                themeText.textContent = 'Light';
+            } else {
+                themeIcon.innerHTML = '<i class="fas fa-moon"></i>';
+                themeText.textContent = 'Dark';
+            }
+        }
+
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function showCodeTab(button, targetId) {
+            const parent = button.parentElement;
+            const container = parent.parentElement;
+            
+            parent.querySelectorAll('.code-tab').forEach(tab => tab.classList.remove('active'));
+            button.classList.add('active');
+            
+            container.querySelectorAll('.code-block:not(.hidden)').forEach(block => block.classList.add('hidden'));
+            const targetBlock = document.getElementById(targetId);
+            if (targetBlock) {
+                 targetBlock.classList.remove('hidden');
+                 targetBlock.classList.add('fade-in');
+            }
+        }
+
+        function showResponseTab(button, targetId) {
+            const parent = button.parentElement;
+            const container = parent.parentElement;
+            
+            parent.querySelectorAll('.response-tab').forEach(tab => tab.classList.remove('active'));
+            button.classList.add('active');
+            
+            container.querySelectorAll('.code-block:not(.hidden)').forEach(block => block.classList.add('hidden'));
+            const targetBlock = document.getElementById(targetId);
+            if (targetBlock) {
+                 targetBlock.classList.remove('hidden');
+                 targetBlock.classList.add('fade-in');
+            }
+        }
+
+        function copyCode(codeContentId) {
+            const codeContentElement = document.getElementById(codeContentId);
+            if (!codeContentElement) return;
+
+            const textToCopy = codeContentElement.textContent;
+            
+            const codeBlockElement = codeContentElement.closest('.code-block');
+            if (!codeBlockElement) return;
+
+            const button = codeBlockElement.querySelector('.copy-button');
+            if (!button) return;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                button.style.background = 'var(--success-color)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.style.background = 'var(--primary-color)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-times me-1"></i>Failed';
+                button.style.background = 'var(--error-color)';
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.style.background = 'var(--primary-color)';
+                }, 2000);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            
+            const observerOptions = {
+                threshold: 0.05,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                        obs.unobserve(entry.target); 
+                    }
+                });
+            }, observerOptions);
+            
+            document.querySelectorAll('.endpoint-card, .nav-card, .section > *:not(.section-title):not(.section-description)').forEach(el => {
+                observer.observe(el);
+            });
+        });
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                const themeIcon = document.getElementById('theme-icon');
+                const themeText = document.getElementById('theme-text');
+                
+                if (e.matches) {
+                    document.body.setAttribute('data-theme', 'dark');
+                    themeIcon.innerHTML = '<i class="fas fa-sun"></i>';
+                    themeText.textContent = 'Light';
+                } else {
+                    document.body.removeAttribute('data-theme');
+                    themeIcon.innerHTML = '<i class="fas fa-moon"></i>';
+                    themeText.textContent = 'Dark';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

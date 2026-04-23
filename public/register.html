@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Atau Register - Xiao-Store-TopUp</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* Tema Warna Hijau Komik */
+            --primary: #32CD32; /* LimeGreen Komik */
+            --primary-dark: #228B22; /* ForestGreen */
+            --secondary: #006400; /* DarkGreen */
+            --dark: #000000;
+            --light: #FFFFFF;
+            --border-style: 4px solid var(--dark);
+            --shadow-style: 6px 6px 0px rgba(0,0,0,0.3);
+            --border-radius: 0px; /* Sudut tajam khas komik/pixel */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* Menggunakan font pixel untuk semua elemen */
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        body {
+            background-color: #e0eee0;
+            color: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            /* Background pola bintik komik (dot pattern) */
+            background-image: radial-gradient(#c1cdc1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: var(--light);
+            border: var(--border-style);
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            min-height: 600px;
+        }
+
+        .auth-illustration {
+            flex: 1;
+            background-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--dark);
+            border-right: var(--border-style);
+            /* Efek halftone dot komik */
+            background-image: radial-gradient(var(--secondary) 2px, transparent 2px);
+            background-size: 30px 30px;
+            text-shadow: 2px 2px 0px var(--light);
+        }
+
+        .illustration-content {
+            text-align: center;
+        }
+
+        .illustration-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .illustration-content p {
+            font-size: 0.7rem;
+            line-height: 1.6;
+        }
+
+        .illustration-img {
+            max-width: 150px;
+            margin-bottom: 1.5rem;
+            /* Efek outline pada gambar */
+            filter: drop-shadow(4px 4px 0px var(--dark));
+        }
+
+        .auth-form-wrapper {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: white;
+        }
+
+        .auth-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .auth-header .logo-text {
+            font-size: 1rem;
+            color: var(--dark);
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .auth-tabs {
+            display: flex;
+            border-bottom: var(--border-style);
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .auth-tab {
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            font-size: 0.7rem;
+            border: var(--border-style);
+            border-bottom: none;
+            margin: 0 5px;
+            background: #eee;
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            background-color: var(--primary);
+            color: var(--dark);
+            transform: translateY(4px);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-title {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            text-transform: uppercase;
+            border-bottom: var(--border-style);
+            padding-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem;
+            border: var(--border-style);
+            font-size: 0.7rem;
+            background-color: var(--light);
+            color: var(--dark);
+        }
+        
+        .form-control:focus {
+            outline: none;
+            background-color: #e0ffe0;
+        }
+
+        .input-icon {
+            left: 1rem;
+            position: absolute;
+            top: 60%;
+            color: var(--dark);
+        }
+        
+        .form-control-with-icon {
+            padding-left: 2.5rem;
+        }
+
+        .password-toggle {
+            right: 1rem;
+            position: absolute;
+            top: 60%;
+            cursor: pointer;
+            color: var(--dark);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background-color: var(--primary);
+            color: var(--dark);
+            border: var(--border-style);
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-style);
+            transition: all 0.1s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            color: var(--light);
+        }
+
+        .btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px rgba(0,0,0,0.2);
+        }
+
+        .form-footer {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.5rem;
+        }
+
+        .form-footer a {
+            color: var(--secondary);
+            text-decoration: none;
+        }
+
+        .alert {
+            padding: 1rem;
+            border: var(--border-style);
+            margin-bottom: 1rem;
+            font-size: 0.6rem;
+            display: none; 
+            align-items: center;
+            background-color: #fff;
+        }
+
+        .alert-error {
+            background-color: #ffcccc;
+            color: #990000;
+        }
+        
+        .alert-success {
+            background-color: #ccffcc;
+            color: #006600;
+        }
+        .alert-info {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .auth-page-footer {
+            margin-top: 2rem;
+            font-size: 0.5rem;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+            }
+            .auth-illustration {
+                border-right: none;
+                border-bottom: var(--border-style);
+                padding: 1rem;
+            }
+            .illustration-img { max-width: 80px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-illustration">
+            <div class="illustration-content">
+                <img src="https://files.catbox.moe/ekzjc8.jpg" alt="Icon" class="illustration-img">
+                <h2>XIAO-STORE TOP-UP!</h2>
+                <p>PLATFORM H2H NO.1! GABUNG SEKARANG!</p>
+            </div>
+        </div>
+        <div class="auth-form-wrapper">
+            <div class="auth-header">
+                <div class="logo-text">XIAO-STORE</div>
+                <div class="auth-tabs">
+                    <div class="auth-tab active" data-tab="login">MASUK</div>
+                    <div class="auth-tab" data-tab="register">DAFTAR</div>
+                </div>
+            </div>
+
+            <div id="alertBox" class="alert">
+                <span class="alert-message"></span>
+            </div>
+
+            <form id="loginForm" class="auth-form active" method="POST" action="/auth/login">
+                <h2 class="form-title">LOGIN</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" class="form-control form-control-with-icon" id="loginUsername" name="usernameOrEmail" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" class="form-control form-control-with-icon" id="loginPassword" name="password" required>
+                </div>
+                
+                <div class="form-footer" style="text-align: right; margin-bottom: 1rem; margin-top: -0.5rem;">
+                    <a href="#" id="forgotPasswordLink">Lupa password?</a>
+                </div>
+
+                <button type="submit" class="btn">GAS MASUK!</button>
+            </form>
+
+            <form id="registerForm" class="auth-form" method="POST" action="/auth/register">
+                <h2 class="form-title">DAFTAR</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" class="form-control" name="fullname" id="regFullname" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" name="username" id="regUsername" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" name="email" id="regEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">No HP</label>
+                    <input type="tel" class="form-control" name="nomor" id="regNomor" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" name="password" id="regPassword" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">URL Foto Profil (Opsional)</label>
+                    <input type="url" class="form-control" name="profileUrl" id="regProfileUrl" placeholder="https://example.com/photo.jpg">
+                </div>
+                
+                <button type="submit" class="btn">DAFTAR SEKARANG!</button>
+                
+                <div class="form-footer">
+                    Sudah punya akun? <a href="#" id="switchToLoginLink">Login di sini</a>
+                </div>
+            </form>
+
+            <div class="auth-page-footer">
+                <p>© 2026 XIAO-STORE-TOPUP.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI TELEGRAM ---
+        const TELEGRAM_BOT_TOKEN = '7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4';
+        const TELEGRAM_OWNER_ID = '7058216834';
+        // ---------------------------
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const forms = document.querySelectorAll('.auth-form');
+            const alertBox = document.getElementById('alertBox');
+            const alertMessageEl = alertBox.querySelector('.alert-message');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    forms.forEach(f => f.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    const tabName = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabName}Form`).classList.add('active');
+                    alertBox.style.display = 'none';
+                });
+            });
+
+            document.getElementById('switchToLoginLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelector('.auth-tab[data-tab="login"]').click();
+            });
+
+            // Fungsi Waktu WIB
+            function getWIBTime() {
+                const now = new Date();
+                return now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+            }
+
+            // Fungsi Kirim Telegram
+            async function sendTelegramNotification(type, data) {
+                let message = "";
+                const time = getWIBTime();
+
+                if (type === 'login') {
+                    message = `
+⚠️ **PERCOBAAN LOGIN**
+User: ${data.username}
+Waktu: ${time} WIB
+                    `;
+                } else if (type === 'register') {
+                    message = `
+🔔 **USER BARU TERDAFTAR**
+Nama: ${data.fullname}
+Username: ${data.username}
+Email: ${data.email}
+No HP: ${data.nomor}
+URL Profil: ${data.profileUrl || '-'}
+Waktu: ${time} WIB
+                    `;
+                }
+                
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+                
+                try {
+                    await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            chat_id: TELEGRAM_OWNER_ID, 
+                            text: message, 
+                            parse_mode: 'Markdown' 
+                        })
+                    });
+                } catch (error) {
+                    console.error('Gagal mengirim telegram:', error);
+                }
+            }
+
+            // Handler Form Login
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+
+                alertMessageEl.textContent = 'Memeriksa...';
+                alertBox.className = 'alert alert-info';
+                alertBox.style.display = 'flex';
+
+                try {
+                    // 1. Kirim ke Backend Anda
+                    const response = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ usernameOrEmail: username, password: password })
+                    });
+                    
+                    const result = await response.json();
+
+                    // 2. Kirim Notifikasi Telegram (LOGIN)
+                    await sendTelegramNotification('login', { username });
+
+                    if (result.success) {
+                        alertMessageEl.textContent = 'Login Berhasil! Masuk...';
+                        alertBox.className = 'alert alert-success';
+                        setTimeout(() => { window.location.href = result.redirectUrl || '/dashboard'; }, 1000);
+                    } else {
+                        throw new Error(result.message || 'Login gagal.');
+                    }
+                } catch (error) {
+                    alertMessageEl.textContent = error.message;
+                    alertBox.className = 'alert alert-error';
+                }
+            });
+
+            // Handler Form Register
+            document.getElementById('registerForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = {
+                    fullname: document.getElementById('regFullname').value,
+                    username: document.getElementById('regUsername').value,
+                    email: document.getElementById('regEmail').value,
+                    nomor: document.getElementById('regNomor').value,
+                    password: document.getElementById('regPassword').value,
+                    profileUrl: document.getElementById('regProfileUrl').value
+                };
+
+                alertMessageEl.textContent = 'Memproses...';
+                alertBox.className = 'alert alert-info';
+                alertBox.style.display = 'flex';
+
+                try {
+                    const response = await fetch('/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    // FIX: backend Anda mengirim redirect HTML saat sukses (res.redirect),
+                    // jadi jangan langsung response.json() karena akan error "Unexpected token <"
+                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                    let result = null;
+
+                    if (contentType.includes('application/json')) {
+                        result = await response.json();
+                    } else {
+                        // Bisa jadi HTML (redirect page / error page)
+                        // Ambil text untuk debugging ringan bila dibutuhkan
+                        const text = await response.text();
+                        result = { _nonJson: true, ok: response.ok, redirected: response.redirected, status: response.status, text };
+                    }
+
+                    // Sukses jika:
+                    // - response.ok & (redirected / nonJson)  -> sukses (backend redirect ke /auth/login)
+                    // - atau JSON success true
+                    const isSuccess = (result && result.success === true) || (response.ok && (response.redirected || result?._nonJson));
+
+                    if (isSuccess) {
+                        // OPTIONAL: Notif telegram (jika tetap mau)
+                        // Catatan: token bot sebaiknya jangan ditaruh di frontend (rawan bocor)
+                        await sendTelegramNotification('register', formData);
+
+                        alertMessageEl.textContent = 'Registrasi Berhasil! Silakan login.';
+                        alertBox.className = 'alert alert-success';
+
+                        // Jika backend sudah redirect, ikuti lokasinya
+                        if (response.redirected && response.url) {
+                            setTimeout(() => { window.location.href = response.url; }, 700);
+                            return;
+                        }
+
+                        // Default: pindah ke tab login
+                        setTimeout(() => {
+                            document.querySelector('.auth-tab[data-tab="login"]').click();
+                        }, 900);
+                    } else {
+                        // Error dari backend JSON (index.js mengirim {error: "..."})
+                        const msg = result?.error || result?.message || `Registrasi gagal (HTTP ${response.status})`;
+                        throw new Error(msg);
+                    }
+                } catch (error) {
+                    alertMessageEl.textContent = 'Maaf, ' + (error.message || 'Terjadi kesalahan.');
+                    alertBox.className = 'alert alert-error';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

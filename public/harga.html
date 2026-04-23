@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Top Up Saldo DANA</title>
+  <style>
+    /* ===== COMIC GREEN THEME (tetap CSS komik) ===== */
+    :root{
+      --g-900:#0b3d1e;
+      --g-800:#0f552a;
+      --g-700:#137a37;
+      --g-600:#1aa845;
+      --g-500:#2fd35a;
+      --g-200:#c8ffd8;
+      --paper:#f7fff9;
+      --ink:#101413;
+      --stroke:3px;
+      --radius:18px;
+      --shadow:6px 6px 0 rgba(0,0,0,.85);
+      --shadow-soft:10px 10px 0 rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 8px 8px, rgba(0,0,0,.08) 1.2px, transparent 1.3px) 0 0/16px 16px,
+        linear-gradient(180deg, var(--paper), #eafff0);
+      font-family:"Comic Neue","Comic Sans MS","Trebuchet MS",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    /* ===== APP SHELL ===== */
+    .app{
+      max-width:520px;
+      margin:0 auto;
+      min-height:100dvh;
+      background:transparent;
+    }
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      background:linear-gradient(180deg, var(--g-700), var(--g-800));
+      color:#fff;
+      padding:12px 12px 14px;
+      border-bottom:var(--stroke) solid #000;
+      box-shadow:0 6px 0 rgba(0,0,0,.25);
+    }
+    .toprow{
+      display:flex; align-items:center; gap:10px;
+    }
+    .topbtn{
+      width:42px; height:38px;
+      display:grid; place-items:center;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:4px 4px 0 rgba(0,0,0,.85);
+      color:#111;
+      cursor:pointer;
+      text-decoration:none;
+      font-weight:900;
+      user-select:none;
+    }
+    .topbtn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(0,0,0,.85)}
+    .title{
+      flex:1;
+      font-weight:1000;
+      letter-spacing:.4px;
+      text-transform:capitalize;
+      font-size:1.05rem;
+      text-shadow:2px 2px 0 rgba(0,0,0,.2);
+    }
+
+    .content{padding:14px 12px 110px;}
+    .card{
+      border:var(--stroke) solid #000;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .inputbox{padding:14px}
+    .field{
+      display:flex; align-items:center; gap:10px;
+      border:var(--stroke) solid #000;
+      border-radius:16px;
+      background:var(--paper);
+      box-shadow:4px 4px 0 rgba(0,0,0,.25);
+      padding:12px 12px;
+    }
+    .field input{
+      border:none; outline:none;
+      width:100%;
+      background:transparent;
+      font-weight:900;
+      font-size:0.95rem;
+    }
+    .icon{
+      width:34px;height:34px;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      display:grid;place-items:center;
+      background:linear-gradient(180deg,var(--g-200),#fff);
+      box-shadow:3px 3px 0 rgba(0,0,0,.75);
+      font-weight:900;
+      user-select:none;
+    }
+
+    .section{ margin-top:14px; }
+    .section-head{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:4px 2px 10px;
+    }
+    .section-head h2{
+      margin:0;
+      font-size:1.05rem;
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+    .tools{ display:flex; gap:10px; align-items:center; }
+    .toolbtn{
+      width:38px; height:38px;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:4px 4px 0 rgba(0,0,0,.25);
+      display:grid;place-items:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:1000;
+    }
+    .toolbtn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(0,0,0,.25)}
+
+    /* ===== NOMINAL LIST ===== */
+    .list{ display:flex; flex-direction:column; gap:12px; }
+    .nominal{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px 14px;
+      border:var(--stroke) solid #000;
+      border-radius:20px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      user-select:none;
+    }
+    .nominal:active{transform:translate(2px,2px);box-shadow:3px 3px 0 rgba(0,0,0,.85)}
+    .nominal .thumb{
+      width:54px;height:44px;
+      border:var(--stroke) solid #000;
+      border-radius:16px;
+      background:linear-gradient(180deg, var(--g-200), #fff);
+      box-shadow:4px 4px 0 rgba(0,0,0,.35);
+      display:grid;place-items:center;
+      font-weight:1000;
+    }
+    .nominal .meta{flex:1; min-width:0;}
+    .nominal .name{
+      font-weight:1000;
+      font-size:1.02rem;
+      margin:0;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .nominal .sub{
+      margin:2px 0 0;
+      opacity:.72;
+      font-weight:900;
+      font-size:.85rem;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .nominal .price{
+      font-weight:1000;
+      color:var(--g-900);
+      font-size:1.0rem;
+      min-width:92px;
+      text-align:right;
+    }
+    .nominal.selected{
+      background:linear-gradient(180deg, rgba(47,211,90,.35), rgba(200,255,216,.70));
+      outline:3px solid #111;
+      box-shadow:inset 0 0 0 3px rgba(0,0,0,.12), var(--shadow);
+    }
+
+    .notice{
+      margin-top:10px;
+      display:none;
+      border:var(--stroke) solid #000;
+      border-radius:16px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+      font-weight:900;
+    }
+
+    /* ===== BOTTOM SHEET (RINCIAN) ===== */
+    .sheet-backdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.48);
+      backdrop-filter:blur(2px);
+      z-index:80;
+      display:none;
+    }
+    .sheet{
+      position:fixed; left:0; right:0; bottom:0;
+      z-index:90;
+      max-width:520px;
+      margin:0 auto;
+      transform:translateY(110%);
+      transition:transform .22s ease;
+      padding:0 12px 10px;
+      pointer-events:none;
+    }
+    .sheet.open{transform:translateY(0); pointer-events:auto;}
+    .sheet-card{
+      border:var(--stroke) solid #000;
+      border-radius:24px 24px 0 0;
+      background:#fff;
+      box-shadow:0 -10px 0 rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .sheet-head{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:12px 14px;
+      background:linear-gradient(180deg, var(--g-700), var(--g-800));
+      color:#fff;
+      border-bottom:var(--stroke) solid #000;
+      font-weight:1000;
+    }
+    .sheet-head .left{ display:flex; align-items:center; gap:10px; }
+    .hamb{
+      width:38px;height:34px;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      background:#fff;
+      color:#111;
+      display:grid;place-items:center;
+      box-shadow:4px 4px 0 rgba(0,0,0,.6);
+      font-weight:1000;
+    }
+    .sheet-head .chev{
+      width:40px;height:34px;
+      border:var(--stroke) solid #000;
+      border-radius:14px;
+      background:#fff;
+      color:#111;
+      display:grid;place-items:center;
+      box-shadow:4px 4px 0 rgba(0,0,0,.6);
+      cursor:pointer;
+      font-weight:1000;
+      user-select:none;
+    }
+    .sheet-body{padding:14px}
+    .row{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:10px 0;
+      border-bottom:2px dashed rgba(0,0,0,.22);
+      font-weight:900;
+    }
+    .row:last-child{border-bottom:none}
+    .muted{opacity:.72}
+    .pay{
+      margin-top:12px;
+      border:var(--stroke) solid #000;
+      border-radius:18px;
+      background:linear-gradient(180deg, var(--g-200), #fff);
+      box-shadow:4px 4px 0 rgba(0,0,0,.25);
+      padding:12px;
+    }
+    .pay .payrow{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      font-weight:1000;
+    }
+    .pay .chip{
+      display:flex; align-items:center; gap:10px;
+      min-width:0;
+    }
+    .wallet{
+      width:40px;height:40px;border:var(--stroke) solid #000;border-radius:16px;
+      display:grid;place-items:center;background:#fff;box-shadow:3px 3px 0 rgba(0,0,0,.35);
+      font-weight:1000;
+      flex:0 0 auto;
+    }
+    .paymeta{min-width:0}
+    .paymeta .line1{font-weight:1000;line-height:1.05;}
+    .paymeta .line2{font-weight:900}
+    .buybar{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-top:12px;
+    }
+    .buybar .total{
+      font-weight:1000;
+      color:var(--g-900);
+      font-size:1.2rem;
+    }
+    .buy{
+      border:var(--stroke) solid #000;
+      border-radius:18px;
+      padding:12px 14px;
+      background:var(--g-600);
+      box-shadow:5px 5px 0 rgba(0,0,0,.85);
+      font-weight:1000;
+      cursor:pointer;
+      user-select:none;
+      text-transform:uppercase;
+    }
+    .buy:disabled{
+      opacity:.45; cursor:not-allowed;
+      box-shadow:4px 4px 0 rgba(0,0,0,.35);
+      background:#b9c8bf;
+    }
+    .buy:active:not(:disabled){transform:translate(2px,2px);box-shadow:3px 3px 0 rgba(0,0,0,.85)}
+
+    /* little shake */
+    .shake{ animation: shake .35s linear; }
+    @keyframes shake{
+      0%{transform:translateX(0)}
+      25%{transform:translateX(-4px)}
+      50%{transform:translateX(4px)}
+      75%{transform:translateX(-3px)}
+      100%{transform:translateX(0)}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="toprow">
+        <a class="topbtn" id="backBtn" href="produk-detail.html" aria-label="Kembali">←</a>
+        <div class="title" id="pageTitle">Top Up Saldo DANA</div>
+        <button class="topbtn" id="reloadBtn" type="button" aria-label="Reload">⟳</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="inputbox">
+          <div class="field">
+            <span class="icon">☎</span>
+            <input id="tujuan" inputmode="numeric" autocomplete="tel" type="tel" placeholder="Nomor HP" />
+            <span class="icon" title="Kontak">👤</span>
+          </div>
+
+          <div class="notice" id="inlineNotice"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <h2>Pilihan Nominal</h2>
+          <div class="tools">
+            <!-- yang tersisa hanya tombol cari (sesuai permintaan hapus ikon lain) -->
+            <button class="toolbtn" id="searchToggle" title="Cari">🔎</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:12px;display:none" id="searchWrap">
+          <div class="field" style="box-shadow:none">
+            <span class="icon">🔎</span>
+            <input id="search" type="text" placeholder="Cari layanan... (nama/kode)" />
+            <button class="topbtn" id="clearSearch" type="button" aria-label="Hapus">✖</button>
+          </div>
+        </div>
+
+        <div class="list" id="list">
+          <div class="nominal"><div class="thumb">Rp</div><div class="meta"><p class="name">Memuat...</p><p class="sub">Top Up Saldo DANA</p></div><div class="price">…</div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Backdrop + Bottom Sheet Rincian -->
+  <div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true"></div>
+  <div class="sheet" id="sheet" aria-label="Rincian">
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <div class="left">
+          <div class="hamb">≡</div>
+          <div>Rincian</div>
+        </div>
+        <div class="chev" id="sheetToggle" aria-label="Tutup">⌄</div>
+      </div>
+      <div class="sheet-body">
+        <div class="row"><span class="muted">Pilihan Nominal</span><b id="sumNama">-</b></div>
+        <div class="row"><span class="muted">Nomor HP</span><b id="sumTujuan">-</b></div>
+
+        <div class="pay">
+          <div class="muted" style="font-weight:1000;margin-bottom:8px;">Metode Pembayaran</div>
+          <div class="payrow">
+            <div class="chip">
+              <div class="wallet">👛</div>
+              <div class="paymeta">
+                <div class="line1">Saldo Akun</div>
+                <div class="muted line2" id="saldoAkun">Memuat saldo...</div>
+              </div>
+            </div>
+            <div style="font-weight:1000;">›</div>
+          </div>
+        </div>
+
+        <div class="buybar">
+          <div class="total" id="sumHarga">0</div>
+          <button class="buy" id="buyBtn" type="button" disabled>BELI SEKARANG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== params (tetap support halaman sebelumnya) =====
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get("category") || "";
+    const provider = params.get("provider") || "DANA";
+
+    const backBtn = document.getElementById("backBtn");
+    const pageTitle = document.getElementById("pageTitle");
+    const reloadBtn = document.getElementById("reloadBtn");
+
+    // Back button keeps context
+    const backQ = new URLSearchParams();
+    if (category) backQ.set("category", category);
+    if (provider) backQ.set("provider", provider);
+    backBtn.href = backQ.toString() ? `produk-detail.html?${backQ.toString()}` : "produk-detail.html";
+
+    pageTitle.textContent = provider ? `Top Up Saldo ${provider}` : "Top Up Saldo";
+
+    // ===== UI refs =====
+    const tujuan = document.getElementById("tujuan");
+    const inlineNotice = document.getElementById("inlineNotice");
+
+    const searchToggle = document.getElementById("searchToggle");
+    const searchWrap = document.getElementById("searchWrap");
+    const search = document.getElementById("search");
+    const clearSearch = document.getElementById("clearSearch");
+    const list = document.getElementById("list");
+
+    // sheet
+    const sheetBackdrop = document.getElementById("sheetBackdrop");
+    const sheet = document.getElementById("sheet");
+    const sheetToggle = document.getElementById("sheetToggle");
+    const sumNama = document.getElementById("sumNama");
+    const sumTujuan = document.getElementById("sumTujuan");
+    const sumHarga = document.getElementById("sumHarga");
+    const buyBtn = document.getElementById("buyBtn");
+    const saldoAkun = document.getElementById("saldoAkun");
+
+    function rupiah(n){
+      const x = Number(n || 0);
+      return x.toLocaleString("id-ID");
+    }
+
+    function showInlineNotice(msg){
+      inlineNotice.style.display = "block";
+      inlineNotice.textContent = msg;
+      inlineNotice.style.opacity = "1";
+      clearTimeout(showInlineNotice._t);
+      showInlineNotice._t = setTimeout(()=>{
+        inlineNotice.style.opacity = "0";
+        inlineNotice.style.display = "none";
+      }, 1800);
+    }
+
+    function requireTujuan(){
+      const v = (tujuan.value || "").trim();
+      if(!v){
+        showInlineNotice("Masukkan nomor HP dulu.");
+        tujuan.focus();
+        tujuan.classList.add("shake");
+        setTimeout(()=>tujuan.classList.remove("shake"), 450);
+        return false;
+      }
+      return true;
+    }
+
+    // ===== saldo (ambil dari dashboard: /profile/users -> user.saldo) =====
+    async function loadSaldo(){
+      try{
+        const res = await fetch("/profile/users", { method:"GET" });
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if(data && data.success && data.user && typeof data.user.saldo === "number"){
+          saldoAkun.textContent = `Rp ${data.user.saldo.toLocaleString("id-ID")}`;
+        }else{
+          saldoAkun.textContent = "Saldo tidak tersedia";
+        }
+      }catch(e){
+        saldoAkun.textContent = "Saldo tidak tersedia";
+      }
+    }
+
+    // ===== data =====
+    let all = [];
+    let view = [];
+    let selected = null;
+
+    function toNumberPrice(s){
+      const p = s.price ?? s.harga ?? 0;
+      const n = Number(String(p).replace(/[^0-9.-]/g,""));
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function openSheet(){
+      sheetBackdrop.style.display = "block";
+      sheet.classList.add("open");
+      document.body.style.overflow = "hidden";
+    }
+    function closeSheet(){
+      sheetBackdrop.style.display = "none";
+      sheet.classList.remove("open");
+      document.body.style.overflow = "";
+    }
+
+    sheetBackdrop.addEventListener("click", closeSheet);
+    sheetToggle.addEventListener("click", closeSheet);
+    window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeSheet(); });
+
+    function updateSheet(){
+      if(!selected){
+        sumNama.textContent = "-";
+        sumTujuan.textContent = "-";
+        sumHarga.textContent = "0";
+        buyBtn.disabled = true;
+        return;
+      }
+      sumNama.textContent = selected.layanan || selected.name || "-";
+      sumTujuan.textContent = (tujuan.value || "").trim() || "-";
+      sumHarga.textContent = rupiah(selected.price || selected.harga || 0);
+      buyBtn.disabled = ((tujuan.value||"").trim()==="");
+    }
+
+    tujuan.addEventListener("input", ()=>{
+      if(sheet.classList.contains("open")) updateSheet();
+      if(selected) buyBtn.disabled = ((tujuan.value||"").trim()==="");
+    });
+
+    function selectItem(s, el){
+      if(!requireTujuan()) return;
+
+      selected = s;
+      document.querySelectorAll(".nominal").forEach(x=>x.classList.remove("selected"));
+      el.classList.add("selected");
+
+      updateSheet();
+      openSheet();
+    }
+
+    function render(rows){
+      list.innerHTML = "";
+      if(!rows.length){
+        list.innerHTML = `<div class="nominal" style="cursor:default"><div class="thumb">!</div><div class="meta"><p class="name">Tidak ada layanan</p><p class="sub">Coba ganti filter/cari</p></div><div class="price">-</div></div>`;
+        return;
+      }
+      rows.forEach(s=>{
+        const el = document.createElement("div");
+        el.className = "nominal";
+        const name = s.layanan || s.name || "-";
+        const sub = "Top Up Saldo " + (provider || "DANA");
+        const price = rupiah(s.price || s.harga || 0);
+
+        el.innerHTML = `
+          <div class="thumb">Rp</div>
+          <div class="meta">
+            <p class="name">${escapeHtml(name)}</p>
+            <p class="sub">${escapeHtml(sub)}</p>
+          </div>
+          <div class="price">${price}</div>
+        `;
+        if(selected && (s.code||s.kode) && (selected.code||selected.kode) === (s.code||s.kode)){
+          el.classList.add("selected");
+        }
+        el.addEventListener("click", ()=>selectItem(s, el));
+        list.appendChild(el);
+      });
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function applySearch(){
+      const q = (search.value || "").toLowerCase().trim();
+      if(!q){ render(view); return; }
+      const filtered = view.filter(s=>{
+        const name = (s.layanan || s.name || "").toLowerCase();
+        const code = (s.code || s.kode || "").toLowerCase();
+        return name.includes(q) || code.includes(q);
+      });
+      render(filtered);
+    }
+
+    searchToggle.addEventListener("click", ()=>{
+      const open = (searchWrap.style.display !== "none" && searchWrap.style.display !== "");
+      searchWrap.style.display = open ? "none" : "block";
+      if(!open) setTimeout(()=>search.focus(), 50);
+    });
+    clearSearch.addEventListener("click", ()=>{
+      search.value = "";
+      applySearch();
+      search.focus();
+    });
+    search.addEventListener("input", ()=>{
+      clearTimeout(search._t);
+      search._t = setTimeout(applySearch, 120);
+    });
+
+    async function loadHarga(){
+      list.innerHTML = `<div class="nominal" style="cursor:default"><div class="thumb">…</div><div class="meta"><p class="name">Memuat layanan...</p><p class="sub">Mohon tunggu</p></div><div class="price">…</div></div>`;
+      try{
+        const res = await fetch("/api/webtrx/layanan/price-list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        const json = await res.json();
+
+        if (!json.success || !Array.isArray(json.data)){
+          list.innerHTML = `<div class="nominal" style="cursor:default"><div class="thumb">!</div><div class="meta"><p class="name">Gagal memuat</p><p class="sub">Format data tidak sesuai</p></div><div class="price">-</div></div>`;
+          return;
+        }
+
+        all = json.data.filter(s => !s.status || s.status === "available" || s.status === "active" || s.status === "enabled");
+
+        view = all.filter(s => {
+          const okProvider = !provider || (s.provider && String(s.provider).toLowerCase() === String(provider).toLowerCase());
+          const okCategory = !category || (s.category && String(s.category).toLowerCase() === String(category).toLowerCase());
+          return okProvider && okCategory;
+        });
+
+        view.sort((a,b)=>toNumberPrice(a)-toNumberPrice(b));
+        applySearch();
+      }catch(e){
+        list.innerHTML = `<div class="nominal" style="cursor:default"><div class="thumb">!</div><div class="meta"><p class="name">Gagal memuat layanan</p><p class="sub">Coba tekan reload</p></div><div class="price">-</div></div>`;
+      }
+    }
+
+    reloadBtn.addEventListener("click", loadHarga);
+
+    // ===== BUY =====
+    buyBtn.addEventListener("click", async ()=>{
+      if(!selected) return;
+      if(!requireTujuan()) return;
+
+      buyBtn.disabled = true;
+      const old = buyBtn.textContent;
+      buyBtn.textContent = "MEMPROSES...";
+
+      try{
+        const res = await fetch("/api/webtrx/order/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: selected.code || selected.kode,
+            tujuan: (tujuan.value || "").trim()
+          })
+        });
+        const result = await res.json().catch(()=> ({}));
+        if (res.ok && result.success){
+          closeSheet();
+          showInlineNotice("✅ Berhasil! Mengalihkan...");
+          setTimeout(()=>{ window.location.href = "/mutation-order"; }, 900);
+        } else {
+          showInlineNotice("❌ Gagal: " + (result.message || "Error tidak diketahui."));
+        }
+      }catch(err){
+        showInlineNotice("❌ Error: " + err.message);
+      }finally{
+        buyBtn.disabled = false;
+        buyBtn.textContent = old;
+      }
+    });
+
+    // init
+    loadSaldo();
+    loadHarga();
+  </script>
+</body>
+</html>

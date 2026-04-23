@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Admin Dashboard - FelixTopUp</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --topbar-height: 70px;
+            --color-primary: #4e73df;
+            --color-success: #1cc88a;
+            --color-info: #36b9cc;
+            --color-warning: #f6c23e;
+            --color-danger: #e74a3b;
+            --color-secondary: #858796;
+            --color-dark: #5a5c69;
+            --color-light: #f8f9fc;
+            --color-white: #ffffff;
+            --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --border-radius: 0.75rem;
+            --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body {
+            margin: 0;
+            font-family: var(--font-family);
+            background-color: var(--color-light);
+            color: var(--color-dark);
+            font-size: 1rem;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+        }
+        a {
+            text-decoration: none;
+            color: var(--color-primary);
+        }
+        .page-wrapper {
+            display: flex;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--color-primary);
+            color: rgba(255, 255, 255, 0.8);
+            z-index: 1030;
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-wrapper {
+            width: calc(100% - var(--sidebar-width));
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+        }
+        .topbar {
+            height: var(--topbar-height);
+            background-color: var(--color-white);
+            box-shadow: var(--box-shadow);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .sidebar-brand {
+            padding: 1.5rem;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--color-white);
+            text-align: center;
+        }
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .nav-item .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 1.5rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .nav-item .nav-link:hover {
+            color: var(--color-white);
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: var(--color-white);
+        }
+        .nav-item.logout {
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .sidebar-toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.75rem;
+            cursor: pointer;
+            color: var(--color-dark);
+            display: none;
+        }
+        .dashboard-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+        .stat-card {
+            background-color: var(--color-white);
+            border: 1px solid #e3e6f0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-left: 5px solid;
+            position: relative;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        .stat-card .card-body {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .stat-card .card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 0.5rem 0;
+        }
+        .stat-card .card-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        .stat-card .card-icon {
+            font-size: 2.75rem;
+            color: #dddfeb;
+        }
+        .stat-card.primary { border-left-color: var(--color-primary); } .stat-card.primary .card-title { color: var(--color-primary); }
+        .stat-card.success { border-left-color: var(--color-success); } .stat-card.success .card-title { color: var(--color-success); }
+        .stat-card.warning { border-left-color: var(--color-warning); } .stat-card.warning .card-title { color: var(--color-warning); }
+        .stat-card.info { border-left-color: var(--color-info); } .stat-card.info .card-title { color: var(--color-info); }
+        .stat-card.danger { border-left-color: var(--color-danger); } .stat-card.danger .card-title { color: var(--color-danger); }
+        .stat-card.secondary { border-left-color: var(--color-secondary); } .stat-card.secondary .card-title { color: var(--color-secondary); }
+        .stat-card.dark { border-left-color: var(--color-dark); } .stat-card.dark .card-title { color: var(--color-dark); }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1029;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            z-index: 1050;
+            background: var(--color-white);
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+        }
+        .modal.active, .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal.active {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; }
+        .modal-title { margin: 0; font-size: 1.25rem; }
+        .modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        .modal-body { padding: 1.5rem; max-height: 70vh; overflow-y: auto; }
+        .modal-table { width: 100%; border-collapse: collapse; }
+        .modal-table th, .modal-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e3e6f0; }
+        .modal-table th { font-weight: 600; }
+        .modal-table tbody tr:hover { background-color: var(--color-light); }
+        .refresh-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--color-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+        .refresh-btn:hover {
+            color: var(--color-primary);
+        }
+        .refresh-all-btn {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            margin-left: auto;
+            transition: background-color 0.2s;
+        }
+        .refresh-all-btn:hover {
+            background: #3a5ccc;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .retry-btn {
+            background: var(--color-warning);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .retry-btn:hover {
+            background: #e0b236;
+        }
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(calc(-1 * var(--sidebar-width)));
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content-wrapper {
+                width: 100%;
+                margin-left: 0;
+            }
+            .sidebar-toggle-btn {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="modalOverlay"></div>
+<div class="page-wrapper">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-shield-shaded"></i> FelixTopUp
+        </div>
+        <ul class="sidebar-nav">
+            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/deposit"><i class="bi bi-wallet2"></i> Global Deposit</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/order"><i class="bi bi-cart-check-fill"></i> Global Order</a></li>
+            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-clipboard-data-fill"></i> Rekap Transaksi</a></li>
+            <li class="nav-item logout"><a class="nav-link" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="content-wrapper">
+        <header class="topbar">
+            <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="bi bi-list"></i></button>
+            <h5 style="margin-left: 1rem; margin-bottom: 0;">Admin Panel</h5>
+            <button class="refresh-all-btn" id="refreshAllBtn">
+                <i class="bi bi-arrow-clockwise"></i> Refresh All
+            </button>
+        </header>
+
+        <main class="main-content">
+            <h1 class="h3" style="margin-bottom: 1.5rem;">Dashboard Overview</h1>
+            <div id="alertContainer"></div>
+            
+            <section class="dashboard-grid">
+                <article class="stat-card primary" id="saldoProviderCard">
+                    <button class="refresh-btn" id="refreshProviderBtn" title="Refresh Saldo Provider">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Saldo Provider</div>
+                            <div class="card-value" id="saldoProvider">Loading...</div>
+                        </div>
+                        <i class="bi bi-cloud-arrow-down-fill card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card success" id="totalSaldoUserCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Total Saldo User</div>
+                            <div class="card-value" id="totalSaldoUser">...</div>
+                        </div>
+                        <i class="bi bi-wallet-fill card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card warning" id="totalCoinUserCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Total Coin User</div>
+                            <div class="card-value" id="totalCoinUser">...</div>
+                        </div>
+                        <i class="bi bi-coin card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card info" id="totalUsersCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Total User</div>
+                            <div class="card-value" id="totalUsers">...</div>
+                        </div>
+                        <i class="bi bi-people-fill card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card success" id="verifiedUsersCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">User Terverifikasi</div>
+                            <div class="card-value" id="verifiedUsers">...</div>
+                        </div>
+                        <i class="bi bi-person-check-fill card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card secondary" id="unverifiedUsersCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Belum Verifikasi</div>
+                            <div class="card-value" id="unverifiedUsers">...</div>
+                        </div>
+                        <i class="bi bi-person-exclamation card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card dark" id="roleUserCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Role: User</div>
+                            <div class="card-value" id="roleUser">...</div>
+                        </div>
+                        <i class="bi bi-person card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card primary" id="roleResellerCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Role: Reseller</div>
+                            <div class="card-value" id="roleReseller">...</div>
+                        </div>
+                        <i class="bi bi-person-video2 card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card danger" id="roleAdminCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Role: Admin</div>
+                            <div class="card-value" id="roleAdmin">...</div>
+                        </div>
+                        <i class="bi bi-person-gear card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card success">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Total Deposit Sukses</div>
+                            <div class="card-value" id="totalDepositValue">...</div>
+                        </div>
+                        <i class="bi bi-cash-stack card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card success">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Total Order Sukses</div>
+                            <div class="card-value" id="totalOrderValue">...</div>
+                        </div>
+                        <i class="bi bi-graph-up-arrow card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card secondary">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Jml. Semua Deposit</div>
+                            <div class="card-value" id="totalDepositCount">...</div>
+                        </div>
+                        <i class="bi bi-list-ol card-icon"></i>
+                    </div>
+                </article>
+                <article class="stat-card secondary">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Jml. Semua Order</div>
+                            <div class="card-value" id="totalOrderCount">...</div>
+                        </div>
+                        <i class="bi bi-bar-chart-steps card-icon"></i>
+                    </div>
+                </article>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div class="modal" id="dataModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="dataModalLabel">Detail Data</h5>
+            <button type="button" class="modal-close-btn" id="modalCloseBtn"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body" id="dataModalBody"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let allUsersData = [];
+    let providerBalanceCache = null;
+    let providerBalanceTimestamp = null;
+    const CACHE_DURATION = 60000; // Cache saldo provider selama 1 menit
+    const modal = document.getElementById('dataModal');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const refreshProviderBtn = document.getElementById('refreshProviderBtn');
+    const refreshAllBtn = document.getElementById('refreshAllBtn');
+
+    // --- Utility Functions ---
+    const formatRupiah = (num) => {
+        if (num === null || num === undefined || isNaN(num)) return 'Rp 0';
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+    };
+    
+    const formatNumber = (num) => {
+        if (num === null || num === undefined || isNaN(num)) return '0';
+        return new Intl.NumberFormat('id-ID').format(num);
+    };
+
+    const displayAlert = (message, type = 'danger') => {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = `<div style="padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; background-color: ${type === 'danger' ? '#f8d7da' : type === 'success' ? '#d1edff' : '#fff3cd'}; color: ${type === 'danger' ? '#721c24' : type === 'success' ? '#155724' : '#856404'}; border: 1px solid ${type === 'danger' ? '#f5c6cb' : type === 'success' ? '#b8daff' : '#ffeeba'};">${message}</div>`;
+        alertContainer.innerHTML = alert;
+        
+        // Auto remove alert after 5 seconds
+        setTimeout(() => {
+            alertContainer.innerHTML = '';
+        }, 5000);
+    };
+
+    // Fungsi untuk menangani loading/error di semua kartu
+    const updateCardDisplay = (isError = false, errorMessage = 'Error') => {
+        const cardValues = document.querySelectorAll('.card-value'); 
+        cardValues.forEach(el => {
+            if (isError) {
+                el.innerHTML = `<span style="font-size: 1rem; color: var(--color-danger);">${errorMessage}</span>`;
+            } else {
+                el.innerHTML = '<span class="loading-spinner"></span>'; 
+            }
+        });
+    };
+
+    // --- API Fetch Handler ---
+    const fetchAPI = async (url, options = {}) => {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`[HTTP Status ${response.status}] Gagal mengambil data dari ${url}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error(`Error fetching ${url}:`, error);
+            throw error;
+        }
+    };
+
+    // Fungsi khusus untuk mengambil saldo provider dari Atlantic API via Backend Proxy
+    const fetchProviderBalance = async (forceRefresh = false) => {
+        // Cek cache jika tidak memaksa refresh
+        if (!forceRefresh && providerBalanceCache && providerBalanceTimestamp) {
+            const now = Date.now();
+            if (now - providerBalanceTimestamp < CACHE_DURATION) {
+                console.log('✅ Menggunakan cache saldo provider');
+                return providerBalanceCache;
+            }
+        }
+        
+        try {
+            document.getElementById('saldoProvider').innerHTML = '<span style="color: var(--color-info);"><span class="loading-spinner"></span> Loading...</span>';
+            
+            console.log('🔄 Mengambil saldo provider via backend proxy...');
+            
+            // Request ke backend proxy Anda - endpoint yang sudah ada
+            const response = await fetch('/admin/atlantic/profile');
+            
+            if (!response.ok) {
+                // Jika response bukan JSON (seperti HTML dari Cloudflare challenge)
+                const responseText = await response.text();
+                if (responseText.includes('Just a moment...') || responseText.includes('cloudflare')) {
+                    throw new Error('Atlantic API sedang dalam proteksi Cloudflare. Coba lagi nanti.');
+                }
+                throw new Error(`HTTP ${response.status}: Gagal mengambil saldo provider`);
+            }
+            
+            const result = await response.json();
+            console.log('✅ Response backend proxy:', result);
+            
+            if (result.success && result.profile && result.profile.saldo !== undefined) {
+                const balance = parseFloat(result.profile.saldo);
+                if (!isNaN(balance)) {
+                    console.log('💰 Saldo berhasil diambil:', balance);
+                    
+                    // Update cache
+                    providerBalanceCache = balance;
+                    providerBalanceTimestamp = Date.now();
+                    
+                    return balance;
+                } else {
+                    throw new Error('Format saldo tidak valid: ' + result.profile.saldo);
+                }
+            } else {
+                throw new Error('Format respons tidak valid dari Atlantic API');
+            }
+        } catch (error) {
+            console.error('❌ Error fetching provider balance:', error);
+            
+            // Jika ada error, gunakan cache jika tersedia
+            if (providerBalanceCache) {
+                console.log('⚠️ Menggunakan cache karena error:', error.message);
+                return providerBalanceCache;
+            }
+            
+            throw new Error(`Tidak dapat mengambil saldo provider: ${error.message}`);
+        }
+    };
+
+    // Fungsi untuk mengambil data user REAL-TIME dari database
+    const fetchUsersData = async () => {
+        try {
+            console.log('🔄 Mengambil data user real-time...');
+            
+            const response = await fetch('/data/users');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: Gagal mengambil data user`);
+            }
+            
+            const usersData = await response.json();
+            console.log('✅ Data user berhasil diambil:', usersData.length, 'users');
+            
+            return usersData;
+        } catch (error) {
+            console.error('❌ Error fetching users data:', error);
+            throw new Error(`Tidak dapat mengambil data user: ${error.message}`);
+        }
+    };
+
+    // Fungsi untuk memperbarui saldo provider
+    const updateProviderBalance = async (forceRefresh = false) => {
+        try {
+            const providerBalance = await fetchProviderBalance(forceRefresh);
+            document.getElementById('saldoProvider').textContent = formatRupiah(providerBalance);
+            return true;
+        } catch (error) {
+            console.error('Error updating provider balance:', error);
+            document.getElementById('saldoProvider').innerHTML = 
+                `<div style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span style="color: var(--color-danger);">Gagal Load</span>
+                    <button class="retry-btn" onclick="updateProviderBalance(true)">Coba Lagi</button>
+                </div>`;
+            displayAlert(`Gagal memuat saldo provider: ${error.message}`, 'danger');
+            return false;
+        }
+    };
+
+    // Fungsi untuk memperbarui data user dan statistik
+    const updateUsersData = async () => {
+        try {
+            const usersData = await fetchUsersData();
+            allUsersData = usersData;
+
+            // Proses Statistik User (Reducer) - REAL-TIME
+            const stats = allUsersData.reduce((acc, user) => {
+                acc.totalSaldoUser += user.saldo || 0;
+                acc.totalCoinUser += user.coin || 0;
+                
+                // Pengecekan isVerified yang lebih aman
+                if (user.isVerified === true || user.isVerified === 'true') acc.verifiedUsers++; 
+                
+                acc.roles[user.role] = (acc.roles[user.role] || 0) + 1;
+
+                // Deposit Calculation (Filter status 'success' case insensitive)
+                if (Array.isArray(user.historyDeposit)) {
+                    acc.totalDepositCount += user.historyDeposit.length;
+                    acc.totalDepositValue += user.historyDeposit
+                        .filter(d => d.status && d.status.toLowerCase() === 'success')
+                        .reduce((sum, d) => sum + (d.get_balance || 0), 0);
+                }
+                
+                // Order Calculation (Filter status 'success' case insensitive)
+                if (Array.isArray(user.historyOrder)) {
+                    acc.totalOrderCount += user.historyOrder.length;
+                    acc.totalOrderValue += user.historyOrder
+                        .filter(o => o.status && o.status.toLowerCase() === 'success')
+                        .reduce((sum, o) => sum + (parseFloat(o.price) || 0), 0);
+                }
+                return acc;
+            }, {
+                totalSaldoUser: 0, 
+                totalCoinUser: 0, 
+                verifiedUsers: 0, 
+                totalDepositValue: 0,
+                totalDepositCount: 0, 
+                totalOrderValue: 0, 
+                totalOrderCount: 0,
+                roles: { user: 0, reseller: 0, admin: 0 }
+            });
+
+            // Update Tampilan Data - REAL-TIME
+            document.getElementById('totalSaldoUser').textContent = formatRupiah(stats.totalSaldoUser);
+            document.getElementById('totalCoinUser').textContent = formatNumber(stats.totalCoinUser);
+            document.getElementById('totalUsers').textContent = formatNumber(allUsersData.length);
+            document.getElementById('verifiedUsers').textContent = formatNumber(stats.verifiedUsers);
+            document.getElementById('unverifiedUsers').textContent = formatNumber(allUsersData.length - stats.verifiedUsers);
+            document.getElementById('roleUser').textContent = formatNumber(stats.roles.user);
+            document.getElementById('roleReseller').textContent = formatNumber(stats.roles.reseller);
+            document.getElementById('roleAdmin').textContent = formatNumber(stats.roles.admin);
+            document.getElementById('totalDepositValue').textContent = formatRupiah(stats.totalDepositValue);
+            document.getElementById('totalOrderValue').textContent = formatRupiah(stats.totalOrderValue);
+            document.getElementById('totalDepositCount').textContent = `${formatNumber(stats.totalDepositCount)} Tx`;
+            document.getElementById('totalOrderCount').textContent = `${formatNumber(stats.totalOrderCount)} Tx`;
+
+            return true;
+        } catch (error) {
+            console.error('Error updating users data:', error);
+            updateCardDisplay(true, 'Gagal Load Data');
+            displayAlert(`Gagal memuat data user: ${error.message}`, 'danger');
+            return false;
+        }
+    };
+
+    // --- Dashboard Core Logic ---
+    const loadDashboard = async () => {
+        // 1. Tampilkan Loading State
+        updateCardDisplay(false);
+        
+        try {
+            // Menggunakan Promise.all untuk mengambil data secara paralel - REAL-TIME
+            const [providerSuccess, usersSuccess] = await Promise.all([
+                updateProviderBalance(),
+                updateUsersData()
+            ]);
+
+            if (providerSuccess && usersSuccess) {
+                displayAlert('Dashboard berhasil diperbarui dengan data real-time', 'success');
+            }
+
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+            displayAlert(`Gagal memuat dashboard: ${error.message}`, 'danger');
+        }
+    };
+
+    // Fungsi refresh semua data
+    const refreshAllData = async () => {
+        console.log('🔄 Memperbarui semua data...');
+        await loadDashboard();
+    };
+
+    // --- Sidebar & Modal Handlers ---
+    const toggleSidebar = () => {
+        sidebar.classList.toggle('active');
+        modalOverlay.classList.toggle('active');
+    };
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    
+    sidebar.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        if (!sidebar.classList.contains('active')) {
+            modalOverlay.classList.remove('active');
+        }
+    };
+
+    modalOverlay.addEventListener('click', () => {
+        if (sidebar.classList.contains('active') && !modal.classList.contains('active')) {
+             toggleSidebar();
+        } else if (modal.classList.contains('active')) {
+             closeModal();
+        }
+    });
+    modalCloseBtn.addEventListener('click', closeModal);
+
+    // Refresh button handlers
+    refreshProviderBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        updateProviderBalance(true); // Force refresh
+    });
+
+    refreshAllBtn.addEventListener('click', () => {
+        refreshAllData();
+    });
+
+    const showModalWithData = (title, data, columns) => {
+        document.getElementById('dataModalLabel').textContent = title;
+        const body = document.getElementById('dataModalBody');
+        if (!data || data.length === 0) {
+            body.innerHTML = `<p style="text-align:center; color: var(--color-secondary); padding: 3rem 0;">Tidak ada data untuk ditampilkan.</p>`;
+        } else {
+            let table = `<table class="modal-table"><thead><tr>`;
+            columns.forEach(c => table += `<th>${c.label}</th>`);
+            table += `</tr></thead><tbody>`;
+            data.forEach(item => {
+                table += `<tr>`;
+                columns.forEach(c => {
+                    const value = item[c.key] || 0;
+                    table += `<td>${c.formatter ? c.formatter(value) : value}</td>`;
+                });
+                table += `</tr>`;
+            });
+            table += `</tbody></table>`;
+            body.innerHTML = table;
+        }
+        modal.classList.add('active');
+        modalOverlay.classList.add('active');
+    };
+
+    // --- Card Click Handlers ---
+    const commonCols = [{ key: 'fullname', label: 'Nama Lengkap' }, { key: 'username', label: 'Username' }];
+    document.getElementById('totalSaldoUserCard').addEventListener('click', () => showModalWithData('Pengguna dengan Saldo', allUsersData.filter(u => (u.saldo || 0) > 0), [...commonCols, { key: 'saldo', label: 'Saldo', formatter: formatRupiah }]));
+    document.getElementById('totalCoinUserCard').addEventListener('click', () => showModalWithData('Pengguna dengan Coin', allUsersData.filter(u => (u.coin || 0) > 0), [...commonCols, { key: 'coin', label: 'Coin', formatter: formatNumber }]));
+    document.getElementById('totalUsersCard').addEventListener('click', () => showModalWithData('Semua User Terdaftar', allUsersData, commonCols));
+    document.getElementById('verifiedUsersCard').addEventListener('click', () => showModalWithData('User Terverifikasi', allUsersData.filter(u => u.isVerified === true || u.isVerified === 'true'), commonCols));
+    document.getElementById('unverifiedUsersCard').addEventListener('click', () => showModalWithData('User Belum Verifikasi', allUsersData.filter(u => u.isVerified === false || u.isVerified === 'false' || !u.isVerified), commonCols));
+    document.getElementById('roleUserCard').addEventListener('click', () => showModalWithData('User Role: "User"', allUsersData.filter(u => u.role === 'user'), commonCols));
+    document.getElementById('roleResellerCard').addEventListener('click', () => showModalWithData('User Role: "Reseller"', allUsersData.filter(u => u.role === 'reseller'), commonCols));
+    document.getElementById('roleAdminCard').addEventListener('click', () => showModalWithData('User Role: "Admin"', allUsersData.filter(u => u.role === 'admin'), commonCols));
+    
+    // --- Initial Load ---
+    loadDashboard();
+
+    // Auto-refresh data setiap 1 menit (real-time)
+    setInterval(refreshAllData, 60000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard Pro</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-bg: #2c3e50;
+      --sidebar-text: #ecf0f1;
+      --sidebar-hover-bg: #34495e;
+      --sidebar-active-border: #3498db;
+      --content-bg: #f4f6f9; 
+      --card-bg: #ffffff;
+      --card-border-radius: 0.6rem; 
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+      --text-primary-dark: #1a252f; 
+      --text-secondary-dark: #52616b; 
+      --primary-accent: #3498db;
+    }
+    body {
+      background-color: var(--content-bg);
+      overflow-x: hidden;
+      font-family: 'Roboto', sans-serif;
+      color: var(--text-primary-dark);
+      font-size: 0.95rem;
+    }
+    .sidebar {
+      height: 100vh; background-color: var(--sidebar-bg); color: var(--sidebar-text);
+      padding-top: 0; position: fixed; left: 0; top: 0; bottom: 0; width: 260px; 
+      z-index: 1050; transition: transform 0.3s ease-in-out; box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+    }
+    .sidebar .sidebar-header {
+      padding: 1.25rem 1.5rem; font-size: 1.5rem; font-weight: 700; color: #fff;
+      background-color: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center;
+    }
+    .sidebar .sidebar-header i { margin-right: 0.85rem; }
+    .sidebar ul { list-style: none; padding-left: 0; margin-top: 1rem; }
+    .sidebar ul li {
+      padding: 0.9rem 1.5rem; transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+      display: flex; align-items: center; border-left: 4px solid transparent; font-size: 0.9rem;
+    }
+    .sidebar ul li:hover, .sidebar ul li.active-link {
+      background-color: var(--sidebar-hover-bg); color: #fff; cursor: pointer;
+      border-left-color: var(--sidebar-active-border);
+    }
+    .sidebar ul li i { margin-right: 1rem; font-size: 1.1rem; width: 22px; text-align: center; }
+    .content {
+      padding: 2rem; margin-left: 260px; width: calc(100% - 260px);
+      transition: margin-left 0.3s ease-in-out;
+    }
+    .main-section { display: none; }
+    .main-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card {
+      border: 1px solid #e3e6f0; 
+      border-radius: var(--card-border-radius);
+      box-shadow: var(--card-shadow); margin-bottom: 1.75rem; background-color: var(--card-bg);
+    }
+    .card-header {
+      background-color: #f8f9fc; 
+      border-bottom: 1px solid #e3e6f0; font-weight: 600;
+      padding: 0.9rem 1.25rem; color: var(--primary-accent);
+    }
+    .stat-card .card-body { padding: 1.25rem; }
+    .stat-card .stat-main { display: flex; align-items: center; }
+    .stat-card .stat-icon-bg {
+      font-size: 1.8rem; width: 50px; height: 50px; border-radius: var(--card-border-radius);
+      display: flex; align-items: center; justify-content: center; color: #fff; margin-right: 1rem;
+    }
+    .stat-card .stat-info .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .stat-card .stat-info .stat-label { font-size: 0.8rem; color: var(--text-secondary-dark); text-transform: uppercase; }
+
+    .overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(44,62,80,0.7); z-index: 1040; 
+    }
+    .mobile-header {
+      display: none; background-color: var(--sidebar-bg); color: white;
+      padding: 0.75rem 1rem; position: sticky; top: 0; z-index: 1060; align-items: center;
+    }
+    .mobile-header button { background: none; border: none; color: white; font-size: 1.75rem; }
+    .mobile-header .app-title { font-size: 1.2rem; font-weight: 600; }
+
+    @media (max-width: 992px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.show { transform: translateX(0); }
+      .overlay.show { display: block; }
+      .content { margin-left: 0; width: 100%; padding: 1.5rem 1rem; }
+      .mobile-header { display: flex; }
+    }
+    .data-table th { font-weight: 500; font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary-dark); }
+    .data-table td { font-size: 0.875rem; vertical-align: middle; }
+    .data-table tr.clickable-row:hover { background-color: #f8f9fa; cursor: pointer; }
+    .page-title {
+        font-size: 1.6rem; font-weight: 500; margin-bottom: 1.75rem; display: flex; align-items: center;
+        color: var(--text-primary-dark);
+    }
+    .page-title i { margin-right: 0.75rem; color: var(--primary-accent); font-size: 1.5rem; }
+    .user-select-all { user-select: all; }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: 0.85rem; background-color: #e9ecef; border-radius: 0.25rem; padding: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<div class="mobile-header">
+  <button onclick="toggleSidebar()" class="me-2"><i class="bi bi-list"></i></button>
+  <span class="app-title">Admin Panel</span>
+</div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="d-flex">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header"><i class="bi bi-shield-shaded"></i>Admin Panel</div>
+    <ul>
+      <li onclick="showSection('dashboard')" class="active-link" id="nav-dashboard"><i class="bi bi-speedometer2"></i>Dashboard</li>
+      <li onclick="showSection('users')" id="nav-users"><i class="bi bi-people"></i>Manajemen User</li>
+      <li onclick="showSection('check-order')" id="nav-check-order"><i class="bi bi-clipboard-check"></i>Check Order</li>
+      <li onclick="showSection('globalHistory')" id="nav-globalHistory"><i class="bi bi-archive"></i>Global History</li>
+      <li onclick="logout()"><i class="bi bi-box-arrow-right"></i>Logout</li>
+    </ul>
+  </div>
+
+  <div class="content">
+    <div id="dashboard" class="main-section active">
+      <h3 class="page-title"><i class="bi bi-speedometer2"></i>Dashboard Overview</h3>
+      <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100"><div class="card-body"><div class="stat-main"><div class="stat-icon-bg bg-primary"><i class="bi bi-people-fill"></i></div><div class="stat-info ms-2"><p class="stat-value" id="totalUsersCount">0</p><p class="stat-label">Total Users</p></div></div></div></div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100"><div class="card-body"><div class="stat-main"><div class="stat-icon-bg bg-success"><i class="bi bi-person-check-fill"></i></div><div class="stat-info ms-2"><p class="stat-value" id="verifiedUsersCount">0</p><p class="stat-label">Verified Users</p></div></div></div></div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100"><div class="card-body"><div class="stat-main"><div class="stat-icon-bg bg-warning"><i class="bi bi-person-x-fill"></i></div><div class="stat-info ms-2"><p class="stat-value" id="unverifiedUsersCount">0</p><p class="stat-label">Unverified Users</p></div></div></div></div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card h-100"><div class="card-body"><div class="stat-main"><div class="stat-icon-bg bg-info"><i class="bi bi-wallet2"></i></div><div class="stat-info ms-2"><p class="stat-value" id="totalSaldoAllUsers">Rp 0</p><p class="stat-label">Total Saldo Users</p></div></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="users" class="main-section">
+      <h3 class="page-title"><i class="bi bi-people"></i>Manajemen Pengguna</h3>
+      <div class="card">
+        <div class="card-header">Daftar Pengguna Sistem</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle data-table">
+              <thead class="table-light"><tr><th>#</th><th>Nama Lengkap</th><th>Username & Saldo</th><th>Email</th><th>Role</th><th>Verifikasi</th><th>Aksi</th></tr></thead>
+              <tbody id="userTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="check-order" class="main-section">
+        <h3 class="page-title"><i class="bi bi-clipboard-check"></i>Check Status Order Manual</h3>
+        <div class="card">
+            <div class="card-header">Periksa Status Transaksi di Provider</div>
+            <div class="card-body">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <p class="text-muted text-center">Masukkan ID Transaksi (bukan Reff ID) yang didapat dari provider untuk memeriksa statusnya secara langsung.</p>
+                        <div class="input-group mb-3">
+                            <input type="text" id="checkOrderIdInput" class="form-control form-control-lg" placeholder="Contoh: Gfrc9v33mAGfKo2jctX1">
+                            <button class="btn btn-primary" type="button" id="checkOrderBtn" onclick="checkOrderStatus()">
+                                <i class="bi bi-search me-1"></i> Periksa
+                            </button>
+                        </div>
+                        <div id="checkOrderSpinner" class="text-center my-4 d-none">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                            <p class="mt-2">Memeriksa status...</p>
+                        </div>
+                        <div id="checkOrderResultContainer" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalHistory" class="main-section">
+        <h3 class="page-title"><i class="bi bi-archive"></i>Global History Semua User</h3>
+        <div class="card">
+            <div class="card-header">Riwayat Transaksi (Klik baris untuk edit/detail)</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-striped align-middle data-table">
+                        <thead class="table-light"><tr><th>Tanggal</th><th>Username</th><th>Aktivitas</th><th>Nominal/Harga</th><th>Status</th><th>Reff ID</th></tr></thead>
+                        <tbody id="globalHistoryTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="globalHistoryPagination" class="mt-3 d-flex justify-content-center"></div>
+            </div>
+        </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="transactionModalLabel"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4" id="transactionModalBody"></div>
+      <div class="modal-footer" id="transactionModalFooter"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let allUsersData = [];
+  let flatHistoryCache = [];
+  let transactionModalInstance = null;
+  let globalHistoryCurrentPage = 1;
+  const GLOBAL_HISTORY_ITEMS_PER_PAGE = 25;
+
+  const toggleSidebar = () => {
+    document.getElementById('sidebar').classList.toggle('show');
+    document.getElementById('overlay').classList.toggle('show');
+  };
+
+  const showSection = (id) => {
+    document.querySelectorAll('.main-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.sidebar ul li').forEach(l => l.classList.remove('active-link'));
+    document.getElementById(`nav-${id}`).classList.add('active-link');
+    if (window.innerWidth <= 992 && document.getElementById('sidebar').classList.contains('show')) toggleSidebar();
+  };
+
+  const logout = () => { window.location.href = '/auth/logout'; };
+  const formatRupiah = (val) => {
+    if (val === undefined || val === null || isNaN(Number(val))) return 'Rp 0';
+    return `Rp ${Number(val).toLocaleString('id-ID')}`;
+  };
+  const formatTanggalIndo = (iso) => {
+    if (!iso) return 'N/A';
+    try {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return 'Tgl Invalid';
+        return d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':');
+    } catch (e) {
+        return 'Err Tgl';
+    }
+  };
+
+  const fetchDataAndInitialize = async () => {
+    try {
+        const response = await fetch('/data/users');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        allUsersData = await response.json();
+        
+        flatHistoryCache = [];
+        allUsersData.forEach(user => {
+            (user.historyDeposit || []).forEach(h => flatHistoryCache.push({ ...h, userId: user._id, username: user.username, type: 'Deposit' }));
+            (user.historyOrder || []).forEach(h => flatHistoryCache.push({ ...h, userId: user._id, username: user.username, type: 'Order' }));
+        });
+        flatHistoryCache.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        loadDashboardStats();
+        loadUsersTable();
+        loadGlobalHistory(globalHistoryCurrentPage);
+
+    } catch (e) {
+        document.body.innerHTML = `<div class="alert alert-danger m-5">Gagal memuat data dari server. Silakan refresh halaman. Error: ${e.message}</div>`;
+    }
+  };
+  
+  const loadDashboardStats = () => {
+    let verifiedCount = 0;
+    let totalSaldo = 0;
+    allUsersData.forEach(u => {
+        if (u.isVerified) verifiedCount++;
+        totalSaldo += u.saldo || 0;
+    });
+
+    document.getElementById('totalUsersCount').textContent = allUsersData.length;
+    document.getElementById('verifiedUsersCount').textContent = verifiedCount;
+    document.getElementById('unverifiedUsersCount').textContent = allUsersData.length - verifiedCount;
+    document.getElementById('totalSaldoAllUsers').textContent = formatRupiah(totalSaldo);
+  };
+  
+  const loadUsersTable = () => {
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = '';
+    allUsersData.forEach((u, index) => {
+        const roleBadge = u.role === 'admin' ? 'danger' : (u.role === 'reseller' ? 'info' : 'primary');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${u.fullname || 'N/A'}</td>
+          <td><strong>${u.username}</strong><br><small class="text-muted">${formatRupiah(u.saldo || 0)}</small></td>
+          <td>${u.email || 'N/A'}</td>
+          <td><span class="badge text-bg-${roleBadge}">${u.role || 'user'}</span></td>
+          <td><span class="badge ${u.isVerified ? 'text-bg-success' : 'text-bg-warning'}">${u.isVerified ? 'Verified' : 'Pending'}</span></td>
+          <td>${!u.isVerified ? `<button class="btn btn-sm btn-outline-success py-1 px-2" onclick="verifyUser('${u.username}')" title="Verifikasi"><i class="bi bi-patch-check-fill"></i></button>` : ''}</td>`;
+        tbody.appendChild(tr);
+      });
+  };
+
+  const loadGlobalHistory = (page = 1) => {
+    globalHistoryCurrentPage = page;
+    const tbody = document.getElementById('globalHistoryTableBody');
+    tbody.innerHTML = '';
+    const startIndex = (page - 1) * GLOBAL_HISTORY_ITEMS_PER_PAGE;
+    const paginatedHistory = flatHistoryCache.slice(startIndex, startIndex + GLOBAL_HISTORY_ITEMS_PER_PAGE);
+
+    if (paginatedHistory.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada riwayat transaksi.</td></tr>`;
+    } else {
+      paginatedHistory.forEach(h => {
+        const statusText = h.status || 'N/A';
+        const statusClass = statusText.toLowerCase() === 'success' ? 'success' : (statusText.toLowerCase() === 'failed' || statusText.toLowerCase() === 'cancel' || statusText.toLowerCase() === 'expired' ? 'danger' : 'warning');
+        const tr = document.createElement('tr');
+        tr.className = 'clickable-row';
+        tr.onclick = () => openTransactionModal(h.id, h.type);
+        tr.innerHTML = `
+            <td>${formatTanggalIndo(h.created_at)}</td>
+            <td>${h.username}</td>
+            <td>${h.type === 'Order' ? h.layanan : h.metode}</td>
+            <td>${formatRupiah(h.type === 'Order' ? h.price : h.get_balance)}</td>
+            <td><span class="badge text-bg-${statusClass}">${statusText}</span></td>
+            <td><small class="text-muted">${h.reff_id || 'N/A'}</small></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    renderPagination(document.getElementById('globalHistoryPagination'), flatHistoryCache.length, page, GLOBAL_HISTORY_ITEMS_PER_PAGE, loadGlobalHistory);
+  };
+  
+  const openTransactionModal = (transactionId, type) => {
+    const trx = flatHistoryCache.find(t => t.id === transactionId && t.type === type);
+    if (!trx) { alert('Transaksi tidak ditemukan.'); return; }
+    
+    const modalLabel = document.getElementById('transactionModalLabel');
+    const modalBody = document.getElementById('transactionModalBody');
+    const modalFooter = document.getElementById('transactionModalFooter');
+
+    modalLabel.innerHTML = `<i class="bi bi-pencil-square me-2"></i>Edit Transaksi ${type}`;
+    
+    let detailsHtml = `<ul class="list-group list-group-flush mb-3">
+        <li class="list-group-item d-flex justify-content-between"><span>Username:</span><strong>${trx.username}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span>ID Transaksi:</span><strong class="user-select-all">${trx.id}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span>Reff ID:</span><strong class="user-select-all">${trx.reff_id || 'N/A'}</strong></li>
+    </ul>`;
+
+    let formHtml = `<h6 class="text-primary">Form Perubahan</h6>`;
+    let statusOptions;
+    if (type === 'Deposit') {
+        statusOptions = ['Success', 'Pending', 'Expired', 'Cancel'];
+    } else {
+        statusOptions = ['Success', 'Pending', 'Failed'];
+    }
+    let optionsHtml = statusOptions.map(s => `<option value="${s}" ${s.toLowerCase() === trx.status.toLowerCase() ? 'selected' : ''}>${s}</option>`).join('');
+    
+    formHtml += `
+        <div class="mb-3">
+            <label for="editStatus" class="form-label">Status</label>
+            <select id="editStatus" class="form-select">${optionsHtml}</select>
+        </div>
+    `;
+
+    if (type === 'Order') {
+        formHtml += `
+            <div class="mb-3">
+                <label for="editSn" class="form-label">SN / Catatan</label>
+                <textarea id="editSn" class="form-control" rows="3">${trx.sn || ''}</textarea>
+            </div>
+        `;
+    }
+
+    modalBody.innerHTML = detailsHtml + formHtml;
+    modalFooter.innerHTML = `
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="saveTransactionChanges('${trx.userId}', '${trx.id}', '${trx.type}')">Simpan Perubahan</button>
+    `;
+    
+    if (!transactionModalInstance) transactionModalInstance = new bootstrap.Modal(document.getElementById('transactionModal'));
+    transactionModalInstance.show();
+  };
+  
+  const saveTransactionChanges = async (userId, transactionId, type) => {
+    const newStatus = document.getElementById('editStatus').value;
+    const newSnElement = document.getElementById('editSn');
+    const newSn = newSnElement ? newSnElement.value : undefined;
+    
+    const url = type === 'Deposit' ? '/admin/update-deposit-status' : '/admin/update-order-status';
+    const body = {
+        userId,
+        newStatus,
+        [type === 'Deposit' ? 'depositId' : 'orderId']: transactionId
+    };
+    if (newSn !== undefined) body.newSn = newSn;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const result = await response.json();
+        alert(result.message);
+        if (result.success) {
+            transactionModalInstance.hide();
+            await fetchDataAndInitialize();
+        }
+    } catch (error) {
+        alert('Gagal menghubungi server.');
+    }
+  };
+
+  const checkOrderStatus = async () => {
+    const id = document.getElementById('checkOrderIdInput').value;
+    if (!id.trim()) { alert('ID Transaksi tidak boleh kosong.'); return; }
+
+    const resultContainer = document.getElementById('checkOrderResultContainer');
+    const spinner = document.getElementById('checkOrderSpinner');
+    
+    resultContainer.innerHTML = '';
+    spinner.classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/check-order?id=${encodeURIComponent(id)}`);
+        const result = await response.json();
+        
+        let contentHtml = '';
+        if (result.success && result.detail) {
+            const d = result.detail;
+            const statusClass = d.status.toLowerCase() === 'success' ? 'success' : (d.status.toLowerCase().includes('fail') ? 'danger' : 'warning');
+            contentHtml = `
+                <div class="card bg-light border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title text-center mb-4 text-primary">Hasil Pengecekan</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">Status <span class="badge fs-6 text-bg-${statusClass}">${d.status}</span></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">ID Transaksi <strong class="user-select-all">${d.id}</strong></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">Reff ID <strong class="user-select-all">${d.reff_id}</strong></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">Layanan <strong>${d.layanan}</strong></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">Target <strong class="user-select-all">${d.target}</strong></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">Harga <strong class="text-danger">${formatRupiah(d.harga)}</strong></li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">Waktu <strong>${formatTanggalIndo(d.waktu)}</strong></li>
+                            <li class="list-group-item bg-transparent px-0">
+                                <div class="d-flex justify-content-between mb-1 px-3"><span>SN / Catatan</span></div>
+                                <pre>${d.sn || 'Tidak ada SN.'}</pre>
+                            </li>
+                        </ul>
+                    </div>
+                </div>`;
+        } else {
+            contentHtml = `<div class="alert alert-danger text-center">${result.message || 'Gagal mengambil data transaksi.'}</div>`;
+        }
+        resultContainer.innerHTML = contentHtml;
+    } catch (error) {
+        resultContainer.innerHTML = `<div class="alert alert-danger text-center">Terjadi kesalahan. Pastikan Anda login sebagai admin dan coba lagi.</div>`;
+    } finally {
+        spinner.classList.add('d-none');
+    }
+  };
+  
+  const renderPagination = (container, totalItems, currentPage, itemsPerPage, callback) => {
+    if (!container) return;
+    container.innerHTML = '';
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    if (totalPages <= 1) return;
+    const ul = document.createElement('ul');
+    ul.className = 'pagination pagination-sm';
+    const createPageItem = (pageNum, text, isActive = false, isDisabled = false) => {
+        const li = document.createElement('li');
+        li.className = `page-item ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+        const a = document.createElement('a'); a.className = 'page-link'; a.href = '#'; a.innerHTML = text;
+        if (!isDisabled) a.onclick = (e) => { e.preventDefault(); callback(pageNum); };
+        li.appendChild(a); return li;
+    };
+
+    ul.appendChild(createPageItem(currentPage - 1, '«', false, currentPage === 1));
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    if (totalPages > 5) {
+      if (currentPage <= 3) endPage = 5;
+      else if (currentPage >= totalPages - 2) startPage = totalPages - 4;
+    } else {
+      startPage = 1; endPage = totalPages;
+    }
+
+    if (startPage > 1) {
+      ul.appendChild(createPageItem(1, '1'));
+      if(startPage > 2) ul.appendChild(createPageItem(0, '...', false, true));
+    }
+    for (let i = startPage; i <= endPage; i++) ul.appendChild(createPageItem(i, i, i === currentPage));
+
+    if (endPage < totalPages) {
+      if(endPage < totalPages - 1) ul.appendChild(createPageItem(0, '...', false, true));
+      ul.appendChild(createPageItem(totalPages, totalPages));
+    }
+    ul.appendChild(createPageItem(currentPage + 1, '»', false, currentPage === totalPages));
+    container.appendChild(ul);
+  };
+
+  document.addEventListener('DOMContentLoaded', fetchDataAndInitialize);
+</script>
+</body>
+</html>
