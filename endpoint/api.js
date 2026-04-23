@@ -5,7 +5,7 @@ const router = express.Router();
 
 // KONFIGURASI PROV
 const RICH_API_KEY = process.env.RICH_API_KEY;
-const RICH_BASE_URL = "https://richmarket.my.id/api/v1";
+const RICH_BASE_URL = "https://payinaja.com/api/v1";
 
 const {
   validateApiKey,
