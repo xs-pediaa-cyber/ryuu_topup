@@ -2269,53 +2269,45 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
             fetchDepositHistory();
         });
     </script>
-function cekStatusManual(trxId) {
-    // Notif loading pas ngecek
-    Swal.fire({
-        title: 'Mengecek Status...',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
 
-    $.ajax({
-        url: '/deposit/status',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ id: trxId }),
-        success: function(res) {
-            if (res.success) {
-                if (res.status === 'success') {
-                    // HIJAU (SUKSES)
+let autoCheckInterval;
+
+function startAutoCheck(trxId) {
+    // Hapus interval lama jika ada
+    if (autoCheckInterval) clearInterval(autoCheckInterval);
+
+    // Jalankan pengecekan setiap 5 detik
+    autoCheckInterval = setInterval(() => {
+        $.ajax({
+            url: '/deposit/status',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ id: trxId }),
+            success: function(res) {
+                if (res.success && res.status === 'success') {
+                    clearInterval(autoCheckInterval); // Berhenti cek karena sudah sukses
+                    
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil!',
-                        text: res.message, // "Pembayaran berhasil, saldo merchant sudah bertambah"
-                    }).then(() => { location.reload(); });
-                } else if (res.status === 'pending') {
-                    // KUNING (PENDING)
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Pending',
-                        text: res.message, // "Menunggu pembayaran atau belum terkonfirmasi"
-                    });
-                } else {
-                    // MERAH (GAGAL)
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal',
-                        text: 'Pembayaran gagal atau kadaluarsa.',
+                        title: 'Pembayaran Berhasil!',
+                        text: res.message,
+                    }).then(() => {
+                        location.reload(); // Refresh halaman untuk update saldo di navbar
                     });
                 }
-            } else {
-                Swal.fire("Error", res.message, "error");
             }
-        },
-        error: function() {
-            Swal.fire("Error", "Gagal menghubungi server.", "error");
-        }
-    });
+        });
+    }, 5000); // 5000ms = 5 detik
 }
+
+// Panggil fungsi ini tepat setelah QRIS berhasil muncul di layar
+// Contoh di dalam fetch/ajax 'deposit/create' kamu:
+// if(res.success) { 
+//    renderDetail(res.data);
+//    startAutoCheck(res.data.id); 
+// }
 </script>
+
 
 </body>
 </html>
