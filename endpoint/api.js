@@ -130,29 +130,34 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
   }
 });
 
-// === ROUTE BUAT DEPOSIT (HANYA RICHMARKET + FIX NaN) ===
+
+// ===============================
+// CREATE QRIS (GET + PAYINAJA)
+// ===============================
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
-  const { nominal } = req.query;
 
-  if (!nominal || isNaN(nominal)) {
-    return res.status(400).json({ success: false, message: "Nominal tidak valid." });
+  // 🔥 SUPPORT 2 MODE (BIAR GA ERROR FRONTEND LAMA)
+  const amount = req.query.amount || req.query.nominal;
+  const { reference_id, customer_name } = req.query;
+
+  if (!amount || isNaN(amount)) {
+    return res.status(400).json({ success: false, message: "Amount tidak valid" });
   }
 
-  const parsedNominal = parseInt(nominal);
-  if (parsedNominal < 1000) {
-    return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
+  const parsedAmount = parseInt(amount);
+  if (parsedAmount < 1000) {
+    return res.status(400).json({ success: false, message: "Minimal Rp1000" });
   }
 
   try {
-    // Request ke RichMarket
     const richResponse = await fetch(`${RICH_BASE_URL}/create_payment.php`, {
       method: "POST",
       headers: {
         "X-API-KEY": RICH_API_KEY,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ amount: parsedNominal })
+      body: JSON.stringify({ amount: parsedAmount })
     });
 
     const result = await richResponse.json();
@@ -160,26 +165,23 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     if (result.status !== "success") {
       return res.status(502).json({
         success: false,
-        message: result.message || "Gagal membuat tagihan ke RichMarket.",
+        message: result.message || "Gagal membuat QRIS"
       });
     }
 
-    const d = result.data; // trx_id, qr_link, amount
+    const d = result.data;
 
-    // --- PERUBAHAN DISINI: Logika Hitung menggunakan ENV ---
-    const feePercent = user.role === "reseller" 
-        ? parseFloat(process.env.FEE_PERCENT_RESELLER) 
-        : parseFloat(process.env.FEE_PERCENT_USER);
-        
-    let additionalFee = Math.ceil(parsedNominal * feePercent);
-    const finalBalance = parsedNominal - additionalFee;
+    // 🔥 FEE 0.7% (MATCH DOCS)
+    const feePercent = parseFloat(process.env.FEE_PERCENT || 0.007);
+    const fee = Math.ceil(parsedAmount * feePercent);
+    const totalAmount = parsedAmount + fee;
 
     const history = {
       id: d.trx_id,
-      reff_id: `XIAO_${Date.now()}`,
-      nominal: parsedNominal,
-      fee: additionalFee, // Disimpan ke DB agar tidak NaN
-      get_balance: finalBalance, // Disimpan ke DB agar tidak NaN
+      reff_id: reference_id || null,
+      nominal: parsedAmount,
+      fee: fee,
+      get_balance: parsedAmount,
       metode: "QRIS",
       status: "pending",
       qr_image: d.qr_link,
@@ -188,112 +190,109 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
 
     await tambahHistoryDeposit(user._id, history);
 
-    // Kirim respon lengkap agar modal frontend tidak NaN
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+      message: "QRIS berhasil dibuat",
       data: {
-        id: d.trx_id,
-        nominal: parsedNominal,
-        qr_image: d.qr_link,
-        fee: additionalFee,
-        get_balance: finalBalance,
+        payinaja_trx_id: d.trx_id,
+        merchant_ref: reference_id || null,
+        amount_requested: parsedAmount,
+        fee: fee,
+        total_amount: totalAmount,
+        qris_string: d.qr_string || "000201010212...",
+        qris_image_url: d.qr_link,
         status: "pending"
-      },
+      }
     });
 
-    // POLLING STATUS RICHMARKET
-    const intervalId = setInterval(async () => {
-      try {
-        const statusRes = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${d.trx_id}`, {
-          method: "GET",
-          headers: { "X-API-KEY": RICH_API_KEY }
-        });
-
-        const statusData = await statusRes.json();
-        if (statusData.status === "success" && statusData.data) {
-          const currStatus = statusData.data.payment_status;
-
-          if (currStatus === "SUCCESS") {
-            const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": d.trx_id });
-            const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === d.trx_id);
-
-            if (txInDb && txInDb.status !== "success") {
-              await editHistoryDeposit(user._id, d.trx_id, "success");
-              await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });
-            }
-            clearInterval(intervalId);
-          } else if (["FAILED", "EXPIRED", "CANCEL"].includes(currStatus)) {
-            await editHistoryDeposit(user._id, d.trx_id, currStatus.toLowerCase());
-            clearInterval(intervalId);
-          }
-        }
-      } catch (e) {
-        console.error("Polling Error:", e.message);
-      }
-    }, 5000);
-
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// === ROUTE CEK STATUS (HANYA RICHMARKET) ===
+
+// ===============================
+// CEK STATUS (GET + PAYINAJA)
+// ===============================
 router.get("/deposit/status", validateApiKey, async (req, res) => {
-  const { id } = req.query;
   const { user } = req;
-  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
+
+  // 🔥 SUPPORT id / trx_id
+  const trx_id = req.query.trx_id || req.query.id;
+
+  if (!trx_id) {
+    return res.status(400).json({ success: false, message: "trx_id diperlukan" });
+  }
 
   try {
-    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
-    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
+    const userHistory = await User.findOne(
+      { _id: user._id, "historyDeposit.id": trx_id },
+      { "historyDeposit.$": 1 }
+    );
+
+    if (!userHistory) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaksi tidak ditemukan"
+      });
+    }
 
     const localData = userHistory.historyDeposit[0];
 
-    // Cek ke API RichMarket
-    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
-        method: "GET",
-        headers: { "X-API-KEY": RICH_API_KEY }
+    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${trx_id}`, {
+      method: "GET",
+      headers: { "X-API-KEY": RICH_API_KEY }
     });
+
     const result = await response.json();
-    
-    if (result.status !== "success") return res.status(404).json({ success: false, message: "Data tidak ditemukan di provider." });
+
+    if (result.status !== "success") {
+      return res.status(404).json({
+        success: false,
+        message: "Data tidak ditemukan di provider"
+      });
+    }
 
     return res.status(200).json({
       success: true,
       data: {
-        id: result.data.trx_id,
+        trx_id: result.data.trx_id,
+        merchant_ref: localData.reff_id,
         status: result.data.payment_status.toLowerCase(),
-        nominal: parseInt(result.data.amount),
-        // --- PERUBAHAN DISINI: Mengambil fee dari DB yang dihitung berdasarkan ENV ---
+        net_amount: parseInt(result.data.amount),
         fee: localData.fee || 0,
-        get_balance: localData.get_balance || 0,
+        total_amount: parseInt(result.data.amount) + (localData.fee || 0),
+        payment_method: "QRIS",
+        created_at: localData.created_at
       }
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// === ROUTE CANCEL DEPOSIT (HANYA RICHMARKET) ===
+
+// ===============================
+// CANCEL (GET + PAYINAJA STYLE)
+// ===============================
 router.get("/deposit/cancel", validateApiKey, async (req, res) => {
   const { user } = req;
-  const { id } = req.query;
-  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
+
+  const trx_id = req.query.trx_id || req.query.id;
+
+  if (!trx_id) {
+    return res.status(400).json({ success: false, message: "trx_id diperlukan" });
+  }
 
   try {
-    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
-    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
-
-    // Request Pembatalan ke RichMarket
     const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
       method: "POST",
       headers: {
         "X-API-KEY": RICH_API_KEY,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        trx_id: id // Mengirimkan trx_id sesuai dokumentasi
-      })
+      body: JSON.stringify({ trx_id })
     });
 
     const result = await richResponse.json();
@@ -301,187 +300,22 @@ router.get("/deposit/cancel", validateApiKey, async (req, res) => {
     if (result.status !== "success") {
       return res.status(502).json({
         success: false,
-        message: result.message || "Gagal membatalkan deposit.",
+        message: result.message || "Gagal cancel transaksi"
       });
     }
 
-    // Update status di database internal
-    await editHistoryDeposit(user._id, id, "cancel");
+    await editHistoryDeposit(user._id, trx_id, "cancel");
 
     return res.status(200).json({
       success: true,
       data: {
-        id: result.data.trx_id,
-        status: result.data.new_status.toLowerCase(), // Status baru: "CANCELLED"
-      },
+        trx_id: trx_id,
+        status: "cancel"
+      }
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-
-
-router.get("/deposit/status", validateApiKey, async (req, res) => {
-  const {
-    user
-  } = req;
-  const {
-    id
-  } = req.query;
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      message: "ID deposit harus diisi.",
-    });
-  }
-
-  try {
-    const userHistory = await User.findOne({
-      _id: user._id,
-      "historyDeposit.id": id
-    }, {
-      "historyDeposit.$": 1
-    });
-
-    if (!userHistory || userHistory.historyDeposit.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "ID deposit tidak ditemukan dalam riwayat Anda.",
-      });
-    }
-
-    const formDataToAtlantic = {
-      api_key: process.env.ATLAN_API_KEY,
-      id,
-    };
-
-    const atlanticResponse = await cloudscraper.post(`${BASE_URL}/deposit/status`, {
-      body: qs.stringify(formDataToAtlantic),
-      headers: cloudscraperHeaders,
-    });
-
-    const resultFromAtlantic = JSON.parse(atlanticResponse);
-
-    if (!resultFromAtlantic || !resultFromAtlantic.status || !resultFromAtlantic.data) {
-      return res.status(502).json({
-        success: false,
-        message: resultFromAtlantic?.data?.message ||
-          resultFromAtlantic?.message ||
-          "Gagal memeriksa status deposit ke provider.",
-        error: resultFromAtlantic?.data || resultFromAtlantic,
-      });
-    }
-
-    const depositDetails = resultFromAtlantic.data;
-    const originalGetBalance = parseInt(depositDetails.get_balance) || 0;
-
-    let finalBalance = originalGetBalance;
-    if (user.role === "user") {
-      finalBalance = Math.floor(originalGetBalance * 0.998);
-    } else if (user.role === "reseller") {
-      finalBalance = Math.floor(originalGetBalance * 0.999);
-    }
-
-    const responseData = {
-      id: depositDetails.id,
-      reff_id: depositDetails.reff_id,
-      nominal: parseInt(depositDetails.nominal) || 0,
-      tambahan: parseInt(depositDetails.tambahan) || 0,
-      fee: parseInt(depositDetails.fee) || 0,
-      get_balance: finalBalance,
-      metode: depositDetails.metode,
-      status: depositDetails.status,
-      created_at: depositDetails.created_at,
-    };
-
-    return res.status(200).json({
-      success: true,
-      data: responseData,
-    });
-  } catch (error) {
-    const apiError = error.response?.data;
-    return res.status(500).json({
-      success: false,
-      message: apiError?.data?.message ||
-        apiError?.message ||
-        "Terjadi kesalahan internal saat memeriksa status deposit.",
-      error: apiError || error.message,
-    });
-  }
-});
-
-router.get("/deposit/cancel", validateApiKey, async (req, res) => {
-  const {
-    user
-  } = req;
-  const {
-    id
-  } = req.query;
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      message: "ID deposit harus diisi.",
-    });
-  }
-
-  try {
-    const userHistory = await User.findOne({
-      _id: user._id,
-      "historyDeposit.id": id
-    }, {
-      "historyDeposit.$": 1
-    });
-
-    if (!userHistory || userHistory.historyDeposit.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "ID deposit tidak ditemukan dalam riwayat Anda.",
-      });
-    }
-
-    const formDataToAtlantic = {
-      api_key: process.env.ATLAN_API_KEY,
-      id,
-    };
-
-    const atlanticResponse = await cloudscraper.post(`${BASE_URL}/deposit/cancel`, {
-      body: qs.stringify(formDataToAtlantic),
-      headers: cloudscraperHeaders,
-    });
-
-    const resultFromAtlantic = JSON.parse(atlanticResponse);
-
-    if (!resultFromAtlantic || !resultFromAtlantic.status || !resultFromAtlantic.data) {
-      return res.status(502).json({
-        success: false,
-        message: resultFromAtlantic?.data?.message ||
-          resultFromAtlantic?.message ||
-          "Gagal membatalkan deposit.",
-        error: resultFromAtlantic?.data || resultFromAtlantic,
-      });
-    }
-
-    const cancelDetails = resultFromAtlantic.data;
-    return res.status(200).json({
-      success: true,
-      data: {
-        id: cancelDetails.id,
-        status: cancelDetails.status,
-        created_at: cancelDetails.created_at,
-      },
-    });
-  } catch (error) {
-    const apiError = error.response?.data;
-    return res.status(500).json({
-      success: false,
-      message: apiError?.data?.message ||
-        apiError?.message ||
-        "Terjadi kesalahan internal saat membatalkan deposit.",
-      error: apiError || error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
