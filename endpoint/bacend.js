@@ -39,36 +39,10 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
   try {
     const fullUrl = `${req.protocol}://${req.get("host")}`;
     const role = req.session.role || "user";
-
-    let feePersen = role === "reseller" ? "0.1" : "0.2";
-
-    const metodeFormatted = [{
-      metode: "QRIS",                 // nama tampilan
-      provider_method: "QRIS",        // method yang dikirim ke pusatppob (ubah kalau docs kamu beda)
-      type: "ewallet",
-      name: "QRIS All Payment (Otomatis)",
-      min: 1000,
-      max: 5000000,
-      fee: 0,
-      fee_persen: feePersen,
-      status: "aktif",
-      img_url: `${fullUrl}/media/metode/qrisfast.png`,
-    }];
-
-    return res.status(200).json({
-      success: true,
-      message: "Daftar metode deposit",
-      metode: metodeFormatted,
-    });
-  } catch (e) {
-    return res.status(500).json({ success: false, message: "Gagal mengambil metode." });
-  }
-});
-router.post("/deposit/metode", requireLogin, async (req, res) => {
-  try {
-    const fullUrl = `${req.protocol}://${req.get("host")}`;
-    const role = req.session.role || "user";
     const feePersen = role === "reseller" ? "0.1" : "0.2";
+
+    // URL for the QR code or QRIS image generated from Payinaja API
+    const qrisImageUrl = "https://quickchart.io/qr?text=your_text_here&size=300"; // Change with your dynamic value
 
     return res.status(200).json({
       success: true,
@@ -76,13 +50,13 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: [{
         metode: "QRIS",
         type: "ewallet",
-        name: "QRIS All Payment (Otomatis)",
-        min: 1000,
+        name: "QRIS  (Otomatis)",
+        min: 250,
         max: 5000000,
         fee: 0,
         fee_persen: feePersen,
         status: "aktif",
-        img_url: `${fullUrl}/media/metode/qrisfast.png`,
+        img_url: qrisImageUrl,  // Here you should replace with actual QR URL
       }]
     });
 
@@ -90,6 +64,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
+
 router.post("/deposit/create", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -101,7 +76,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal, 10);
-  if (parsedNominal < 1000) {
+  if (parsedNominal < 250) {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
   }
 
@@ -137,6 +112,10 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     // Extract QR data
     const { payinaja_trx_id, qris_image_url, total_amount, fee, qris_string, status } = result.data;
+
+    if (!qris_image_url) {
+      return res.status(500).json({ success: false, message: "QR image URL tidak ditemukan." });
+    }
 
     const history = {
       trx_id: payinaja_trx_id,
