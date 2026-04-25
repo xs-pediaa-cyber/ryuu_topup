@@ -16,8 +16,8 @@ const domain = process.env.PTERO_DOMAIN;
 const apikey = process.env.PTERO_API_KEY;
 
 // KONFIGURASI RICHMARKET
-const RICH_API_KEY = process.env.RICH_API_KEY;
-const RICH_BASE_URL = "https://richmarket.my.id/api/v1";
+const PAYINAJA_API_KEY = process.env.RICH_API_KEY;
+const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
 
 const {
   requireLogin,
