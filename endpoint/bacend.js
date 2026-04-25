@@ -72,16 +72,15 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
-  // 🔥 GANTI: nominal ➝ amount
   const { amount, reference_id, customer_name } = req.body;
 
   if (!amount || isNaN(amount)) {
-    return res.status(400).json({ success: false, message: "Amount tidak valid" });
+    return res.status(400).json({ success: false, message: "Parameter tidak valid" });
   }
 
   const parsedAmount = parseInt(amount);
   if (parsedAmount < 1000) {
-    return res.status(400).json({ success: false, message: "Minimal Rp1000" });
+    return res.status(400).json({ success: false, message: "Minimal deposit Rp1000" });
   }
 
   try {
@@ -105,14 +104,16 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     const d = result.data;
 
-    // 🔥 FEE 0.7% SESUAI DOCS
-    const feePercent = parseFloat(process.env.FEE_PERCENT || 0.009);
+    // 🔥 FEE SESUAI DOCS (0.7%)
+    const feePercent = 0.007;
     const fee = Math.ceil(parsedAmount * feePercent);
     const totalAmount = parsedAmount + fee;
 
+    const merchantRef = reference_id || `INV-${Date.now()}`;
+
     const history = {
       id: d.trx_id,
-      reff_id: reference_id || null,
+      reff_id: merchantRef,
       nominal: parsedAmount,
       fee: fee,
       get_balance: parsedAmount,
@@ -124,13 +125,13 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     await tambahHistoryDeposit(user._id, history);
 
-    // 🔥 RESPONSE 100% PAYINAJA
+    // ✅ RESPONSE FIX (100% PAYINAJA)
     res.status(200).json({
       success: true,
       message: "QRIS berhasil dibuat",
       data: {
         payinaja_trx_id: d.trx_id,
-        merchant_ref: reference_id || null,
+        merchant_ref: merchantRef,
         amount_requested: parsedAmount,
         fee: fee,
         total_amount: totalAmount,
@@ -140,7 +141,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       },
     });
 
-    // POLLING
+    // ===============================
+    // POLLING STATUS
+    // ===============================
     const intervalId = setInterval(async () => {
       try {
         const statusRes = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${d.trx_id}`, {
@@ -151,14 +154,30 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         const statusData = await statusRes.json();
 
         if (statusData.status === "success" && statusData.data) {
-          const currStatus = statusData.data.payment_status.toLowerCase();
+          const rawStatus = statusData.data.payment_status;
+
+          // 🔥 MAP STATUS
+          const statusMap = {
+            SUCCESS: "success",
+            PENDING: "pending",
+            FAILED: "failed",
+            EXPIRED: "expired",
+            CANCEL: "cancel"
+          };
+
+          const currStatus = statusMap[rawStatus] || "pending";
 
           if (currStatus === "success") {
-            const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": d.trx_id });
-            const tx = userCheck?.historyDeposit?.find(tx => tx.id === d.trx_id);
+            const userCheck = await User.findOne({
+              _id: user._id,
+              "historyDeposit.id": d.trx_id
+            });
+
+            const tx = userCheck?.historyDeposit?.find(t => t.id === d.trx_id);
 
             if (tx && tx.status !== "success") {
               await editHistoryDeposit(user._id, d.trx_id, "success");
+
               await User.findByIdAndUpdate(user._id, {
                 $inc: { saldo: parsedAmount }
               });
@@ -190,7 +209,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
-  // 🔥 GANTI: id ➝ trx_id
   const { trx_id } = req.body;
 
   if (!trx_id) {
@@ -204,7 +222,10 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     );
 
     if (!userHistory) {
-      return res.status(404).json({ success: false, message: "Transaksi tidak ditemukan" });
+      return res.status(404).json({
+        success: false,
+        message: "Transaksi tidak ditemukan"
+      });
     }
 
     const localData = userHistory.historyDeposit[0];
@@ -217,15 +238,29 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const result = await response.json();
 
     if (result.status !== "success") {
-      return res.status(404).json({ success: false, message: "Data tidak ditemukan di provider" });
+      return res.status(404).json({
+        success: false,
+        message: "Transaksi tidak ditemukan"
+      });
     }
+
+    // 🔥 MAP STATUS
+    const statusMap = {
+      SUCCESS: "success",
+      PENDING: "pending",
+      FAILED: "failed",
+      EXPIRED: "expired",
+      CANCEL: "cancel"
+    };
+
+    const status = statusMap[result.data.payment_status] || "pending";
 
     return res.status(200).json({
       success: true,
       data: {
         trx_id: result.data.trx_id,
         merchant_ref: localData.reff_id,
-        status: result.data.payment_status.toLowerCase(),
+        status: status,
         net_amount: parseInt(result.data.amount),
         fee: localData.fee || 0,
         total_amount: parseInt(result.data.amount) + (localData.fee || 0),
@@ -241,7 +276,7 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
 
 
 // ===============================
-// CANCEL (FORMAT PAYINAJA STYLE)
+// CANCEL (FORMAT PAYINAJA)
 // ===============================
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
@@ -286,7 +321,6 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-
 router.post("/layanan/price-list", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) {
