@@ -92,52 +92,43 @@ router.get("/mutasi", validateApiKey, async (req, res) => {
   }
 });
 
-// === ROUTE DAFTAR METODE (HANYA RICHMARKET) ===
-
-// === ROUTE DAFTAR METODE (HANYA RICHMARKET) ===
 router.get("/deposit/metode", validateApiKey, async (req, res) => {
   try {
     const fullUrl = `${req.protocol}://${req.get("host")}`;
     const role = req.user?.role || "user";
     
-    // --- PERUBAHAN DISINI: Mengambil fee persen dari ENV ---
-    // Mengubah nilai desimal ke string persentase untuk tampilan (misal 0.2)
+    // Mengambil fee persen dari ENV
     let feeDesimal = role === "reseller" 
         ? parseFloat(process.env.FEE_PERCENT_RESELLER) 
         : parseFloat(process.env.FEE_PERCENT_USER);
     let feePersen = (feeDesimal * 100).toString(); 
 
-    // MENGEMBALIKAN METODE RICHMARKET QRIS
+    // Format metode deposit QRIS
     const metodeFormatted = [{
       metode: "QRIS",
       type: "ewallet",
       name: "QRIS All Payment (Otomatis)",
-      min: 1000,
+      min: 250,
       max: 5000000,
       fee: 0,
       fee_persen: feePersen,
       status: "aktif",
-      img_url: `${fullUrl}/media/metode/qrisfast.png`,
+      img_url: `${fullUrl}/media/metode/qrisfast.png`, // Gambar QRIS
     }];
 
     return res.status(200).json({
       success: true,
-      message: "Daftar metode deposit RichMarket",
+      message: "Daftar metode deposit Payinaja",
       metode: metodeFormatted,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
-
-
-// ===============================
-// CREATE QRIS (GET + PAYINAJA STYLE)
-// ===============================
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
 
-  // SUPPORT amount & nominal (biar frontend lama aman)
+  // Mendukung amount & nominal (biar frontend lama aman)
   const amount = req.query.amount || req.query.nominal;
   const { reference_id, customer_name } = req.query;
 
@@ -149,26 +140,31 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   const parsedAmount = parseInt(amount);
-  if (parsedAmount < 1000) {
+  if (parsedAmount < 250) {
     return res.status(400).json({
       success: false,
-      message: "Minimal deposit Rp1000"
+      message: "Minimal deposit Rp250"
     });
   }
 
   try {
-    const richResponse = await fetch(`${RICH_BASE_URL}/create_payment.php`, {
+    // Request ke Payinaja API untuk membuat pembayaran QRIS
+    const response = await fetch(`${process.env.PAYINAJA_BASE_URL}/qris/create`, {
       method: "POST",
       headers: {
-        "X-API-KEY": RICH_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-api-key": process.env.PAYINAJA_API_KEY,
       },
-      body: JSON.stringify({ amount: parsedAmount })
+      body: JSON.stringify({
+        amount: parsedAmount,
+        reference_id: reference_id || `INV-${Date.now()}`,
+        customer_name: customer_name || user.name || "Customer Name",
+      }),
     });
 
-    const result = await richResponse.json();
+    const result = await response.json();
 
-    if (result.status !== "success") {
+    if (!result.success) {
       return res.status(502).json({
         success: false,
         message: result.message || "Gagal membuat QRIS"
@@ -177,13 +173,13 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
 
     const d = result.data;
 
-    // FEE 0.7% (SESUAI DOCS)
-    const feePercent = 0.007;
+    // Fee 0.7% sesuai dengan dokumentasi Payinaja
+    const feePercent = 0.009;
     const fee = Math.ceil(parsedAmount * feePercent);
     const totalAmount = parsedAmount + fee;
 
     const history = {
-      id: d.trx_id,
+      id: d.payinaja_trx_id,
       reff_id: reference_id || `INV-${Date.now()}`,
       nominal: parsedAmount,
       fee: fee,
@@ -200,13 +196,13 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       success: true,
       message: "QRIS berhasil dibuat",
       data: {
-        payinaja_trx_id: d.trx_id,
+        payinaja_trx_id: d.payinaja_trx_id,
         merchant_ref: history.reff_id,
         amount_requested: parsedAmount,
         fee: fee,
         total_amount: totalAmount,
         qris_string: d.qr_string || "000201010212...",
-        qris_image_url: d.qr_link,
+        qris_image_url: d.qr_link,  // Menyediakan URL QR Code dari Payinaja
         status: "pending"
       }
     });
