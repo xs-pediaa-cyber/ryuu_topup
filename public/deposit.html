@@ -2269,5 +2269,53 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
             fetchDepositHistory();
         });
     </script>
+// Fungsi untuk dipanggil saat klik tombol "Cek Status" atau dari Modal
+function cekStatusManual(trxId) {
+    Swal.fire({
+        title: 'Mengecek...',
+        text: 'Sedang mengecek status pembayaran',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    $.ajax({
+        url: '/deposit/status',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ id: trxId }),
+        success: function(res) {
+            if (res.success) {
+                if (res.status === 'success') {
+                    // NOTIFIKASI BERHASIL
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Pembayaran Berhasil',
+                        text: 'Saldo Rp ' + res.get_balance.toLocaleString() + ' sudah masuk.',
+                    }).then(() => { location.reload(); });
+                } else if (res.status === 'pending' || res.status === 'unpaid') {
+                    // NOTIFIKASI MASIH PENDING
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Belum Dikonfirmasi',
+                        text: 'Menunggu Pembayaran / Belum Dikonfirmasi. Silakan selesaikan transfer sesuai QRIS.',
+                    });
+                } else {
+                    // NOTIFIKASI GAGAL/EXPIRED
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: 'Status transaksi: ' + res.status,
+                    });
+                }
+            } else {
+                Swal.fire("Error", res.message, "error");
+            }
+        },
+        error: function() {
+            Swal.fire("Error", "Gagal menghubungi server.", "error");
+        }
+    });
+}
+
 </body>
 </html>
