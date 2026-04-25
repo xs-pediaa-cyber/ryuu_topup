@@ -88,6 +88,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(500).json({ success: false, message: "API key belum diisi." });
     }
 
+    // Request untuk membuat QRIS
     const response = await fetch(`${BASE_URL}/qris/create`, {
       method: "POST",
       headers: {
@@ -109,7 +110,11 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     const { payinaja_trx_id, qris_image_url, total_amount, fee, amount_requested } = result.data;
 
-    // Logika untuk menyimpan informasi deposit
+    // Update saldo di database user
+    const finalBalance = amount_requested - fee;  // Saldo yang diterima (setelah fee)
+    await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });
+
+    // Simpan informasi transaksi ke history deposit
     const history = {
       id: payinaja_trx_id,
       nominal: amount_requested,
@@ -118,12 +123,11 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       metode: "QRIS",
       status: result.data.status || "pending",
       created_at: new Date(),
-      qris_image_url, // Menyimpan QR Code URL
+      qris_image_url, // link QR code
     };
 
     await tambahHistoryDeposit(user._id, history);
 
-    // Kembalikan hasil yang sesuai
     return res.status(200).json({
       success: true,
       data: {
