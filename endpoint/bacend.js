@@ -76,7 +76,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal, 10);
-  if (parsedNominal < 100) {
+  if (parsedNominal < 1000) {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
   }
 
@@ -96,8 +96,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       },
       body: JSON.stringify({
         amount: parsedNominal,
-        reference_id: `INV-${Date.now()}`, // generate unique reference ID
-        customer_name: user.name || "Customer Name", // use user's name
+        reference_id: `INV-${Date.now()}`,
+        customer_name: user.name || "Customer Name",
       }),
     });
 
@@ -118,6 +118,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       metode: "QRIS",
       status: result.data.status || "pending",
       created_at: new Date(),
+      qris_image_url, // Menyimpan QR Code URL
     };
 
     await tambahHistoryDeposit(user._id, history);
