@@ -132,22 +132,28 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
 
 
 // ===============================
-// CREATE QRIS (GET + PAYINAJA)
+// CREATE QRIS (GET + PAYINAJA STYLE)
 // ===============================
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
 
-  // 🔥 SUPPORT 2 MODE (BIAR GA ERROR FRONTEND LAMA)
+  // SUPPORT amount & nominal (biar frontend lama aman)
   const amount = req.query.amount || req.query.nominal;
   const { reference_id, customer_name } = req.query;
 
   if (!amount || isNaN(amount)) {
-    return res.status(400).json({ success: false, message: "Amount tidak valid" });
+    return res.status(400).json({
+      success: false,
+      message: "Parameter tidak valid"
+    });
   }
 
   const parsedAmount = parseInt(amount);
   if (parsedAmount < 1000) {
-    return res.status(400).json({ success: false, message: "Minimal Rp1000" });
+    return res.status(400).json({
+      success: false,
+      message: "Minimal deposit Rp1000"
+    });
   }
 
   try {
@@ -171,14 +177,14 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
 
     const d = result.data;
 
-    // 🔥 FEE 0.7% (MATCH DOCS)
-    const feePercent = parseFloat(process.env.FEE_PERCENT || 0.007);
+    // FEE 0.7% (SESUAI DOCS)
+    const feePercent = 0.007;
     const fee = Math.ceil(parsedAmount * feePercent);
     const totalAmount = parsedAmount + fee;
 
     const history = {
       id: d.trx_id,
-      reff_id: reference_id || null,
+      reff_id: reference_id || `INV-${Date.now()}`,
       nominal: parsedAmount,
       fee: fee,
       get_balance: parsedAmount,
@@ -195,7 +201,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       message: "QRIS berhasil dibuat",
       data: {
         payinaja_trx_id: d.trx_id,
-        merchant_ref: reference_id || null,
+        merchant_ref: history.reff_id,
         amount_requested: parsedAmount,
         fee: fee,
         total_amount: totalAmount,
@@ -206,22 +212,27 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
 
 // ===============================
-// CEK STATUS (GET + PAYINAJA)
+// CEK STATUS (GET + PAYINAJA STYLE)
 // ===============================
 router.get("/deposit/status", validateApiKey, async (req, res) => {
   const { user } = req;
 
-  // 🔥 SUPPORT id / trx_id
   const trx_id = req.query.trx_id || req.query.id;
 
   if (!trx_id) {
-    return res.status(400).json({ success: false, message: "trx_id diperlukan" });
+    return res.status(400).json({
+      success: false,
+      message: "trx_id diperlukan"
+    });
   }
 
   try {
@@ -249,16 +260,26 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
     if (result.status !== "success") {
       return res.status(404).json({
         success: false,
-        message: "Data tidak ditemukan di provider"
+        message: "Transaksi tidak ditemukan"
       });
     }
+
+    const statusMap = {
+      SUCCESS: "success",
+      PENDING: "pending",
+      FAILED: "failed",
+      EXPIRED: "expired",
+      CANCEL: "cancel"
+    };
+
+    const status = statusMap[result.data.payment_status] || "pending";
 
     return res.status(200).json({
       success: true,
       data: {
         trx_id: result.data.trx_id,
         merchant_ref: localData.reff_id,
-        status: result.data.payment_status.toLowerCase(),
+        status: status,
         net_amount: parseInt(result.data.amount),
         fee: localData.fee || 0,
         total_amount: parseInt(result.data.amount) + (localData.fee || 0),
@@ -268,13 +289,16 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
 
 // ===============================
-// CANCEL (GET + PAYINAJA STYLE)
+// CANCEL QRIS (GET + PAYINAJA STYLE)
 // ===============================
 router.get("/deposit/cancel", validateApiKey, async (req, res) => {
   const { user } = req;
@@ -282,7 +306,10 @@ router.get("/deposit/cancel", validateApiKey, async (req, res) => {
   const trx_id = req.query.trx_id || req.query.id;
 
   if (!trx_id) {
-    return res.status(400).json({ success: false, message: "trx_id diperlukan" });
+    return res.status(400).json({
+      success: false,
+      message: "trx_id diperlukan"
+    });
   }
 
   try {
@@ -315,10 +342,12 @@ router.get("/deposit/cancel", validateApiKey, async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
-
 router.get("/layanan/price-list", validateApiKey, async (req, res) => {
   const {
     user
