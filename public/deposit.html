@@ -2270,14 +2270,9 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
         });
     </script>
 
-let autoCheckInterval;
-
-function startAutoCheck(trxId) {
-    // Hapus interval lama jika ada
-    if (autoCheckInterval) clearInterval(autoCheckInterval);
-
-    // Jalankan pengecekan setiap 5 detik
-    autoCheckInterval = setInterval(() => {
+// Fungsi Cek Otomatis (Polling) tiap 7 detik
+function jalankanCekOtomatis(trxId) {
+    const interval = setInterval(() => {
         $.ajax({
             url: '/deposit/status',
             method: 'POST',
@@ -2285,29 +2280,21 @@ function startAutoCheck(trxId) {
             data: JSON.stringify({ id: trxId }),
             success: function(res) {
                 if (res.success && res.status === 'success') {
-                    clearInterval(autoCheckInterval); // Berhenti cek karena sudah sukses
-                    
+                    clearInterval(interval); // Stop cek karena sudah masuk saldonya
                     Swal.fire({
                         icon: 'success',
                         title: 'Pembayaran Berhasil!',
-                        text: res.message,
-                    }).then(() => {
-                        location.reload(); // Refresh halaman untuk update saldo di navbar
-                    });
+                        text: 'Saldo sudah ditambahkan otomatis.',
+                    }).then(() => { location.reload(); });
                 }
             }
         });
-    }, 5000); // 5000ms = 5 detik
+    }, 7000); // Cek tiap 7 detik
 }
 
-// Panggil fungsi ini tepat setelah QRIS berhasil muncul di layar
-// Contoh di dalam fetch/ajax 'deposit/create' kamu:
-// if(res.success) { 
-//    renderDetail(res.data);
-//    startAutoCheck(res.data.id); 
-// }
+// Tambahkan start polling ini di bagian sukses buat QRIS kamu
+// Contoh: jalankanCekOtomatis('TRX-1777157396463-J8D');
 </script>
-
 
 </body>
 </html>
