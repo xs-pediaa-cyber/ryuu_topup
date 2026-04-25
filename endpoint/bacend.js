@@ -64,7 +64,6 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
-
 router.post("/deposit/create", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -76,13 +75,13 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal, 10);
-  if (parsedNominal < 250) {
+  if (parsedNominal < 1000) {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
   }
 
   try {
-    const API_KEY = process.env.PAYINAJA_API_KEY;
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
+    const API_KEY = process.env.PAYINAJA_API_KEY; // Mengambil API_KEY dari ENV
+    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1"; // BASE_URL dari ENV
 
     if (!API_KEY) {
       return res.status(500).json({ success: false, message: "API_KEY Payinaja tidak ditemukan." });
@@ -98,7 +97,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": API_KEY,
+        "x-api-key": API_KEY, // Menambahkan API_KEY di header
       },
       body: JSON.stringify(body),
     });
@@ -109,31 +108,31 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(502).json({ success: false, message: "Gagal membuat deposit ke provider." });
     }
 
-    const d = result.data;
+    const d = result.data; // Mengambil data dari API response Payinaja
 
-    // Calculate fee and final balance
     const feePercent = user.role === "reseller" ? 0.1 : 0.2;
     const additionalFee = Math.ceil(parsedNominal * feePercent);
     const finalBalance = parsedNominal - additionalFee;
 
-    // Store transaction history
+    // Simpan riwayat deposit
     const history = {
       id: d.payinaja_trx_id,
       reff_id: `XIAO_${Date.now()}`,
       nominal: parsedNominal,
       fee: additionalFee,
       get_balance: finalBalance,
-      metode: "QRIS",
-      status: d.status || "pending",
+      metode: "QRIS", // Menyimpan metode pembayaran sebagai QRIS
+      status: d.status,
       sender: d.merchant_ref,
       total: d.total_amount,
       uniq: d.qris_string,
       created_at: new Date(),
+      qris_image_url: d.qris_image_url // Menyimpan URL gambar QRIS
     };
 
     await tambahHistoryDeposit(user._id, history);
 
-    // Send response
+    // Kirimkan response yang lengkap agar frontend bisa menampilkan QRIS dan saldo diterima
     return res.status(200).json({
       success: true,
       data: {
@@ -145,8 +144,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         sender: d.merchant_ref,
         total: d.total_amount,
         uniq: d.qris_string,
-        qris_image_url: d.qris_image_url, // Include QRIS image URL
-        metode: "QRIS", // Ensure method is returned as QRIS
+        qris_image_url: d.qris_image_url, // URL untuk QR Code
+        metode: "QRIS", // Menyatakan metode pembayaran QRIS
       },
     });
 
