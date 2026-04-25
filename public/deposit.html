@@ -1696,14 +1696,16 @@ input,select{
                     </div>`;
             }
 
-            if (data.qr_image && data.status === 'pending') {
-                paymentInfoHtml += `
-                    <div class="qr-code-container">
-                        <p class="mb-2">Silakan scan QR Code di bawah ini:</p>
-                        <img src="${data.qr_image}" alt="QR Code Pembayaran">
-                    </div>`;
-            }
-            
+
+// GANTI BAGIAN INI
+if (data.qris_image_url && data.status === 'pending') {
+    paymentInfoHtml += `
+        <div class="qr-code-container" style="text-align: center; margin-top: 15px;">
+            <p class="mb-2">Silakan scan QR Code di bawah ini:</p>
+            <img src="${data.qris_image_url}" alt="QR Code Pembayaran" style="max-width: 250px; border: 5px solid white; border-radius: 10px;">
+        </div>`;
+}
+
             if (data.expired_at) {
                  paymentInfoHtml += `
                     <div class="payment-detail-item text-danger">
@@ -1901,14 +1903,15 @@ input,select{
                     </div>`;
             }
 
-            if (depositData.qr_image && depositData.status === 'pending') {
-                contentHtml += `
-                    <div class="qr-code-container">
-                        <p class="mb-2">Silakan scan QR Code di bawah ini:</p>
-                        <img src="${depositData.qr_image}" alt="QR Code Pembayaran">
-                    </div>`;
-            }
-            
+// Ganti depositData.qr_image menjadi depositData.qris_image_url
+if (depositData.qris_image_url && depositData.status === 'pending') {
+    contentHtml += `
+        <div class="qr-code-container" style="text-align: center; margin-top: 15px;">
+            <p class="mb-2"><b>Silakan scan QR Code di bawah ini:</b></p>
+            <img src="${depositData.qris_image_url}" alt="QR Code Pembayaran" style="max-width: 250px; border: 5px solid white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        </div>`;
+}
+
             if (depositData.expired_at && depositData.status === 'pending') {
                  contentHtml += `
                     <div class="payment-detail-item text-danger">
