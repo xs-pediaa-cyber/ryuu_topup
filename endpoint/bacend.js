@@ -69,14 +69,13 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
 
-  const { nominal, method } = req.body;
-
+  const { nominal } = req.body;
   if (!nominal || isNaN(nominal)) {
     return res.status(400).json({ success: false, message: "Nominal tidak valid." });
   }
 
   const parsedNominal = parseInt(nominal, 10);
-  if (parsedNominal < 100) {
+  if (parsedNominal < 1000) {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
   }
 
@@ -108,12 +107,10 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(500).json({ success: false, message: "Gagal membuat QRIS." });
     }
 
-    const { payinaja_trx_id, qris_image_url, total_amount, fee, amount_requested, status } = result.data;
-
-    // Hitung saldo yang diterima (setelah fee)
-    const finalBalance = amount_requested - fee;
+    const { payinaja_trx_id, qris_image_url, total_amount, fee, amount_requested } = result.data;
 
     // Update saldo di database user
+    const finalBalance = amount_requested - fee;  // Saldo yang diterima (setelah fee)
     await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });
 
     // Simpan informasi transaksi ke history deposit
@@ -122,15 +119,14 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       nominal: amount_requested,
       fee,
       total_amount,
-      metode: "QRIS",  // Metode pembayaran QRIS
-      status: status || "pending",  // Status transaksi (pending, success, dll)
+      metode: "QRIS",
+      status: result.data.status || "pending",
       created_at: new Date(),
-      qris_image_url,  // URL untuk QR Code
+      qris_image_url, // link QR code
     };
 
     await tambahHistoryDeposit(user._id, history);
 
-    // Kirimkan response yang lengkap agar frontend bisa menampilkan QR Code dan saldo diterima
     return res.status(200).json({
       success: true,
       data: {
@@ -138,10 +134,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         nominal: amount_requested,
         fee,
         total_amount,
-        status: status || "pending",
-        saldo_diterima: finalBalance,  // Saldo yang diterima setelah dipotong biaya admin
-        qris_image_url,  // URL untuk QR Code
-        metode: "QRIS",  // Menyatakan metode pembayaran
+        status: result.data.status,
+        qris_image_url, // link untuk QR Code
       },
     });
 
