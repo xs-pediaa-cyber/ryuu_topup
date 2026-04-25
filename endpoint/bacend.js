@@ -51,7 +51,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
         metode: "QRIS",
         type: "ewallet",
         name: "QRIS  (Otomatis)",
-        min: 250,
+        min: 200,
         max: 5000000,
         fee: 0,
         fee_persen: feePersen,
@@ -65,75 +65,73 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
   }
 });
 router.post("/deposit/create", requireLogin, async (req, res) => {
-  const user = await User.findById(req.session.userId);
-  if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
-
-  const { nominal } = req.body;
-
-  // Validasi input nominal
-  if (!nominal || isNaN(nominal)) {
-    return res.status(400).json({ success: false, message: "Nominal tidak valid." });
-  }
-
-  const parsedNominal = parseInt(nominal, 10);
-  if (parsedNominal < 210) {
-    return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
-  }
-
   try {
-    const API_KEY = process.env.PAYINAJA_API_KEY;
-    // Gunakan URL dari screenshot: https://payinaja.web.id/api/v1
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1"; 
-
-    if (!API_KEY) {
-      return res.status(500).json({ success: false, message: "Konfigurasi API Key tidak ditemukan." });
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Sesi tidak valid." });
     }
 
-    // Menyiapkan Body sesuai dokumentasi (amount, reference_id, customer_name)
-    const body = {
-      amount: parsedNominal,
-      reference_id: `INV-${Date.now()}`,
-      customer_name: user.name || "Customer",
-    };
+    const { nominal } = req.body;
 
-    const response = await fetch(`${BASE_URL}/qris/create`, {
+    // 1. Validasi Input
+    if (!nominal || isNaN(nominal)) {
+      return res.status(400).json({ success: false, message: "Nominal tidak valid." });
+    }
+
+    const parsedNominal = parseInt(nominal, 10);
+    if (parsedNominal < 200) {
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp200" });
+    }
+
+    // 2. Konfigurasi API Payinaja
+    const API_KEY = process.env.PAYINAJA_API_KEY;
+    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
+
+    if (!API_KEY) {
+      return res.status(500).json({ success: false, message: "Konfigurasi API Key (Payinaja) belum diatur di ENV." });
+    }
+
+    // 3. Request ke Payinaja
+    const payinajaResponse = await fetch(`${BASE_URL}/qris/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": API_KEY,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        amount: parsedNominal,
+        reference_id: `INV-${Date.now()}`,
+        customer_name: user.username || user.name || "Customer",
+      }),
     });
 
-    const result = await response.json();
+    const result = await payinajaResponse.json();
 
-    // Cek apakah API Payinaja memberikan respon sukses
     if (!result.success) {
       return res.status(502).json({ 
         success: false, 
-        message: result.message || "Gagal membuat deposit ke provider." 
+        message: result.message || "Gagal mendapatkan QRIS dari provider." 
       });
     }
 
-    const d = result.data; 
+    const d = result.data;
 
-    // Kalkulasi Fee Internal (Sesuaikan dengan kebijakan Anda)
-    // Catatan: Payinaja punya fee sendiri di response (d.fee), 
-    // tapi kode ini tetap menggunakan logic fee internal Anda.
+    // 4. Perhitungan Fee Internal & Saldo Diterima (Mencegah NaN)
+    // Pastikan user.role ada, jika tidak default ke 0.2
     const feePercent = user.role === "reseller" ? 0.1 : 0.2;
-    const internalFee = Math.ceil(parsedNominal * feePercent);
+    const internalFee = Math.round(parsedNominal * feePercent);
     const finalBalance = parsedNominal - internalFee;
 
-    // Simpan riwayat deposit ke database
+    // 5. Simpan ke Database
     const history = {
       id: d.payinaja_trx_id,
-      reff_id: d.merchant_ref, // Menggunakan ref_id dari provider agar sinkron
-      nominal: d.amount_requested,
-      fee: internalFee, 
+      reff_id: d.merchant_ref,
+      nominal: parsedNominal, // Nominal asli yang diinput user
+      fee: internalFee,       // Biaya admin internal Anda
       get_balance: finalBalance,
       metode: "QRIS",
-      status: d.status, // "pending"
-      total: d.total_amount, // Nominal + fee dari Payinaja
+      status: d.status,
+      total: d.total_amount,  // Total yang harus dibayar user (termasuk fee provider)
       uniq: d.qris_string,
       qris_image_url: d.qris_image_url,
       created_at: new Date(),
@@ -141,27 +139,29 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     await tambahHistoryDeposit(user._id, history);
 
-    // Kirimkan response ke Frontend
+    // 6. Response ke Frontend
     return res.status(200).json({
       success: true,
       message: "QRIS berhasil dibuat",
       data: {
         id: d.payinaja_trx_id,
-        nominal: d.amount_requested,
+        nominal: parsedNominal,
+        fee: internalFee,       // Dikirim agar "Biaya Admin" tidak NaN
         total_bayar: d.total_amount,
         get_balance: finalBalance,
-        qris_string: d.qris_string,
-        qris_image_url: d.qris_image_url,
         status: d.status,
-        expires_at: d.expired_at || null // Jika ada info expired dari API
+        metode: "QRIS",
+        qris_string: d.qris_string,
+        qris_image_url: d.qris_image_url // Gunakan ini di tag <img src="...">
       },
     });
 
   } catch (err) {
-    console.error("Payinaja Error:", err);
-    return res.status(500).json({ success: false, message: "Terjadi kesalahan sistem." });
+    console.error("Deposit Error:", err);
+    return res.status(500).json({ success: false, message: "Terjadi kesalahan pada server." });
   }
 });
+
 
 router.post("/deposit/status", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
