@@ -2268,33 +2268,53 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
             fetchMetodeDeposit();
             fetchDepositHistory();
         });
-    </script>
+<script>
+let autoCheckInterval;
 
-// Fungsi Cek Otomatis (Polling) tiap 7 detik
-function jalankanCekOtomatis(trxId) {
-    const interval = setInterval(() => {
+function startAutoCheck(trxId) {
+    // Bersihkan interval sebelumnya jika ada agar tidak tumpuk
+    if (autoCheckInterval) clearInterval(autoCheckInterval);
+
+    autoCheckInterval = setInterval(() => {
         $.ajax({
             url: '/deposit/status',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ id: trxId }),
             success: function(res) {
+                // JIKA STATUS SUKSES DARI BACKEND
                 if (res.success && res.status === 'success') {
-                    clearInterval(interval); // Stop cek karena sudah masuk saldonya
+                    // 1. Berhenti mengecek otomatis
+                    clearInterval(autoCheckInterval);
+
+                    // 2. Sembunyikan/Hapus bagian QRIS dan Detail agar tidak membingungkan
+                    // Pastikan ID elemen sesuai dengan yang ada di HTML kamu
+                    $('.vp-deposit-detail-card').fadeOut(); 
+                    $('#depositRes').html('<div class="alert alert-success">Pembayaran Berhasil! Saldo telah ditambahkan.</div>');
+
+                    // 3. Tampilkan Notifikasi Berhasil
                     Swal.fire({
                         icon: 'success',
                         title: 'Pembayaran Berhasil!',
-                        text: 'Saldo sudah ditambahkan otomatis.',
-                    }).then(() => { location.reload(); });
+                        text: res.message,
+                        confirmButtonText: 'Oke'
+                    }).then(() => {
+                        // 4. Reload untuk memperbarui saldo di Navbar
+                        location.reload();
+                    });
                 }
+            },
+            error: function(err) {
+                console.log("Auto-check error, mencoba lagi...");
             }
         });
-    }, 7000); // Cek tiap 7 detik
+    }, 5000); // Mengecek setiap 5 detik
 }
 
-// Tambahkan start polling ini di bagian sukses buat QRIS kamu
-// Contoh: jalankanCekOtomatis('TRX-1777157396463-J8D');
+// Pastikan fungsi startAutoCheck dipanggil saat QRIS pertama kali muncul
+// Contoh: startAutoCheck('TRX-1777157838196-6AK');
 </script>
+
 
 </body>
 </html>
