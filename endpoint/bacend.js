@@ -165,9 +165,14 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
 router.post("/deposit/status", requireLogin, async (req, res) => {
   try {
+    // 1. Ambil User dengan aman
     const user = await User.findById(req.session.userId);
-    const { id } = req.body; // Ini payinaja_trx_id (TRX-...)
+    if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
 
+    const { id } = req.body; 
+    if (!id) return res.status(400).json({ success: false, message: "ID transaksi diperlukan." });
+
+    // 2. Cek ke API Payinaja
     const API_KEY = process.env.PAYINAJA_API_KEY;
     const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
 
@@ -182,39 +187,40 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const d = result.data;
     const statusApi = d.status.toLowerCase();
 
-    // Cari riwayat di database kamu berdasarkan ID provider
-    const history = user.history_deposit.find(h => h.id === id);
-    if (!history) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
+    // 3. CEK RIWAYAT (Pencegah error 'find')
+    if (!user.history_deposit) {
+        return res.status(200).json({ success: true, status: statusApi, message: "Menunggu Pembayaran" });
+    }
 
-    // JIKA PEMBAYARAN BERHASIL
-    if (statusApi === "success" && history.status === "pending") {
+    const history = user.history_deposit.find(h => h.id === id);
+
+    // 4. Update Saldo jika SUKSES
+    if (statusApi === "success" && history && history.status === "pending") {
         await editHistoryDeposit(user._id, id, "success");
         await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance } });
         return res.status(200).json({ 
             success: true, 
             status: "success", 
-            message: "Pembayaran Berhasil", 
-            get_balance: history.get_balance 
+            message: "Pembayaran berhasil, saldo sudah bertambah." // Sesuai docs
         });
     } 
-    
-    // JIKA MASIH PENDING / BELUM TRANSFER
-    if (statusApi === "pending" || statusApi === "unpaid") {
+
+    // 5. Response untuk status PENDING
+    if (statusApi === "pending") {
         return res.status(200).json({ 
             success: true, 
             status: "pending", 
-            message: "Menunggu Pembayaran / Belum Dikonfirmasi" 
+            message: "Menunggu pembayaran atau belum terkonfirmasi." // Sesuai docs
         });
     }
 
-    // JIKA EXPIRED ATAU GAGAL
     return res.status(200).json({ success: true, status: statusApi, message: "Status: " + statusApi });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
-
 
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const { id } = req.body; // trx_id
