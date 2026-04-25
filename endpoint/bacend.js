@@ -166,83 +166,55 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 router.post("/deposit/status", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
-    if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
-
-    const { id } = req.body; // Ini harus berisi payinaja_trx_id (Contoh: TRX-xxxx)
-    if (!id) return res.status(400).json({ success: false, message: "ID transaksi diperlukan." });
+    const { id } = req.body; // Ini payinaja_trx_id (TRX-...)
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    // Pastikan BASE_URL benar, jangan sampai double slash (//)
     const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
 
-    // PERBAIKAN 1: Pastikan URL mengarah ke /transaction/{id}
     const response = await fetch(`${BASE_URL}/transaction/${id}`, {
       method: "GET",
-      headers: {
-        "x-api-key": API_KEY,
-        "Accept": "application/json"
-      },
+      headers: { "x-api-key": API_KEY }
     });
 
     const result = await response.json();
-
-    // PERBAIKAN 2: Jika API Payinaja membalas gagal
-    if (!result.success || !result.data) {
-      return res.status(404).json({ 
-        success: false, 
-        message: result.message || "Transaksi tidak ditemukan di provider Payinaja." 
-      });
-    }
+    if (!result.success) return res.status(404).json({ success: false, message: "Transaksi tidak ditemukan." });
 
     const d = result.data;
-    const statusApi = (d.status || "unpaid").toLowerCase();
+    const statusApi = d.status.toLowerCase();
 
-    // PERBAIKAN 3: Cari history di database lokal untuk mengambil data saldo bersih (get_balance)
-    // Kita cari berdasarkan ID transaksi provider yang disimpan saat 'create'
-    const historyIndex = user.history_deposit.findIndex(h => h.id === id);
-    const history = user.history_deposit[historyIndex];
+    // Cari riwayat di database kamu berdasarkan ID provider
+    const history = user.history_deposit.find(h => h.id === id);
+    if (!history) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
-    if (!history) {
-      return res.status(404).json({ success: false, message: "Data transaksi tidak ditemukan di riwayat akun Anda." });
-    }
-
-    // PROSES UPDATE SALDO
-    // Hanya proses jika status dari API adalah 'success' dan di database kita masih 'pending'
+    // JIKA PEMBAYARAN BERHASIL
     if (statusApi === "success" && history.status === "pending") {
-      
-      // Update status di history lokal menggunakan fungsi helper kamu
-      await editHistoryDeposit(user._id, id, "success");
-
-      // Tambah Saldo: Gunakan history.get_balance (Saldo yang sudah dipotong fee admin kamu)
-      await User.findByIdAndUpdate(user._id, { 
-        $inc: { saldo: history.get_balance } 
-      });
-
-      // Update variabel status untuk response ke frontend
-      history.status = "success";
-    } else if (["cancelled", "failed", "expired"].includes(statusApi) && history.status === "pending") {
-      await editHistoryDeposit(user._id, id, statusApi);
-      history.status = statusApi;
+        await editHistoryDeposit(user._id, id, "success");
+        await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance } });
+        return res.status(200).json({ 
+            success: true, 
+            status: "success", 
+            message: "Pembayaran Berhasil", 
+            get_balance: history.get_balance 
+        });
+    } 
+    
+    // JIKA MASIH PENDING / BELUM TRANSFER
+    if (statusApi === "pending" || statusApi === "unpaid") {
+        return res.status(200).json({ 
+            success: true, 
+            status: "pending", 
+            message: "Menunggu Pembayaran / Belum Dikonfirmasi" 
+        });
     }
 
-    // Response Akhir ke Frontend
-    return res.status(200).json({
-      success: true,
-      data: {
-        id: d.payinaja_trx_id,
-        status: statusApi,
-        nominal: d.amount_requested,
-        total_bayar: d.total_amount,
-        get_balance: history.get_balance, // Menampilkan saldo bersih yang masuk
-        merchant_ref: d.merchant_ref
-      }
-    });
+    // JIKA EXPIRED ATAU GAGAL
+    return res.status(200).json({ success: true, status: statusApi, message: "Status: " + statusApi });
 
   } catch (err) {
-    console.error("Error Status Check:", err);
-    return res.status(500).json({ success: false, message: "Terjadi kesalahan internal server." });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const { id } = req.body; // trx_id
