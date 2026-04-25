@@ -76,72 +76,63 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal, 10);
-  if (parsedNominal < 250) {
+  if (parsedNominal < 100) {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp1.000" });
   }
 
   try {
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api";
+    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
 
     if (!API_KEY) {
-      return res.status(500).json({ success: false, message: "API Key belum diisi." });
+      return res.status(500).json({ success: false, message: "API key belum diisi." });
     }
 
-    const response = await fetch(`${BASE_URL}/v1/qris/create`, {
+    const response = await fetch(`${BASE_URL}/qris/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": API_KEY
+        "x-api-key": API_KEY,
       },
       body: JSON.stringify({
         amount: parsedNominal,
-        reference_id: `INV-${Date.now()}`,
-        customer_name: user.name || "Customer"
-      })
+        reference_id: `INV-${Date.now()}`, // generate unique reference ID
+        customer_name: user.name || "Customer Name", // use user's name
+      }),
     });
 
     const result = await response.json();
 
     if (!result.success) {
-      return res.status(502).json({
-        success: false,
-        message: result.message || "Gagal membuat QRIS."
-      });
+      return res.status(500).json({ success: false, message: "Gagal membuat QRIS." });
     }
 
-    // Extract QR data
-    const { payinaja_trx_id, qris_image_url, total_amount, fee, qris_string, status } = result.data;
+    const { payinaja_trx_id, qris_image_url, total_amount, fee, amount_requested } = result.data;
 
-    if (!qris_image_url) {
-      return res.status(500).json({ success: false, message: "QR image URL tidak ditemukan." });
-    }
-
+    // Logika untuk menyimpan informasi deposit
     const history = {
-      trx_id: payinaja_trx_id,
-      reference_id: `INV-${Date.now()}`,
-      nominal: parsedNominal,
-      fee: fee,
-      total: total_amount,
-      qris_string: qris_string,
-      qris_image_url: qris_image_url,
-      status: status,
-      created_at: new Date()
+      id: payinaja_trx_id,
+      nominal: amount_requested,
+      fee,
+      total_amount,
+      metode: "QRIS",
+      status: result.data.status || "pending",
+      created_at: new Date(),
     };
 
-    // Save deposit history
     await tambahHistoryDeposit(user._id, history);
 
+    // Kembalikan hasil yang sesuai
     return res.status(200).json({
       success: true,
-      message: "Deposit berhasil dibuat",
       data: {
-        trx_id: payinaja_trx_id,
-        qris_image_url: qris_image_url,
-        total_amount: total_amount,
-        fee: fee,
-        status: status,
-      }
+        id: payinaja_trx_id,
+        nominal: amount_requested,
+        fee,
+        total_amount,
+        status: result.data.status,
+        qris_image_url, // link untuk QR Code
+      },
     });
 
   } catch (err) {
