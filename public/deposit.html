@@ -1696,13 +1696,21 @@ input,select{
                     </div>`;
             }
 
-            if (data.qr_image && data.status === 'pending') {
-                paymentInfoHtml += `
-                    <div class="qr-code-container">
-                        <p class="mb-2">Silakan scan QR Code di bawah ini:</p>
-                        <img src="${data.qr_image}" alt="QR Code Pembayaran">
-                    </div>`;
-            }
+// Gunakan pengecekan null-safe agar tidak crash jika data belum siap
+if (data && data.qr_image) {
+    // Tambahkan pengecekan status yang lebih fleksibel
+    const currentStatus = data.status ? data.status.toString().toLowerCase() : '';
+    
+    if (currentStatus === 'pending') {
+        paymentInfoHtml += `
+            <div class="qr-code-container" style="text-align: center; margin-top: 20px;">
+                <p class="mb-2" style="font-weight: bold;">Silakan scan QR Code di bawah ini:</p>
+                <img src="${data.qr_image}" alt="QR Code Pembayaran" style="max-width: 250px; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
+                <p class="mt-2 text-muted" style="font-size: 12px;">Berlaku selama 15 menit</p>
+            </div>`;
+    }
+}
+
             
             if (data.expired_at) {
                  paymentInfoHtml += `
@@ -1901,14 +1909,22 @@ input,select{
                     </div>`;
             }
 
-            if (depositData.qr_image && depositData.status === 'pending') {
-                contentHtml += `
-                    <div class="qr-code-container">
-                        <p class="mb-2">Silakan scan QR Code di bawah ini:</p>
-                        <img src="${depositData.qr_image}" alt="QR Code Pembayaran">
-                    </div>`;
-            }
-            
+
+            // Cek apakah depositData dan qr_image ada sebelum memproses
+if (depositData && depositData.qr_image) {
+    // Ambil status dan ubah ke huruf kecil dengan aman (cegah error toLowerCase)
+    const currentStatus = depositData.status ? depositData.status.toString().toLowerCase() : '';
+    
+    if (currentStatus === 'pending') {
+        contentHtml += `
+            <div class="qr-code-container" style="text-align: center; margin-top: 15px;">
+                <p class="mb-2" style="font-weight: bold;">Silakan scan QR Code di bawah ini:</p>
+                <img src="${depositData.qr_image}" alt="QR Code Pembayaran" style="max-width: 200px; border-radius: 10px; border: 1px solid #ddd; padding: 5px;">
+                <p class="mt-2 text-muted" style="font-size: 11px;">Status: Menunggu Pembayaran</p>
+            </div>`;
+    }
+}
+
             if (depositData.expired_at && depositData.status === 'pending') {
                  contentHtml += `
                     <div class="payment-detail-item text-danger">
