@@ -2269,13 +2269,9 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
             fetchDepositHistory();
         });
 <script>
-let checkInterval = null;
-
-function startPolling(trxId) {
-    // Hapus interval jika sudah ada agar tidak double
-    if (checkInterval) clearInterval(checkInterval);
-
-    checkInterval = setInterval(() => {
+// Fungsi Cek Otomatis (Polling) tiap 7 detik
+function jalankanCekOtomatis(trxId) {
+    const interval = setInterval(() => {
         $.ajax({
             url: '/deposit/status',
             method: 'POST',
@@ -2283,30 +2279,20 @@ function startPolling(trxId) {
             data: JSON.stringify({ id: trxId }),
             success: function(res) {
                 if (res.success && res.status === 'success') {
-                    // 1. Stop pengecekan
-                    clearInterval(checkInterval);
-                    
-                    // 2. Hapus QRIS dan Card Detail (sesuaikan dengan id/class card kamu)
-                    $('#depositRes').fadeOut(500, function() {
-                        $(this).html('<div class="alert alert-success">Pembayaran Berhasil! Halaman akan dimuat ulang...</div>').fadeIn();
-                    });
-
-                    // 3. Notif Swal
+                    clearInterval(interval); // Stop cek karena sudah masuk saldonya
                     Swal.fire({
                         icon: 'success',
-                        title: 'Berhasil!',
-                        text: 'Pembayaran berhasil, saldo sudah masuk.',
-                    }).then(() => {
-                        location.reload(); // Reload agar saldo di navbar update
-                    });
+                        title: 'Pembayaran Berhasil!',
+                        text: 'Saldo sudah ditambahkan otomatis.',
+                    }).then(() => { location.reload(); });
                 }
             }
         });
-    }, 5000); // Cek tiap 5 detik
+    }, 2000); // Cek tiap 7 detik
 }
 
-// PANGGIL INI SAAT QRIS MUNCUL
-// Contoh: startPolling('TRX-xxxx');
+// Tambahkan start polling ini di bagian sukses buat QRIS kamu
+// Contoh: jalankanCekOtomatis('TRX-1777157396463-J8D');
 </script>
 
 </body>
