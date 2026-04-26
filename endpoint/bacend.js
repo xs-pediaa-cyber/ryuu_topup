@@ -77,12 +77,20 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
+    // Hardcoded URL untuk menghindari error "Failed to parse URL from undefined"
     const BASE_URL = "https://payinaja.web.id/api/v1";
 
-    // 1. Request ke Payinaja
+    if (!API_KEY) {
+      return res.status(500).json({ success: false, message: "API Key belum diatur di ENV." });
+    }
+
+    // 1. Request QRIS ke Payinaja
     const payinajaResponse = await fetch(`${BASE_URL}/qris/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-api-key": API_KEY 
+      },
       body: JSON.stringify({
         amount: parsedNominal,
         reference_id: `INV-${Date.now()}`,
@@ -91,13 +99,18 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     });
 
     const result = await payinajaResponse.json();
+    
+    // Validasi data result agar tidak undefined
     if (!result || !result.success || !result.data) {
-      return res.status(502).json({ success: false, message: "Provider Payinaja sedang bermasalah." });
+      return res.status(502).json({ 
+        success: false, 
+        message: result ? result.message : "Gagal mendapatkan data dari Payinaja." 
+      });
     }
 
     const d = result.data;
 
-    // 2. Logika Fee (0.1 = 10% untuk reseller, 0.2 = 20% untuk user)
+    // 2. Hitung Saldo & Fee
     const feePercent = user.role === "reseller" ? 0.1 : 0.2;
     const internalFee = Math.round(parsedNominal * feePercent);
     const finalBalance = parsedNominal - internalFee;
@@ -110,7 +123,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       fee: internalFee,
       get_balance: finalBalance,
       metode: "QRIS",
-      status: "pending", // Status awal wajib pending
+      status: "pending",
       total: d.total_amount,
       qris_image_url: d.qris_image_url,
       created_at: new Date(),
@@ -129,7 +142,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       },
     });
 
-    // 5. POLLING OTOMATIS (Tanpa Campur Tangan Frontend)
+    // 5. POLLING OTOMATIS (Tanpa script frontend)
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`${BASE_URL}/transaction/${d.payinaja_trx_id}`, {
@@ -139,13 +152,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
         const checkData = await checkRes.json();
         
-        // PENGAMAN: Cek kelengkapan data sebelum memproses (Mencegah toLowerCase error)
+        // PENGAMAN: Cek satu per satu properti sebelum panggil toLowerCase()
         if (checkData && checkData.success && checkData.data && checkData.data.status) {
-          const apiStatus = checkData.data.status.toLowerCase();
+          const apiStatus = checkData.data.status.toString().toLowerCase();
 
           if (apiStatus === "success") {
             const userUpdate = await User.findById(user._id);
-            // PENGAMAN: Cek apakah history_deposit ada (Mencegah find error)
             const historyList = userUpdate.history_deposit || [];
             const tx = historyList.find(h => h.id === d.payinaja_trx_id);
 
@@ -160,13 +172,13 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
           }
         }
       } catch (e) {
-        console.error("Polling Error Payinaja:", e.message);
+        console.error("Polling Error:", e.message);
       }
-    }, 5000); // Cek setiap 5 detik
+    }, 5000); // Cek tiap 5 detik
 
   } catch (err) {
-    console.error("Internal Server Error:", err.message);
-    if (!res.headersSent) res.status(500).json({ success: false, message: "Terjadi kesalahan internal server." });
+    console.error("Crash Error:", err.message);
+    if (!res.headersSent) res.status(500).json({ success: false, message: "Terjadi kesalahan pada server." });
   }
 });
 
