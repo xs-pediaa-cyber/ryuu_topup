@@ -176,67 +176,61 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const { id } = req.body;
     const user = await User.findById(req.session.userId);
 
-    // 1. Cari data di history deposit user (mencari ID TRX Payinaja)
-    // Menggunakan find agar fleksibel terhadap penamaan array di modelmu
-    const history = (user.history_deposit || user.historyDeposit || []).find(h => h.id === id);
+    // 1. Cari data di history dengan ID yang sesuai
+    const history = (user.history_deposit || []).find(h => h.id === id);
 
     if (!history) {
-      return res.status(200).json({ 
+      return res.status(404).json({ 
         success: false, 
-        message: "Data transaksi tidak ditemukan di sistem." 
+        message: "Data transaksi tidak ditemukan." 
       });
     }
 
-    // 2. Jika di database lokal statusnya sudah 'success', langsung kirim respon
-    // Ini penting agar tidak membuang kuota API jika polling server sudah berhasil
+    // 2. Jika di database lokal sudah sukses, langsung kembalikan data history
     if (history.status === "success") {
       return res.json({ 
         success: true, 
         status: "success", 
         message: "Pembayaran Berhasil!",
-        data: history 
+        // Kirim data history agar frontend bisa menampilkan nominal (bukan NaN)
+        data: {
+          id: history.id,
+          nominal: Number(history.nominal) || 0,
+          fee: Number(history.fee) || 0,
+          get_balance: Number(history.get_balance) || 0,
+          metode: history.metode || "QRIS"
+        }
       });
     }
 
-    // 3. Cek status terbaru ke API Payinaja (Sinkronisasi Manual/Fallback)
+    // 3. Jika masih pending, cek ke API Payinaja untuk sinkronisasi
     const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
       method: "GET",
       headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
     });
     const result = await response.json();
 
-    if (result.success && result.data) {
-      const apiStatus = result.data.status.toLowerCase();
+    if (result.success && result.data.status.toLowerCase() === "success") {
+      // Pastikan saldo yang ditambah adalah angka valid (Anti-NaN)
+      const balanceToReceived = Number(history.get_balance) || 0;
 
-      // Jika di API sudah sukses tapi di DB masih pending
-      if (apiStatus === "success" && history.status !== "success") {
-        // Pastikan variabel get_balance valid (Anti-NaN)
-        const amountToUpdate = Number(history.get_balance) || 0;
+      // Update status di history dan tambah saldo user
+      await editHistoryDeposit(user._id, id, "success");
+      await User.findByIdAndUpdate(user._id, { $inc: { saldo: balanceToReceived } });
 
-        // Update Database: Status -> success & Tambah Saldo
-        await editHistoryDeposit(user._id, id, "success");
-        await User.findByIdAndUpdate(user._id, { $inc: { saldo: amountToUpdate } });
-
-        return res.json({ 
-          success: true, 
-          status: "success", 
-          message: "Pembayaran Berhasil!",
-          data: { ...history, status: "success" }
-        });
-      }
-
-      // Jika status lainnya (failed/expired/cancel)
-      if (["failed", "expired", "cancel"].includes(apiStatus)) {
-        await editHistoryDeposit(user._id, id, apiStatus);
-        return res.json({ 
-          success: true, 
-          status: apiStatus, 
-          message: `Transaksi ${apiStatus}` 
-        });
-      }
+      return res.json({ 
+        success: true, 
+        status: "success", 
+        message: "Pembayaran Berhasil!",
+        data: {
+          ...history,
+          status: "success",
+          get_balance: balanceToReceived
+        }
+      });
     }
 
-    // 4. Default respon jika masih pending atau API tidak merespon sukses
+    // 4. Jika masih pending di API
     return res.json({ 
       success: true, 
       status: "pending", 
@@ -245,8 +239,8 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Status Check Error:", err.message);
-    res.status(500).json({ success: false, message: "Gagal memproses status." });
+    console.error("Error Status:", err);
+    res.status(500).json({ success: false, message: "Gagal memproses data." });
   }
 });
 
