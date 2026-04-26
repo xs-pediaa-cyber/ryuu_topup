@@ -2269,31 +2269,6 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
             fetchDepositHistory();
         });
 <script>
-// Fungsi Cek Otomatis (Polling) tiap 7 detik
-function jalankanCekOtomatis(trxId) {
-    const interval = setInterval(() => {
-        $.ajax({
-            url: '/deposit/status',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ id: trxId }),
-            success: function(res) {
-                if (res.success && res.status === 'success') {
-                    clearInterval(interval); // Stop cek karena sudah masuk saldonya
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Pembayaran Berhasil!',
-                        text: 'Saldo sudah ditambahkan otomatis.',
-                    }).then(() => { location.reload(); });
-                }
-            }
-        });
-    }, 2000); // Cek tiap 7 detik
-}
-
-// Tambahkan start polling ini di bagian sukses buat QRIS kamu
-// Contoh: jalankanCekOtomatis('TRX-1777157396463-J8D');
-</script>
 
 </body>
 </html>
