@@ -498,41 +498,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Fungsi khusus untuk mengambil saldo provider dari Atlantic API via Backend Proxy
+    // Fungsi untuk mengambil saldo LANGSUNG dari API Payinaja
     const fetchProviderBalance = async (forceRefresh = false) => {
         // Cek cache jika tidak memaksa refresh
         if (!forceRefresh && providerBalanceCache && providerBalanceTimestamp) {
             const now = Date.now();
             if (now - providerBalanceTimestamp < CACHE_DURATION) {
-                console.log('✅ Menggunakan cache saldo provider');
+                console.log('✅ Menggunakan cache saldo Payinaja');
                 return providerBalanceCache;
             }
         }
         
         try {
-            document.getElementById('saldoProvider').innerHTML = '<span style="color: var(--color-info);"><span class="loading-spinner"></span> Loading...</span>';
+            const saldoElement = document.getElementById('saldoProvider');
+            if (saldoElement) {
+                saldoElement.innerHTML = '<span style="color: var(--color-info);"><span class="loading-spinner"></span> Loading...</span>';
+            }
             
-            console.log('🔄 Mengambil saldo provider via backend proxy...');
+            console.log('🔄 Mengambil saldo langsung dari Payinaja API...');
             
-            // Request ke backend proxy Anda - endpoint yang sudah ada
-            const response = await fetch('/admin/atlantic/profile');
+            // Langsung tembak ke domain Payinaja
+            const response = await fetch('https://payinaja.web.id/api/v1/profile', {
+                method: 'GET',
+                headers: {
+                    // Pastikan variabel apiKeyPayinaja sudah kamu definisikan sebelumnya
+                    'x-api-key': 'your_api_key_here' // Sesuaikan dengan header API Payinaja
+                }
+            });
             
             if (!response.ok) {
-                // Jika response bukan JSON (seperti HTML dari Cloudflare challenge)
-                const responseText = await response.text();
-                if (responseText.includes('Just a moment...') || responseText.includes('cloudflare')) {
-                    throw new Error('Atlantic API sedang dalam proteksi Cloudflare. Coba lagi nanti.');
-                }
-                throw new Error(`HTTP ${response.status}: Gagal mengambil saldo provider`);
+                throw new Error(`HTTP ${response.status}: Gagal terhubung ke Payinaja`);
             }
             
             const result = await response.json();
-            console.log('✅ Response backend proxy:', result);
+            console.log('✅ Response Payinaja:', result);
             
-            if (result.success && result.profile && result.profile.saldo !== undefined) {
-                const balance = parseFloat(result.profile.saldo);
+            // Sesuai struktur data Payinaja: result.data.balance
+            if (result.success && result.data && result.data.balance !== undefined) {
+                const balance = parseFloat(result.data.balance);
                 if (!isNaN(balance)) {
-                    console.log('💰 Saldo berhasil diambil:', balance);
+                    console.log('💰 Saldo Payinaja:', balance);
                     
                     // Update cache
                     providerBalanceCache = balance;
@@ -540,23 +545,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     return balance;
                 } else {
-                    throw new Error('Format saldo tidak valid: ' + result.profile.saldo);
+                    throw new Error('Format saldo tidak valid');
                 }
             } else {
-                throw new Error('Format respons tidak valid dari Atlantic API');
+                throw new Error(result.message || 'Gagal mengambil profil Payinaja');
             }
         } catch (error) {
-            console.error('❌ Error fetching provider balance:', error);
+            console.error('❌ Error Payinaja API:', error);
             
-            // Jika ada error, gunakan cache jika tersedia
             if (providerBalanceCache) {
-                console.log('⚠️ Menggunakan cache karena error:', error.message);
+                console.log('⚠️ Menggunakan cache terakhir');
                 return providerBalanceCache;
             }
             
-            throw new Error(`Tidak dapat mengambil saldo provider: ${error.message}`);
+            throw new Error(`Koneksi API Gagal: ${error.message}`);
         }
     };
+
 
     // Fungsi untuk mengambil data user REAL-TIME dari database
     const fetchUsersData = async () => {
