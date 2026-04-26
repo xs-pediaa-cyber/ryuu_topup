@@ -176,19 +176,22 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const { id } = req.body;
     const user = await User.findById(req.session.userId);
 
-    // Cari ID transaksi di riwayat user
+    // 1. Cari data di history lokal
     const history = (user.history_deposit || []).find(h => h.id === id);
-
     if (!history) {
-      return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
+      return res.status(404).json({ success: false, message: "Transaksi tidak ditemukan." });
     }
 
-    // Jika status di DB sudah success (berkat polling server), langsung kirim sukses ke browser
+    // 2. Jika sudah sukses di DB lokal, langsung kirim respon sukses
     if (history.status === "success") {
-      return res.json({ success: true, status: "success", data: history });
+      return res.json({ 
+        success: true, 
+        status: "success", 
+        message: "Pembayaran Berhasil!" 
+      });
     }
 
-    // Jika masih pending, coba sinkronisasi sekali lagi ke API Payinaja
+    // 3. Cek status terbaru ke Payinaja
     const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
       method: "GET",
       headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
@@ -196,18 +199,29 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const result = await response.json();
 
     if (result.success && result.data.status.toLowerCase() === "success") {
+      // Update saldo dan status jika di API sudah sukses
       await editHistoryDeposit(user._id, id, "success");
       await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance } });
-      return res.json({ success: true, status: "success", data: history });
+      
+      return res.json({ 
+        success: true, 
+        status: "success", 
+        message: "Pembayaran Berhasil!" 
+      });
     }
 
-    // Kirim status terbaru (pending/failed/expired)
-    return res.json({ success: true, status: result?.data?.status || history.status, data: history });
+    // 4. Jika masih pending
+    return res.json({ 
+      success: true, 
+      status: "pending", 
+      message: "Menunggu pembayaran..." 
+    });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: "Error cek status." });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
+
 
 router.post("/layanan/price-list", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
