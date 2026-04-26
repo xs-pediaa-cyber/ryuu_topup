@@ -2269,52 +2269,45 @@ if (depositData.qris_image_url && depositData.status === 'pending') {
             fetchDepositHistory();
         });
 <script>
-let autoCheckInterval;
+let checkInterval = null;
 
-function startAutoCheck(trxId) {
-    // Bersihkan interval sebelumnya jika ada agar tidak tumpuk
-    if (autoCheckInterval) clearInterval(autoCheckInterval);
+function startPolling(trxId) {
+    // Hapus interval jika sudah ada agar tidak double
+    if (checkInterval) clearInterval(checkInterval);
 
-    autoCheckInterval = setInterval(() => {
+    checkInterval = setInterval(() => {
         $.ajax({
             url: '/deposit/status',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ id: trxId }),
             success: function(res) {
-                // JIKA STATUS SUKSES DARI BACKEND
                 if (res.success && res.status === 'success') {
-                    // 1. Berhenti mengecek otomatis
-                    clearInterval(autoCheckInterval);
+                    // 1. Stop pengecekan
+                    clearInterval(checkInterval);
+                    
+                    // 2. Hapus QRIS dan Card Detail (sesuaikan dengan id/class card kamu)
+                    $('#depositRes').fadeOut(500, function() {
+                        $(this).html('<div class="alert alert-success">Pembayaran Berhasil! Halaman akan dimuat ulang...</div>').fadeIn();
+                    });
 
-                    // 2. Sembunyikan/Hapus bagian QRIS dan Detail agar tidak membingungkan
-                    // Pastikan ID elemen sesuai dengan yang ada di HTML kamu
-                    $('.vp-deposit-detail-card').fadeOut(); 
-                    $('#depositRes').html('<div class="alert alert-success">Pembayaran Berhasil! Saldo telah ditambahkan.</div>');
-
-                    // 3. Tampilkan Notifikasi Berhasil
+                    // 3. Notif Swal
                     Swal.fire({
                         icon: 'success',
-                        title: 'Pembayaran Berhasil!',
-                        text: res.message,
-                        confirmButtonText: 'Oke'
+                        title: 'Berhasil!',
+                        text: 'Pembayaran berhasil, saldo sudah masuk.',
                     }).then(() => {
-                        // 4. Reload untuk memperbarui saldo di Navbar
-                        location.reload();
+                        location.reload(); // Reload agar saldo di navbar update
                     });
                 }
-            },
-            error: function(err) {
-                console.log("Auto-check error, mencoba lagi...");
             }
         });
-    }, 5000); // Mengecek setiap 5 detik
+    }, 5000); // Cek tiap 5 detik
 }
 
-// Pastikan fungsi startAutoCheck dipanggil saat QRIS pertama kali muncul
-// Contoh: startAutoCheck('TRX-1777157838196-6AK');
+// PANGGIL INI SAAT QRIS MUNCUL
+// Contoh: startPolling('TRX-xxxx');
 </script>
-
 
 </body>
 </html>
