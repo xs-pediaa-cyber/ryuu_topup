@@ -2282,40 +2282,6 @@ if (depositData && depositData.qr_image) {
             fetchDepositHistory();
         });
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Gunakan try-catch agar jika error tidak merusak fungsi lain (metode/history)
-    try {
-        const trxId = "<%= typeof data !== 'undefined' && data.id ? data.id : '' %>";
-        const statusElement = document.getElementById("status-text");
-
-        // Jika tidak ada ID transaksi, jangan jalankan polling
-        if (!trxId) return;
-
-        const autoCheck = setInterval(async () => {
-            try {
-                const response = await fetch('/deposit/status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: trxId })
-                });
-                const result = await response.json();
-
-                if (result.success && result.status === 'success') {
-                    clearInterval(autoCheck);
-                    alert("✅ Pembayaran Berhasil!");
-                    window.location.reload(); 
-                } else if (statusElement) {
-                    statusElement.innerText = "Menunggu Pembayaran...";
-                }
-            } catch (err) {
-                console.log("Status check pending...");
-            }
-        }, 1000);
-    } catch (e) {
-        console.error("Script polling error:", e);
-    }
-});
-</script>
 
 </body>
 </html>
