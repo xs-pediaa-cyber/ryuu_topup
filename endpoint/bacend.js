@@ -176,51 +176,80 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const { id } = req.body;
     const user = await User.findById(req.session.userId);
 
-    // 1. Cari data di history lokal
-    const history = (user.history_deposit || []).find(h => h.id === id);
+    // 1. Cari data di history deposit user (mencari ID TRX Payinaja)
+    // Menggunakan find agar fleksibel terhadap penamaan array di modelmu
+    const history = (user.history_deposit || user.historyDeposit || []).find(h => h.id === id);
+
     if (!history) {
-      return res.status(404).json({ success: false, message: "Transaksi tidak ditemukan." });
+      return res.status(200).json({ 
+        success: false, 
+        message: "Data transaksi tidak ditemukan di sistem." 
+      });
     }
 
-    // 2. Jika sudah sukses di DB lokal, langsung kirim respon sukses
+    // 2. Jika di database lokal statusnya sudah 'success', langsung kirim respon
+    // Ini penting agar tidak membuang kuota API jika polling server sudah berhasil
     if (history.status === "success") {
       return res.json({ 
         success: true, 
         status: "success", 
-        message: "Pembayaran Berhasil!" 
+        message: "Pembayaran Berhasil!",
+        data: history 
       });
     }
 
-    // 3. Cek status terbaru ke Payinaja
+    // 3. Cek status terbaru ke API Payinaja (Sinkronisasi Manual/Fallback)
     const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
       method: "GET",
       headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
     });
     const result = await response.json();
 
-    if (result.success && result.data.status.toLowerCase() === "success") {
-      // Update saldo dan status jika di API sudah sukses
-      await editHistoryDeposit(user._id, id, "success");
-      await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance } });
-      
-      return res.json({ 
-        success: true, 
-        status: "success", 
-        message: "Pembayaran Berhasil!" 
-      });
+    if (result.success && result.data) {
+      const apiStatus = result.data.status.toLowerCase();
+
+      // Jika di API sudah sukses tapi di DB masih pending
+      if (apiStatus === "success" && history.status !== "success") {
+        // Pastikan variabel get_balance valid (Anti-NaN)
+        const amountToUpdate = Number(history.get_balance) || 0;
+
+        // Update Database: Status -> success & Tambah Saldo
+        await editHistoryDeposit(user._id, id, "success");
+        await User.findByIdAndUpdate(user._id, { $inc: { saldo: amountToUpdate } });
+
+        return res.json({ 
+          success: true, 
+          status: "success", 
+          message: "Pembayaran Berhasil!",
+          data: { ...history, status: "success" }
+        });
+      }
+
+      // Jika status lainnya (failed/expired/cancel)
+      if (["failed", "expired", "cancel"].includes(apiStatus)) {
+        await editHistoryDeposit(user._id, id, apiStatus);
+        return res.json({ 
+          success: true, 
+          status: apiStatus, 
+          message: `Transaksi ${apiStatus}` 
+        });
+      }
     }
 
-    // 4. Jika masih pending
+    // 4. Default respon jika masih pending atau API tidak merespon sukses
     return res.json({ 
       success: true, 
       status: "pending", 
-      message: "Menunggu pembayaran..." 
+      message: "Menunggu pembayaran...",
+      data: history
     });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    console.error("Status Check Error:", err.message);
+    res.status(500).json({ success: false, message: "Gagal memproses status." });
   }
 });
+
 
 
 router.post("/layanan/price-list", requireLogin, async (req, res) => {
