@@ -17,7 +17,7 @@ const apikey = process.env.PTERO_API_KEY;
 
 // KONFIGURASI RICHMARKET
 const PAYINAJA_API_KEY = process.env.RICH_API_KEY;
-const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
+const PAYINAJA_BASE_URL = "https://payinaja.web.id/api/v1";
 
 const {
   requireLogin,
@@ -67,118 +67,79 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
 router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
-    if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
-
     const { nominal } = req.body;
-    const parsedNominal = parseInt(nominal, 10);
+    const parsedNominal = parseInt(nominal);
 
+    // 1. Validasi Input
     if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
       return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
     }
 
+    // 2. Pastikan API Key & URL Terbaca
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    // Hardcoded URL untuk menghindari error "Failed to parse URL from undefined"
-    const BASE_URL = "https://payinaja.web.id/api/v1";
+    // Gunakan fallback URL jika process.env tidak terbaca
+    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
 
     if (!API_KEY) {
-      return res.status(500).json({ success: false, message: "API Key belum diatur di ENV." });
+      console.error("Missing API KEY");
+      return res.status(500).json({ success: false, message: "Konfigurasi server salah (API Key)." });
     }
 
-    // 1. Request QRIS ke Payinaja
-    const payinajaResponse = await fetch(`${BASE_URL}/qris/create`, {
+    // 3. Request ke Payinaja
+    const response = await fetch(`${BASE_URL}/qris/create`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "x-api-key": API_KEY 
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY
       },
       body: JSON.stringify({
         amount: parsedNominal,
-        reference_id: `INV-${Date.now()}`,
-        customer_name: user.username || "Customer",
-      }),
+        reference_id: `DEP-${Date.now()}`, // ID Unik
+        customer_name: user.username
+      })
     });
 
-    const result = await payinajaResponse.json();
-    
-    // Validasi data result agar tidak undefined
-    if (!result || !result.success || !result.data) {
-      return res.status(502).json({ 
-        success: false, 
-        message: result ? result.message : "Gagal mendapatkan data dari Payinaja." 
-      });
+    const result = await response.json();
+
+    // 4. Pengecekan Hasil Response (Mencegah error 'undefined')
+    if (!result || result.success !== true || !result.data) {
+      const errMsg = result ? result.message : "Gagal terhubung ke provider";
+      return res.status(400).json({ success: false, message: errMsg });
     }
 
-    const d = result.data;
+    const payData = result.data;
 
-    // 2. Hitung Saldo & Fee
-    const feePercent = user.role === "reseller" ? 0.1 : 0.2;
-    const internalFee = Math.round(parsedNominal * feePercent);
-    const finalBalance = parsedNominal - internalFee;
-
-    // 3. Simpan ke Database
-    const history = {
-      id: d.payinaja_trx_id,
-      reff_id: d.merchant_ref,
+    // 5. Simpan ke Database Internal (Agar muncul di History web kamu)
+    const newDeposit = {
+      // Gunakan 'payinaja_trx_id' sesuai dokumentasi Payinaja di screenshot kamu
+      id: payData.payinaja_trx_id, 
       nominal: parsedNominal,
-      fee: internalFee,
-      get_balance: finalBalance,
       metode: "QRIS",
       status: "pending",
-      total: d.total_amount,
-      qris_image_url: d.qris_image_url,
-      created_at: new Date(),
+      qris_url: payData.qris_image_url,
+      created_at: new Date()
     };
 
-    await tambahHistoryDeposit(user._id, history);
+    // Pastikan fungsi ini berhasil dijalankan sebelum mengirim response ke user
+    await tambahHistoryDeposit(user._id, newDeposit);
 
-    // 4. Kirim Respon ke Frontend
-    res.status(200).json({
+    // 6. Kirim Response Sukses ke Frontend
+    return res.json({
       success: true,
+      message: "QRIS Berhasil dibuat",
       data: {
-        id: d.payinaja_trx_id,
-        nominal: parsedNominal,
-        total_bayar: d.total_amount,
-        qris_image_url: d.qris_image_url
-      },
+        trx_id: payData.payinaja_trx_id,
+        qr_image: payData.qris_image_url,
+        total: payData.total_amount
+      }
     });
 
-    // 5. POLLING OTOMATIS (Tanpa script frontend)
-    const intervalId = setInterval(async () => {
-      try {
-        const checkRes = await fetch(`${BASE_URL}/transaction/${d.payinaja_trx_id}`, {
-          method: "GET",
-          headers: { "x-api-key": API_KEY }
-        });
-
-        const checkData = await checkRes.json();
-        
-        // PENGAMAN: Cek satu per satu properti sebelum panggil toLowerCase()
-        if (checkData && checkData.success && checkData.data && checkData.data.status) {
-          const apiStatus = checkData.data.status.toString().toLowerCase();
-
-          if (apiStatus === "success") {
-            const userUpdate = await User.findById(user._id);
-            const historyList = userUpdate.history_deposit || [];
-            const tx = historyList.find(h => h.id === d.payinaja_trx_id);
-
-            if (tx && tx.status !== "success") {
-              await editHistoryDeposit(user._id, d.payinaja_trx_id, "success");
-              await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });
-            }
-            clearInterval(intervalId);
-          } else if (["failed", "expired", "cancel"].includes(apiStatus)) {
-            await editHistoryDeposit(user._id, d.payinaja_trx_id, apiStatus);
-            clearInterval(intervalId);
-          }
-        }
-      } catch (e) {
-        console.error("Polling Error:", e.message);
-      }
-    }, 5000); // Cek tiap 5 detik
-
   } catch (err) {
-    console.error("Crash Error:", err.message);
-    if (!res.headersSent) res.status(500).json({ success: false, message: "Terjadi kesalahan pada server." });
+    console.error("Deposit Error:", err.message);
+    // Ini untuk mencegah error "Cannot read properties of undefined (reading 'find')"
+    if (!res.headersSent) {
+      return res.status(500).json({ success: false, message: "Terjadi kesalahan internal server." });
+    }
   }
 });
 
