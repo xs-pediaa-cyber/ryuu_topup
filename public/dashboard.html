@@ -3,91 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard True Final</title>
+<title>Dashboard Final Fix</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-body{background:#f4f4f4;font-family:"Comic Neue",sans-serif;transition:.3s;}
+body{background:#f4f4f4;font-family:"Comic Neue",sans-serif;}
 body.dark{background:#0f0f0f;color:#fff;}
 
-.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:999;}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;}
 
 .sidebar{
 position:fixed;left:-260px;top:0;width:260px;height:100%;
-background:#fff;border-right:3px solid #000;transition:.3s;z-index:1000;padding:20px;
+background:#fff;border-right:3px solid #000;padding:20px;transition:.3s;
 }
 .sidebar.active{left:0;}
-body.dark .sidebar{background:#1a1a1a;border-right:3px solid #fff;}
-
 .sidebar h4{font-family:"Bangers";}
 .sidebar a{
-display:flex;align-items:center;gap:10px;
-padding:10px;margin:8px 0;border-radius:10px;
-text-decoration:none;color:inherit;font-weight:bold;
+display:flex;gap:10px;padding:10px;margin:6px 0;
+text-decoration:none;color:#000;font-weight:bold;border-radius:10px;
 }
 .sidebar a:hover{background:#dfffe0;border:2px solid #000;}
-body.dark .sidebar a:hover{background:#222;border:2px solid #fff;}
 
 .topbar{
 background:#fff;border:3px solid #000;margin:10px;padding:10px;
 border-radius:15px;display:flex;justify-content:space-between;
 }
-body.dark .topbar{background:#1a1a1a;border:3px solid #fff;}
 
-.thumbnail{
-background:#fff;border:3px solid #000;border-radius:15px;
-padding:10px;margin:10px;
-}
-body.dark .thumbnail{background:#1a1a1a;border:3px solid #fff;}
+.box{border:3px solid #000;border-radius:15px;padding:20px;background:#9be53a;}
+.box-level{background:#fff;border:3px solid #000;border-radius:15px;padding:20px;}
 
-.box{
-border:3px solid #000;border-radius:15px;padding:20px;
-background:#9be53a;margin-bottom:10px;
-}
-body.dark .box{border:3px solid #fff;}
-
-.box-level{
-background:#fff;border:3px solid #000;border-radius:15px;padding:20px;
-}
-body.dark .box-level{background:#1a1a1a;border:3px solid #fff;}
-
-.table-box{
-background:#fff;border:3px solid #000;border-radius:15px;padding:15px;
-}
-body.dark .table-box{
-background:#1a1a1a;
-border:3px solid #000;
-box-shadow:0 0 10px #000,0 0 20px #000;
-}
+.table-box{background:#fff;border:3px solid #000;border-radius:15px;padding:15px;}
 
 .profile-box{
 position:absolute;right:10px;top:60px;background:#fff;
 border:3px solid #000;border-radius:15px;padding:15px;
-display:none;z-index:1001;
-font-family:"Bangers";
+display:none;font-family:"Bangers";
 }
-body.dark .profile-box{background:#1a1a1a;border:3px solid #fff;}
 .profile-box.active{display:block;}
-
 .profile-box a{
-display:block;padding:8px;
-font-family:"Comic Neue";font-weight:bold;
-text-decoration:none;color:inherit;border-radius:8px;
+display:block;padding:8px;font-family:"Comic Neue";font-weight:bold;text-decoration:none;color:#000;
 }
 .profile-box a:hover{background:#dfffe0;}
-body.dark .profile-box a:hover{background:#222;}
-
-.notif-box{
-position:absolute;right:60px;top:60px;background:#fff;
-border:3px solid #000;border-radius:15px;padding:10px;
-display:none;z-index:1001;width:250px;max-height:300px;overflow:auto;
-}
-body.dark .notif-box{background:#1a1a1a;border:3px solid #fff;}
-.notif-box.active{display:block;}
-
 </style>
 </head>
 
@@ -95,23 +54,25 @@ body.dark .notif-box{background:#1a1a1a;border:3px solid #fff;}
 
 <div class="overlay" id="overlay" onclick="closeAll()"></div>
 
+<!-- SIDEBAR ORIGINAL -->
 <div class="sidebar" id="sidebar">
 <h4>XIAO-STORE</h4>
-<a href="/dashboard"><i class="bi bi-house"></i>Home</a>
+<a href="/dashboard"><i class="bi bi-house"></i>Dashboard</a>
 <a href="/deposit"><i class="bi bi-wallet2"></i>Deposit</a>
 <a href="/order"><i class="bi bi-cart"></i>Order</a>
-<a href="/price-list"><i class="bi bi-tags"></i>List Harga</a>
+<a href="/price-list"><i class="bi bi-tags"></i>Price List</a>
 <a href="/mutation-deposit"><i class="bi bi-cash"></i>Mutasi Deposit</a>
 <a href="/mutation-order"><i class="bi bi-receipt"></i>Mutasi Order</a>
-<a href="/tarik.html"><i class="bi bi-arrow-down-circle"></i>Tarik Duit</a>
+<a href="/tarik.html"><i class="bi bi-arrow-down-circle"></i>Tarik</a>
 <hr>
-<a href="/profile"><i class="bi bi-person"></i>Profil</a>
+<a href="/profile"><i class="bi bi-person"></i>Profile</a>
 <a href="/api-key-page"><i class="bi bi-key"></i>API Key</a>
 <a href="/docs"><i class="bi bi-code-slash"></i>Dokumentasi</a>
 <hr>
-<a href="/auth/logout" style="color:red;"><i class="bi bi-box-arrow-right"></i>Logout</a>
+<a href="/auth/logout"><i class="bi bi-box-arrow-right"></i>Logout</a>
 </div>
 
+<!-- TOPBAR -->
 <div class="topbar">
 <button onclick="openSidebar()"><i class="bi bi-list"></i></button>
 
@@ -121,32 +82,25 @@ body.dark .notif-box{background:#1a1a1a;border:3px solid #fff;}
 
 <img src="https://via.placeholder.com/40" style="border-radius:50%;cursor:pointer" onclick="toggleProfile()">
 
-<div class="notif-box" id="notifBox"></div>
-
 <div class="profile-box" id="profileMenu">
 <b id="username">User</b>
 <hr>
-<a href="/profile">Profil</a>
-<a href="/upgrade.html">Upgrade H2H</a>
+<a href="/profile">Profile</a>
+<a href="/upgrade.html">Upgrade</a>
 <a href="/support">Support</a>
 <hr>
-<a href="/auth/logout" style="color:red;">Logout</a>
+<a href="/auth/logout">Logout</a>
+</div>
+</div>
 </div>
 
-</div>
-</div>
-
-<div class="container">
-
-<div class="thumbnail">
-<img src="https://via.placeholder.com/300x120" style="width:100%;border-radius:10px;">
-</div>
+<div class="container mt-3">
 
 <div class="row">
 <div class="col-6">
 <div class="box">
 <h6>Saldo</h6>
-<h3 id="saldo">...</h3>
+<h3 id="userSaldo"></h3>
 <a href="/deposit" class="btn btn-dark w-100">Deposit</a>
 </div>
 </div>
@@ -154,19 +108,17 @@ body.dark .notif-box{background:#1a1a1a;border:3px solid #fff;}
 <div class="col-6">
 <div class="box-level">
 <h6>Level</h6>
-<h3 id="level">...</h3>
+<h3 id="userRole"></h3>
 <a href="/tarik.html" class="btn btn-dark w-100">Tarik</a>
 </div>
 </div>
 </div>
 
 <div class="table-box mt-3">
-<h5>History Deposit</h5>
+<h5>History</h5>
 <table class="table">
 <thead><tr><th>ID</th><th>Nominal</th><th>Status</th></tr></thead>
-<tbody id="historyDeposit">
-<tr><td colspan="3">Loading...</td></tr>
-</tbody>
+<tbody id="latestOrderHistoryBody"></tbody>
 </table>
 </div>
 
@@ -175,27 +127,12 @@ body.dark .notif-box{background:#1a1a1a;border:3px solid #fff;}
 <script>
 function openSidebar(){sidebar.classList.add('active');overlay.style.display='block';}
 function toggleProfile(){profileMenu.classList.toggle('active');overlay.style.display='block';}
-function toggleNotif(){notifBox.classList.toggle('active');overlay.style.display='block';loadNotif();}
-function closeAll(){
-sidebar.classList.remove('active');
-profileMenu.classList.remove('active');
-notifBox.classList.remove('active');
-overlay.style.display='none';
-}
+function closeAll(){sidebar.classList.remove('active');profileMenu.classList.remove('active');overlay.style.display='none';}
 function toggleTheme(){document.body.classList.toggle('dark');}
-
-async function loadNotif(){
-try{
-let res = await fetch('/notif.json');
-let data = await res.json();
-notifBox.innerHTML = data.map(n=>`<div style="padding:5px;border-bottom:1px solid #555;">${n}</div>`).join('');
-}catch{
-notifBox.innerHTML = "Gagal load notif";
-}
-}
+function toggleNotif(){alert("Notif dari system original");}
 </script>
 
-<script src="your-original-js.js"></script>
+<script src="your-original-js.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
