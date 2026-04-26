@@ -1,7 +1,6 @@
 const express = require("express");
 const qs = require("qs");
 const multer = require('multer');
-const PUSATPPOB_BASE_URL = "https://www.pusatppob.com";
 const nodeCrypto = require("crypto");
 const cloudscraper = require("cloudscraper");
 const upload = multer();
@@ -246,272 +245,227 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     res.status(500).json({ success: false, message: "Gagal memproses status." });
   }
 });
+// === ROUTE CANCEL DEPOSIT (LOCAL ONLY UNTUK PAYINAJA) ===
+router.post("/deposit/cancel", requireLogin, async (req, res) => {
+  try {
+    const { id } = req.body;
+    const user = await User.findById(req.session.userId);
+    
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Sesi tidak valid." });
+    }
+    
+    if (!id) {
+      return res.status(400).json({ success: false, message: "ID transaksi diperlukan." });
+    }
+
+    // 1. Cari data di history deposit user (mencari ID TRX)
+    // Menggunakan penamaan array yang konsisten dengan route status/create kamu
+    const history = (user.history_deposit || user.historyDeposit || []).find(h => h.id === id);
+
+    if (!history) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Data transaksi tidak ditemukan." 
+      });
+    }
+
+    // 2. Cek apakah transaksi sudah sukses. Jika sudah sukses, tidak boleh di-cancel.
+    if (history.status === "success") {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Transaksi yang sudah sukses tidak dapat dibatalkan." 
+      });
+    }
+
+    // 3. Update status di database internal menjadi 'cancel'
+    // Menggunakan fungsi editHistoryDeposit yang sudah kamu punya
+    await editHistoryDeposit(user._id, id, "cancel");
+
+    return res.status(200).json({
+      success: true,
+      message: "Deposit berhasil dibatalkan.",
+      data: {
+        id: id,
+        status: "cancel"
+      }
+    });
+
+  } catch (error) {
+    console.error("Cancel Error:", error.message);
+    res.status(500).json({ success: false, message: "Terjadi kesalahan server." });
+  }
+});
 
 router.post("/layanan/price-list", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) {
     return res.status(401).json({
       success: false,
-      message: "User tidak ditemukan atau sesi tidak valid.",
+      message: "User tidak ditemukan atau sesi tidak valid."
     });
   }
-
-  const { code } = req.body; // code = brand (XL/AXIS/DANA) ATAU type (pulsa-reguler/voucher-game/...)
-
+  const {
+    code
+  } = req.body;
   try {
-    const apiId = process.env.PUSATPPOB_API_ID;
-    const apiKey = process.env.PUSATPPOB_API_KEY;
-
-    if (!apiId || !apiKey) {
-      return res.status(500).json({
-        success: false,
-        message: "ENV PUSATPPOB_API_ID / PUSATPPOB_API_KEY belum di-set.",
-      });
-    }
-
-    // FIX: pakai nodeCrypto (sesuai import bacend.js kamu)
-    const sign = nodeCrypto
-      .createHash("md5")
-      .update(String(apiId) + String(apiKey))
-      .digest("hex");
-
-    // request ke PusatPPOB PREPAID services
-    const formData = {
-      key: apiKey,
-      sign: sign,
-      type: "services",
+    const formDataToAtlantic = {
+      api_key: process.env.ATLAN_API_KEY,
+      type: 'prabayar',
+      code: code,
     };
-
-    // optional filter: pakai "code" biar FE gak berubah
-    // auto-detect: kalau ada "-" anggap type, kalau tidak anggap brand
-    if (code && String(code).trim() !== "") {
-      const v = String(code).trim();
-
-      if (v.includes("-")) {
-        // contoh: pulsa-reguler, voucher-game, saldo-e-money, paket-internet, dll
-        formData.filter_type = "type";
-        formData.filter_value = v;
-      } else {
-        // contoh: XL, AXIS, DANA, TELKOMSEL, dll
-        formData.filter_type = "brand";
-        formData.filter_value = v;
-      }
-    }
-
-    const response = await cloudscraper.post(`${PUSATPPOB_BASE_URL}/api/prepaid`, {
-      body: qs.stringify(formData),
-      headers: {
-        ...(cloudscraperHeaders || {}),
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
+      body: qs.stringify(formDataToAtlantic),
+      headers: cloudscraperHeaders
     });
-
-    const result = typeof response === "string" ? JSON.parse(response) : response;
-
-    // validasi format pusatppob
-    if (!result || result.result !== true || !Array.isArray(result.data)) {
+    const resultFromAtlantic = JSON.parse(response);
+    if (!resultFromAtlantic || !resultFromAtlantic.status || !Array.isArray(resultFromAtlantic.data)) {
       return res.status(502).json({
         success: false,
-        message: result?.message || "Gagal mendapatkan daftar layanan dari provider.",
-        error: result,
+        message: resultFromAtlantic?.message || "Gagal mendapatkan daftar harga dari provider.",
+        error: resultFromAtlantic?.data || resultFromAtlantic,
       });
     }
-
-    const modifiedData = result.data.map((item) => {
-      const originalPrice = parseInt(item.price, 10) || 0;
+    const modifiedData = resultFromAtlantic.data.map((item) => {
+      let originalPrice = parseInt(item.price) || 0;
       let modifiedPrice = originalPrice;
-
       if (user.role === "user") {
         modifiedPrice = originalPrice + 600;
       } else if (user.role === "reseller") {
         modifiedPrice = originalPrice + 260;
       }
-
-      // map ke struktur lama biar FE aman
       return {
         code: item.code,
         name: item.name,
-        category: item.type,      // FE kamu pakai category
-        type: item.type,          // contoh: pulsa-reguler
-        provider: item.brand,     // brand dari pusatppob
-        price: String(modifiedPrice),
-        note: item.note || "",
-        status: item.status || "",
-        img_url: "",              // pusatppob biasanya gak ada img_url
+        category: item.category,
+        type: item.type,
+        provider: item.provider,
+        price: modifiedPrice.toString(),
+        note: item.note,
+        status: item.status,
+        img_url: item.img_url,
       };
     });
-
     return res.status(200).json({
       success: true,
       data: modifiedData,
     });
   } catch (error) {
+    const apiError = error.response?.data;
     return res.status(500).json({
       success: false,
-      message: error?.message || "Terjadi kesalahan internal saat memproses permintaan.",
-      error: error?.response?.data || error,
+      message: apiError?.message || "Terjadi kesalahan internal saat memproses permintaan.",
+      error: apiError || error.message,
+    });
+  }
+});
+
+router.get("/produk", requireLogin, async (req, res) => {
+  const {
+    category
+  } = req.query;
+  const user = await User.findById(req.session.userId);
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: "User tidak ditemukan."
+    });
+  }
+  try {
+    const formDataToAtlantic = {
+      api_key: process.env.ATLAN_API_KEY,
+      type: "prabayar",
+      code: "",
+    };
+    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
+      body: qs.stringify(formDataToAtlantic),
+      headers: cloudscraperHeaders,
+    });
+    const result = JSON.parse(response);
+    const allProduk = result.data || [];
+    const filtered = category ?
+      allProduk.filter((item) => item.category?.toLowerCase() === category.toLowerCase()) :
+      allProduk;
+    const providerMap = {};
+    filtered.forEach(item => {
+      if (!providerMap[item.provider]) {
+        providerMap[item.provider] = {
+          provider: item.provider,
+          img_url: item.img_url,
+        };
+      }
+    });
+    const listProvider = Object.values(providerMap);
+    return res.json({
+      success: true,
+      data: listProvider
+    });
+  } catch (error) {
+    const errData = error.response?.data;
+    return res.status(500).json({
+      success: false,
+      message: errData?.message || "Gagal memproses data provider.",
+      error: errData || error.message,
     });
   }
 });
 
 router.get("/produk-provider", requireLogin, async (req, res) => {
-  const { provider, category } = req.query;
-
+  const {
+    provider
+  } = req.query;
   const user = await User.findById(req.session.userId);
   if (!user) {
-    return res.status(400).json({ success: false, message: "User tidak ditemukan." });
-  }
-
-  try {
-    const apiId = process.env.PUSATPPOB_API_ID;
-    const apiKey = process.env.PUSATPPOB_API_KEY;
-    if (!apiId || !apiKey) {
-      return res.status(500).json({ success: false, message: "ENV PUSATPPOB_API_ID / PUSATPPOB_API_KEY belum di-set." });
-    }
-
-    const sign = nodeCrypto.createHash("md5").update(String(apiId) + String(apiKey)).digest("hex");
-
-    const response = await cloudscraper.post(`${PUSATPPOB_BASE_URL}/api/prepaid`, {
-      body: qs.stringify({ key: apiKey, sign, type: "services" }),
-      headers: cloudscraperHeaders,
-    });
-
-    const result = JSON.parse(response);
-
-    if (!result || result.result !== true || !Array.isArray(result.data)) {
-      return res.status(502).json({
-        success: false,
-        message: result?.message || "Provider tidak mengembalikan data services.",
-        error: result,
-      });
-    }
-
-    let data = result.data;
-
-    // optional filter category juga
-    const cat = (category || "").toLowerCase().trim();
-    if (cat) {
-      data = data.filter((item) => {
-        const t = String(item.type || item.category || "").toLowerCase();
-        if (t === cat) return true;
-        if (t.includes(cat)) return true;
-        if (cat === "games" || cat === "game") return t.includes("game") || t.includes("voucher");
-        return false;
-      });
-    }
-
-    if (provider) {
-      const p = String(provider).toLowerCase().trim();
-      data = data.filter((item) => String(item.brand || "").toLowerCase() === p);
-
-      return res.json({ success: true, data });
-    }
-
-    // kalau provider kosong → list brand
-    const map = {};
-    data.forEach((item) => {
-      const brand = item.brand || "";
-      if (!brand) return;
-      if (!map[brand]) map[brand] = { provider: brand, img_url: "" };
-    });
-
-    return res.json({ success: true, data: Object.values(map) });
-
-  } catch (error) {
-    const errData = error.response?.data;
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: "Gagal memproses data produk/provider.",
-      error: errData || error.message,
+      message: "User tidak ditemukan."
     });
   }
-});
-router.get("/produk", requireLogin, async (req, res) => {
-  const { category } = req.query;
-
-  const user = await User.findById(req.session.userId);
-  if (!user) {
-    return res.status(400).json({ success: false, message: "User tidak ditemukan." });
-  }
-
   try {
-    const apiId = process.env.PUSATPPOB_API_ID;
-    const apiKey = process.env.PUSATPPOB_API_KEY;
-
-    if (!apiId || !apiKey) {
-      return res.status(500).json({
-        success: false,
-        message: "ENV PUSATPPOB_API_ID / PUSATPPOB_API_KEY belum di-set."
-      });
-    }
-
-    const sign = nodeCrypto
-      .createHash("md5")
-      .update(String(apiId) + String(apiKey))
-      .digest("hex");
-
-    const response = await cloudscraper.post(`${PUSATPPOB_BASE_URL}/api/prepaid`, {
-      body: qs.stringify({ key: apiKey, sign, type: "services" }),
+    const formDataToAtlantic = {
+      api_key: process.env.ATLAN_API_KEY,
+      type: "prabayar",
+      code: "",
+    };
+    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
+      body: qs.stringify(formDataToAtlantic),
       headers: cloudscraperHeaders,
     });
-
     const result = JSON.parse(response);
-
-    // ✅ validasi struktur provider
-    if (!result || result.result !== true || !Array.isArray(result.data)) {
-      return res.status(502).json({
-        success: false,
-        message: result?.message || "Provider tidak mengembalikan data services.",
-        error: result,
+    const allProduk = result.data || [];
+    if (provider) {
+      const produkByProvider = allProduk.filter(item =>
+        item.provider?.toLowerCase() === provider.toLowerCase()
+      );
+      return res.json({
+        success: true,
+        data: produkByProvider
       });
     }
-
-    const allProduk = result.data;
-
-    // ✅ filter kategori yang fleksibel
-    const cat = (category || "").toLowerCase().trim();
-
-    const filtered = !cat
-      ? allProduk
-      : allProduk.filter((item) => {
-          const t = String(item.type || item.category || "").toLowerCase();
-
-          // match biasa (contains)
-          if (t === cat) return true;
-          if (t.includes(cat)) return true;
-
-          // khusus GAMES
-          if (cat === "games" || cat === "game") {
-            return t.includes("game") || t.includes("voucher");
-          }
-
-          return false;
-        });
-
-    // ✅ bikin list provider/brand unik
     const providerMap = {};
-    filtered.forEach((item) => {
-      const brand = item.brand || "";
-      if (!brand) return;
-      if (!providerMap[brand]) {
-        providerMap[brand] = { provider: brand, img_url: "" };
+    allProduk.forEach(item => {
+      if (!providerMap[item.provider]) {
+        providerMap[item.provider] = {
+          provider: item.provider,
+          img_url: item.img_url,
+        };
       }
     });
-
+    const listProvider = Object.values(providerMap);
     return res.json({
       success: true,
-      data: Object.values(providerMap),
+      data: listProvider
     });
-
   } catch (error) {
     const errData = error.response?.data;
     return res.status(500).json({
       success: false,
-      message: "Gagal memproses data provider.",
+      message: errData?.message || "Gagal memproses data produk/provider.",
       error: errData || error.message,
     });
   }
 });
+
 router.post("/order/create", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) {
