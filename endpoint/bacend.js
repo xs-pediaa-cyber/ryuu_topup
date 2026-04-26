@@ -176,61 +176,64 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const { id } = req.body;
     const user = await User.findById(req.session.userId);
 
-    // 1. Cari data di history dengan ID yang sesuai
-    const history = (user.history_deposit || []).find(h => h.id === id);
+    // 1. Cari data di history deposit user
+    const history = (user.history_deposit || user.historyDeposit || []).find(h => h.id === id);
 
     if (!history) {
-      return res.status(404).json({ 
+      return res.status(200).json({ 
         success: false, 
-        message: "Data transaksi tidak ditemukan." 
+        message: "Data transaksi tidak ditemukan di sistem." 
       });
     }
 
-    // 2. Jika di database lokal sudah sukses, langsung kembalikan data history
+    // 2. Jika di database lokal statusnya sudah 'success'
     if (history.status === "success") {
       return res.json({ 
         success: true, 
         status: "success", 
         message: "Pembayaran Berhasil!",
-        // Kirim data history agar frontend bisa menampilkan nominal (bukan NaN)
-        data: {
-          id: history.id,
-          nominal: Number(history.nominal) || 0,
-          fee: Number(history.fee) || 0,
-          get_balance: Number(history.get_balance) || 0,
-          metode: history.metode || "QRIS"
-        }
+        data: history 
       });
     }
 
-    // 3. Jika masih pending, cek ke API Payinaja untuk sinkronisasi
+    // 3. Cek status terbaru ke API Payinaja
     const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
       method: "GET",
       headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
     });
     const result = await response.json();
 
-    if (result.success && result.data.status.toLowerCase() === "success") {
-      // Pastikan saldo yang ditambah adalah angka valid (Anti-NaN)
-      const balanceToReceived = Number(history.get_balance) || 0;
+    if (result.success && result.data) {
+      const apiStatus = result.data.status.toLowerCase();
 
-      // Update status di history dan tambah saldo user
-      await editHistoryDeposit(user._id, id, "success");
-      await User.findByIdAndUpdate(user._id, { $inc: { saldo: balanceToReceived } });
+      if (apiStatus === "success" && history.status !== "success") {
+        const amountToUpdate = Number(history.get_balance) || 0;
 
-      return res.json({ 
-        success: true, 
-        status: "success", 
-        message: "Pembayaran Berhasil!",
-        data: {
-          ...history,
-          status: "success",
-          get_balance: balanceToReceived
-        }
-      });
+        // Update Database
+        await editHistoryDeposit(user._id, id, "success");
+        await User.findByIdAndUpdate(user._id, { $inc: { saldo: amountToUpdate } });
+
+        // PERBAIKAN DI SINI: Gunakan .toObject() agar data terurai dengan benar dan tidak NaN
+        const historyObj = typeof history.toObject === 'function' ? history.toObject() : history;
+        
+        return res.json({ 
+          success: true, 
+          status: "success", 
+          message: "Pembayaran Berhasil!",
+          data: { ...historyObj, status: "success" } // Data aman, tidak akan NaN
+        });
+      }
+
+      if (["failed", "expired", "cancel"].includes(apiStatus)) {
+        await editHistoryDeposit(user._id, id, apiStatus);
+        return res.json({ 
+          success: true, 
+          status: apiStatus, 
+          message: `Transaksi ${apiStatus}` 
+        });
+      }
     }
 
-    // 4. Jika masih pending di API
     return res.json({ 
       success: true, 
       status: "pending", 
@@ -239,12 +242,10 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Error Status:", err);
-    res.status(500).json({ success: false, message: "Gagal memproses data." });
+    console.error("Status Check Error:", err.message);
+    res.status(500).json({ success: false, message: "Gagal memproses status." });
   }
 });
-
-
 
 router.post("/layanan/price-list", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
