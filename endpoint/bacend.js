@@ -70,13 +70,14 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
 
     const { nominal } = req.body;
-    if (!nominal || isNaN(nominal)) return res.status(400).json({ success: false, message: "Nominal tidak valid." });
-
     const parsedNominal = parseInt(nominal, 10);
-    if (parsedNominal < 100) return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
+
+    if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
+    }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
+    const BASE_URL = "https://payinaja.web.id/api/v1";
 
     // 1. Request QRIS
     const payinajaResponse = await fetch(`${BASE_URL}/qris/create`, {
@@ -90,16 +91,16 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     });
 
     const result = await payinajaResponse.json();
-    if (!result.success) return res.status(502).json({ success: false, message: "Gagal dari provider." });
+    if (!result.success || !result.data) return res.status(502).json({ success: false, message: "Gagal dari provider." });
 
     const d = result.data;
 
-    // 2. Hitung Saldo Bersih
+    // 2. Hitung Saldo (Fee 10% reseller, 20% user biasa)
     const feePercent = user.role === "reseller" ? 0.1 : 0.2;
     const internalFee = Math.round(parsedNominal * feePercent);
     const finalBalance = parsedNominal - internalFee;
 
-    // 3. Simpan ke DB
+    // 3. Simpan ke Database
     const history = {
       id: d.payinaja_trx_id,
       reff_id: d.merchant_ref,
@@ -115,7 +116,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     await tambahHistoryDeposit(user._id, history);
 
-    // 4. Kirim QRIS ke user
+    // 4. Kirim respon ke modal frontend
     res.status(200).json({
       success: true,
       data: {
@@ -126,7 +127,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       },
     });
 
-    // 5. === AUTO POLLING (Hanya di Backend) ===
+    // 5. === POLLING BACKEND (ANTI-ERROR) ===
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`${BASE_URL}/transaction/${d.payinaja_trx_id}`, {
@@ -135,8 +136,10 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         });
 
         const checkData = await checkRes.json();
-        if (checkData.success && checkData.data) {
-          const apiStatus = checkData.data.status.toLowerCase();
+        
+        // PENGAMAN: Cek dulu apakah success dan ada datanya
+        if (checkData && checkData.success && checkData.data && checkData.data.status) {
+          const apiStatus = checkData.data.status.toLowerCase(); // Aman karena sudah dicek diatas
 
           if (apiStatus === "success") {
             const userUpdate = await User.findById(user._id);
@@ -146,21 +149,23 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
               await editHistoryDeposit(user._id, d.payinaja_trx_id, "success");
               await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });
             }
-            clearInterval(intervalId); // Stop kalau sudah sukses
+            clearInterval(intervalId);
           } else if (["failed", "expired", "cancel"].includes(apiStatus)) {
             await editHistoryDeposit(user._id, d.payinaja_trx_id, apiStatus);
-            clearInterval(intervalId); // Stop kalau gagal
+            clearInterval(intervalId);
           }
         }
       } catch (e) {
         console.error("Polling Error:", e.message);
       }
-    }, 2000); // Cek tiap 5 detik
+    }, 5000);
 
   } catch (err) {
-    if (!res.headersSent) res.status(500).json({ success: false, message: "Error server." });
+    console.error("Crash Error:", err.message);
+    if (!res.headersSent) res.status(500).json({ success: false, message: "Terjadi kesalahan internal." });
   }
 });
+
 router.post("/deposit/status", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
