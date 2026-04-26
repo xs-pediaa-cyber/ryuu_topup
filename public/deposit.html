@@ -2281,6 +2281,39 @@ if (depositData && depositData.qr_image) {
             fetchMetodeDeposit();
             fetchDepositHistory();
         });
-    </script>
+    <script>
+  const trxId = "<%= data.id %>"; // Ambil ID Transaksi dari variabel backend kamu
+  const statusElement = document.getElementById("status-text"); // Pastikan element status punya ID ini
+
+  const autoCheck = setInterval(async () => {
+    try {
+      const response = await fetch('/deposit/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: trxId })
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        if (result.status === 'success') {
+          clearInterval(autoCheck); // Berhenti cek
+          
+          // Tampilkan Alert Berhasil
+          alert("✅ " + result.message);
+          
+          // Refresh halaman atau arahkan ke history
+          window.location.reload(); 
+          // Atau: window.location.href = "/deposit/history";
+        } else {
+          // Update teks status di UI jika masih pending
+          if (statusElement) statusElement.innerText = "Menunggu Pembayaran...";
+        }
+      }
+    } catch (err) {
+      console.error("Gagal sinkronisasi status...");
+    }
+  }, 1000); // Cek setiap 3 detik
+</script>
+    
 </body>
 </html>
