@@ -95,16 +95,20 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
 
     const payData = result.data;
-    const trx_id = payData.payinaja_trx_id;
 
-    // Perhitungan angka agar tidak NaN di frontend
-    const totalBayar = parseInt(payData.total_amount);
-    const biayaAdmin = parseInt(payData.fee || 0);
-    const saldoDiterima = totalBayar - biayaAdmin;
+    // --- PERBAIKAN VARIABEL AGAR TIDAK NaN ---
+    // 1. Total Pembayaran dari API (Sudah termasuk admin dari Payinaja)
+    const totalPembayaran = parseInt(payData.total_amount); 
+    
+    // 2. Biaya Admin dari API
+    const biayaAdmin = parseInt(payData.fee); 
+    
+    // 3. Saldo Diterima (Nominal awal yang diinput user)
+    const saldoDiterima = parseInt(payData.amount_requested); 
 
-    // Simpan ke database lokal dengan status pending
+    // Simpan ke database lokal
     const newDeposit = {
-      id: trx_id, 
+      id: payData.payinaja_trx_id, 
       nominal: parsedNominal,
       metode: "QRIS",
       status: "pending", 
@@ -113,54 +117,52 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     };
     await tambahHistoryDeposit(user._id, newDeposit);
 
-    // --- LOGIKA CEK OTOMATIS (POLLING) ---
+    // --- POLLING STATUS OTOMATIS ---
     const cekStatusOtomatis = setInterval(async () => {
       try {
-        const checkRes = await fetch(`${BASE_URL}/transaction/${trx_id}`, {
+        const checkRes = await fetch(`${BASE_URL}/transaction/${payData.payinaja_trx_id}`, {
           method: "GET",
           headers: { "x-api-key": API_KEY }
         });
         const checkData = await checkRes.json();
 
-        if (checkData && checkData.success && checkData.data) {
-          const apiStatus = checkData.data.status.toLowerCase();
-
-          if (apiStatus === "success") {
-            // Pastikan data user dan history valid sebelum update saldo
-            const updatedUser = await User.findById(user._id);
-            const history = updatedUser.history_deposit || [];
-            const tx = history.find(h => h.id === trx_id);
-
-            if (tx && tx.status !== "success") {
-              // Update status jadi success dan tambah saldo ke akun
-              await editHistoryDeposit(user._id, trx_id, "success");
-              await User.findByIdAndUpdate(user._id, { $inc: { saldo: parsedNominal } });
-              console.log(`Deposit otomatis berhasil: ${trx_id}`);
-            }
-            clearInterval(cekStatusOtomatis);
-          } else if (["failed", "expired", "cancel"].includes(apiStatus)) {
-            // Hentikan pengecekan jika transaksi gagal/expired
-            await editHistoryDeposit(user._id, trx_id, apiStatus);
-            clearInterval(cekStatusOtomatis);
-          }
+        if (checkData?.success && checkData.data?.status.toLowerCase() === "success") {
+          await editHistoryDeposit(user._id, payData.payinaja_trx_id, "success");
+          await User.findByIdAndUpdate(user._id, { $inc: { saldo: parsedNominal } });
+          clearInterval(cekStatusOtomatis);
+        } else if (["failed", "expired", "cancel"].includes(checkData?.data?.status.toLowerCase())) {
+          clearInterval(cekStatusOtomatis);
         }
-      } catch (e) {
-        console.error("Gagal cek status otomatis:", e.message);
-      }
-    }, 5000); // Cek setiap 5 detik
+      } catch (e) { console.error(e); }
+    }, 5000);
 
-    // Kirim response lengkap ke frontend agar data terisi (tidak NaN)
+    // --- RESPONSE JSON (DISESUAIKAN DENGAN FRONTEND) ---
     return res.json({
       success: true,
       message: "QRIS Berhasil dibuat",
       data: {
-        trx_id: trx_id,
-        qr_image: payData.qris_image_url,
+        // ID TRX tampil dari payinaja_trx_id
+        trx_id: payData.payinaja_trx_id, 
+        
+        // Metode tampil sebagai QRIS
+        metode: "QRIS", 
+        
+        // Gambar QR
+        qr_image: payData.qris_image_url, 
+        
         status: "pending",
-        nominal: parsedNominal,
-        fee: biayaAdmin,
-        total: totalBayar,
-        terima: saldoDiterima
+        
+        // Nominal asli
+        nominal: saldoDiterima, 
+        
+        // Biaya admin
+        fee: biayaAdmin, 
+        
+        // Total (Nominal + Admin)
+        total: totalPembayaran, 
+        
+        // Saldo yang masuk ke akun (Nominal bersih)
+        terima: saldoDiterima 
       }
     });
 
@@ -171,7 +173,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
   }
 });
-
 
 router.post("/deposit/status", requireLogin, async (req, res) => {
   try {
