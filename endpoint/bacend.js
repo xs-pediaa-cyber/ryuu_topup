@@ -37,12 +37,8 @@ const cloudscraperHeaders = {
 };
 router.post("/deposit/metode", requireLogin, async (req, res) => {
   try {
-    const fullUrl = `${req.protocol}://${req.get("host")}`;
     const role = req.session.role || "user";
-    const feePersen = role === "reseller" ? "0.1" : "0.2";
-
-    // URL for the QR code or QRIS image generated from Payinaja API
-    const qrisImageUrl = "https://quickchart.io/qr?text=your_text_here&size=300"; // Change with your dynamic value
+    const feePersen = role === "reseller" ? 0.01 : 0.02; // Sesuaikan angka desimalnya
 
     return res.status(200).json({
       success: true,
@@ -50,13 +46,14 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: [{
         metode: "QRIS",
         type: "ewallet",
-        name: "QRIS  (Otomatis)",
+        name: "QRIS (Otomatis) (ewallet) - Min: Rp100",
         min: 100,
         max: 5000000,
         fee: 0,
         fee_persen: feePersen,
         status: "aktif",
-        img_url: qrisImageUrl,  // Here you should replace with actual QR URL
+        // Gunakan link gambar statis atau icon QRIS
+        img_url: "https://upload.wikimedia.org/wikipedia/commons/a/a2/QRIS_logo.png", 
       }]
     });
 
@@ -64,28 +61,20 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     return res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
+
 router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const { nominal } = req.body;
     const parsedNominal = parseInt(nominal);
 
-    // 1. Validasi Input
     if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
       return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
     }
 
-    // 2. Pastikan API Key & URL Terbaca
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    // Gunakan fallback URL jika process.env tidak terbaca
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
+    const BASE_URL = "https://payinaja.web.id/api/v1"; 
 
-    if (!API_KEY) {
-      console.error("Missing API KEY");
-      return res.status(500).json({ success: false, message: "Konfigurasi server salah (API Key)." });
-    }
-
-    // 3. Request ke Payinaja
     const response = await fetch(`${BASE_URL}/qris/create`, {
       method: "POST",
       headers: {
@@ -94,51 +83,51 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       },
       body: JSON.stringify({
         amount: parsedNominal,
-        reference_id: `DEP-${Date.now()}`, // ID Unik
-        customer_name: user.username
+        reference_id: `DEP-${Date.now()}`,
+        customer_name: user.username || "User"
       })
     });
 
     const result = await response.json();
 
-    // 4. Pengecekan Hasil Response (Mencegah error 'undefined')
-    if (!result || result.success !== true || !result.data) {
-      const errMsg = result ? result.message : "Gagal terhubung ke provider";
-      return res.status(400).json({ success: false, message: errMsg });
+    if (!result || !result.success || !result.data) {
+      return res.status(400).json({ 
+        success: false, 
+        message: result?.message || "Gagal ke Payinaja" 
+      });
     }
 
     const payData = result.data;
 
-    // 5. Simpan ke Database Internal (Agar muncul di History web kamu)
+    // SIMPAN KE DATABASE LOKAL
     const newDeposit = {
-      // Gunakan 'payinaja_trx_id' sesuai dokumentasi Payinaja di screenshot kamu
       id: payData.payinaja_trx_id, 
       nominal: parsedNominal,
       metode: "QRIS",
-      status: "pending",
+      status: "pending", // Paksa string agar frontend ga error toLowerCase
       qris_url: payData.qris_image_url,
       created_at: new Date()
     };
 
-    // Pastikan fungsi ini berhasil dijalankan sebelum mengirim response ke user
     await tambahHistoryDeposit(user._id, newDeposit);
 
-    // 6. Kirim Response Sukses ke Frontend
+    // INI INTI PERBAIKANNYA: 
+    // Sesuaikan nama variabel (data.qr_image & data.status) agar pas dengan frontend kamu
     return res.json({
       success: true,
       message: "QRIS Berhasil dibuat",
       data: {
+        qr_image: payData.qris_image_url, // Sesuaikan dari qris_image_url ke qr_image
+        status: "pending",               // Pastikan ada status 'pending' untuk filter frontend
         trx_id: payData.payinaja_trx_id,
-        qr_image: payData.qris_image_url,
         total: payData.total_amount
       }
     });
 
   } catch (err) {
-    console.error("Deposit Error:", err.message);
-    // Ini untuk mencegah error "Cannot read properties of undefined (reading 'find')"
+    console.error("Error:", err.message);
     if (!res.headersSent) {
-      return res.status(500).json({ success: false, message: "Terjadi kesalahan internal server." });
+      return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
   }
 });
