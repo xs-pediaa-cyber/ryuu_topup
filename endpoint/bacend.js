@@ -38,7 +38,8 @@ const cloudscraperHeaders = {
 router.post("/deposit/metode", requireLogin, async (req, res) => {
   try {
     const role = req.session.role || "user";
-    const feePersen = role === "reseller" ? 0.01 : 0.02; // Sesuaikan angka desimalnya
+    // Pastikan fee dalam bentuk angka/float agar frontend bisa menghitung
+    const feePersen = role === "reseller" ? 0.01 : 0.02; 
 
     return res.status(200).json({
       success: true,
@@ -46,21 +47,20 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: [{
         metode: "QRIS",
         type: "ewallet",
-        name: "QRIS (Otomatis) (ewallet) - Min: Rp100",
+        name: "QRIS (Otomatis)",
         min: 100,
         max: 5000000,
         fee: 0,
         fee_persen: feePersen,
         status: "aktif",
-        // Gunakan link gambar statis atau icon QRIS
-        img_url: "https://upload.wikimedia.org/wikipedia/commons/a/a2/QRIS_logo.png", 
+        img_url: "https://upload.wikimedia.org/wikipedia/commons/a/a2/QRIS_logo.png",
       }]
     });
-
   } catch (e) {
     return res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
+
 
 router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
@@ -84,53 +84,94 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       body: JSON.stringify({
         amount: parsedNominal,
         reference_id: `DEP-${Date.now()}`,
-        customer_name: user.username || "User"
+        customer_name: user.username || "Pelanggan"
       })
     });
 
     const result = await response.json();
 
     if (!result || !result.success || !result.data) {
-      return res.status(400).json({ 
-        success: false, 
-        message: result?.message || "Gagal ke Payinaja" 
-      });
+      return res.status(400).json({ success: false, message: result?.message || "Gagal ke Payinaja" });
     }
 
     const payData = result.data;
+    const trx_id = payData.payinaja_trx_id;
 
-    // SIMPAN KE DATABASE LOKAL
+    // Perhitungan angka agar tidak NaN di frontend
+    const totalBayar = parseInt(payData.total_amount);
+    const biayaAdmin = parseInt(payData.fee || 0);
+    const saldoDiterima = totalBayar - biayaAdmin;
+
+    // Simpan ke database lokal dengan status pending
     const newDeposit = {
-      id: payData.payinaja_trx_id, 
+      id: trx_id, 
       nominal: parsedNominal,
       metode: "QRIS",
-      status: "pending", // Paksa string agar frontend ga error toLowerCase
+      status: "pending", 
       qris_url: payData.qris_image_url,
       created_at: new Date()
     };
-
     await tambahHistoryDeposit(user._id, newDeposit);
 
-    // INI INTI PERBAIKANNYA: 
-    // Sesuaikan nama variabel (data.qr_image & data.status) agar pas dengan frontend kamu
+    // --- LOGIKA CEK OTOMATIS (POLLING) ---
+    const cekStatusOtomatis = setInterval(async () => {
+      try {
+        const checkRes = await fetch(`${BASE_URL}/transaction/${trx_id}`, {
+          method: "GET",
+          headers: { "x-api-key": API_KEY }
+        });
+        const checkData = await checkRes.json();
+
+        if (checkData && checkData.success && checkData.data) {
+          const apiStatus = checkData.data.status.toLowerCase();
+
+          if (apiStatus === "success") {
+            // Pastikan data user dan history valid sebelum update saldo
+            const updatedUser = await User.findById(user._id);
+            const history = updatedUser.history_deposit || [];
+            const tx = history.find(h => h.id === trx_id);
+
+            if (tx && tx.status !== "success") {
+              // Update status jadi success dan tambah saldo ke akun
+              await editHistoryDeposit(user._id, trx_id, "success");
+              await User.findByIdAndUpdate(user._id, { $inc: { saldo: parsedNominal } });
+              console.log(`Deposit otomatis berhasil: ${trx_id}`);
+            }
+            clearInterval(cekStatusOtomatis);
+          } else if (["failed", "expired", "cancel"].includes(apiStatus)) {
+            // Hentikan pengecekan jika transaksi gagal/expired
+            await editHistoryDeposit(user._id, trx_id, apiStatus);
+            clearInterval(cekStatusOtomatis);
+          }
+        }
+      } catch (e) {
+        console.error("Gagal cek status otomatis:", e.message);
+      }
+    }, 5000); // Cek setiap 5 detik
+
+    // Kirim response lengkap ke frontend agar data terisi (tidak NaN)
     return res.json({
       success: true,
       message: "QRIS Berhasil dibuat",
       data: {
-        qr_image: payData.qris_image_url, // Sesuaikan dari qris_image_url ke qr_image
-        status: "pending",               // Pastikan ada status 'pending' untuk filter frontend
-        trx_id: payData.payinaja_trx_id,
-        total: payData.total_amount
+        trx_id: trx_id,
+        qr_image: payData.qris_image_url,
+        status: "pending",
+        nominal: parsedNominal,
+        fee: biayaAdmin,
+        total: totalBayar,
+        terima: saldoDiterima
       }
     });
 
   } catch (err) {
     console.error("Error:", err.message);
     if (!res.headersSent) {
-      return res.status(500).json({ success: false, message: "Internal Server Error" });
+      return res.status(500).json({ success: false, message: "Kesalahan server." });
     }
   }
 });
+
 
 router.post("/deposit/status", requireLogin, async (req, res) => {
   try {
