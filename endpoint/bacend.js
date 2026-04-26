@@ -1,8 +1,6 @@
 const express = require("express");
 const qs = require("qs");
 const multer = require('multer');
-const PUSATPPOB_BASE_URL = "https://www.pusatppob.com";
-const nodeCrypto = require("crypto");
 const cloudscraper = require("cloudscraper");
 const upload = multer();
 const app = express();
@@ -16,8 +14,8 @@ const domain = process.env.PTERO_DOMAIN;
 const apikey = process.env.PTERO_API_KEY;
 
 // KONFIGURASI RICHMARKET
-const PAYINAJA_API_KEY = process.env.RICH_API_KEY;
-const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
+const RICH_API_KEY = process.env.RICH_API_KEY;
+const RICH_BASE_URL = "https://richmarket.my.id/api/v1";
 
 const {
   requireLogin,
@@ -35,487 +33,409 @@ const cloudscraperHeaders = {
   "Content-Type": "application/x-www-form-urlencoded",
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
 };
+
+// === ROUTE DAFTAR METODE (HANYA PAYINAJA QRIS) ===
 router.post("/deposit/metode", requireLogin, async (req, res) => {
   try {
     const fullUrl = `${req.protocol}://${req.get("host")}`;
     const role = req.session.role || "user";
-    const feePersen = role === "reseller" ? "0.1" : "0.2";
 
-    // URL for the QR code or QRIS image generated from Payinaja API
-    const qrisImageUrl = "https://quickchart.io/qr?text=your_text_here&size=300"; // Change with your dynamic value
+    // Fee persen untuk tampilan  
+    let feePersen = role === "reseller" ? "0.1" : "0.2";  
 
-    return res.status(200).json({
-      success: true,
-      message: "Daftar metode deposit",
-      metode: [{
-        metode: "QRIS",
-        type: "ewallet",
-        name: "QRIS  (Otomatis)",
-        min: 100,
-        max: 5000000,
-        fee: 0,
-        fee_persen: feePersen,
-        status: "aktif",
-        img_url: qrisImageUrl,  // Here you should replace with actual QR URL
-      }]
+    // MENGEMBALIKAN METODE PAYINAJA QRIS  
+    const metodeFormatted = [{  
+      metode: "QRIS",  
+      type: "ewallet",  
+      name: "QRIS All Payment (Otomatis)",  
+      min: 101,  
+      max: 5000000,  
+      fee: 0,  
+      fee_persen: feePersen,  
+      status: "aktif",  
+      img_url: `${fullUrl}/media/metode/qrisfast.png`,  
+    }];  
+
+    return res.status(200).json({  
+      success: true,  
+      message: "Daftar metode deposit Payinaja",  
+      metode: metodeFormatted,  
     });
 
-  } catch (e) {
-    return res.status(500).json({ success: false, message: "Gagal mengambil metode." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
+
+// === ROUTE BUAT DEPOSIT (HANYA PAYINAJA QRIS) ===
 router.post("/deposit/create", requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
+
+  const { nominal, reference_id, customer_name } = req.body;
+  if (!nominal || isNaN(nominal)) {
+    return res.status(400).json({ success: false, message: "Nominal tidak valid." });
+  }
+
+  const parsedNominal = parseInt(nominal);
+  if (parsedNominal < 101) {
+    return res.status(400).json({ success: false, message: "Minimal deposit Rp101" });
+  }
+
   try {
-    const user = await User.findById(req.session.userId);
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Sesi tidak valid." });
-    }
-
-    const { nominal } = req.body;
-
-    // 1. Validasi Input
-    if (!nominal || isNaN(nominal)) {
-      return res.status(400).json({ success: false, message: "Nominal tidak valid." });
-    }
-
-    const parsedNominal = parseInt(nominal, 10);
-    if (parsedNominal < 100) {
-      return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
-    }
-
-    // 2. Konfigurasi API Payinaja
-    const API_KEY = process.env.PAYINAJA_API_KEY;
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
-
-    if (!API_KEY) {
-      return res.status(500).json({ success: false, message: "Konfigurasi API Key (Payinaja) belum diatur di ENV." });
-    }
-
-    // 3. Request ke Payinaja
-    const payinajaResponse = await fetch(`${BASE_URL}/qris/create`, {
+    // Request ke Payinaja API untuk membuat QRIS
+    const payinajaResponse = await fetch(`${PAYINAJA_BASE_URL}/api/v1/qris/create`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY,
+        "x-api-key": PAYINAJA_API_KEY,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         amount: parsedNominal,
-        reference_id: `INV-${Date.now()}`,
-        customer_name: user.username || user.name || "Customer",
-      }),
+        reference_id: reference_id || "", // ID Referensi Opsional
+        customer_name: customer_name || "Anonymous" // Nama Pelanggan Opsional
+      })
     });
 
-    const result = await payinajaResponse.json();
+    const result = await payinajaResponse.json();  
 
-    if (!result.success) {
-      return res.status(502).json({ 
-        success: false, 
-        message: result.message || "Gagal mendapatkan QRIS dari provider." 
+    if (result.success !== true) {  
+      return res.status(502).json({  
+        success: false,  
+        message: result.message || "Gagal membuat tagihan ke Payinaja.",  
+      });  
+    }  
+
+    const d = result.data; // trx_id, qr_link, amount  
+
+    // --- PERUBAHAN DISINI: Logika Hitung menggunakan ENV ---  
+    const feePercent = user.role === "reseller"   
+        ? parseFloat(process.env.FEE_PERCENT_RESELLER)   
+        : parseFloat(process.env.FEE_PERCENT_USER);  
+      
+    let additionalFee = Math.ceil(parsedNominal * feePercent);  
+    const finalBalance = parsedNominal - additionalFee;  
+
+    const history = {  
+      id: d.payinaja_trx_id,  
+      reff_id: `XIAO_${Date.now()}`,  
+      nominal: parsedNominal,  
+      fee: additionalFee, // Disimpan ke DB agar tidak NaN  
+      get_balance: finalBalance, // Disimpan ke DB agar tidak NaN  
+      metode: "QRIS",  
+      status: "pending",  
+      qr_image: d.qris_image_url,  
+      created_at: new Date(),  
+    };  
+
+    await tambahHistoryDeposit(user._id, history);  
+
+    // Kirim respon lengkap agar modal frontend tidak NaN  
+    res.status(200).json({  
+      success: true,  
+      data: {  
+        id: d.payinaja_trx_id,  
+        nominal: parsedNominal,  
+        qr_image: d.qris_image_url,  
+        fee: additionalFee,  
+        get_balance: finalBalance,  
+        status: "pending"  
+      },  
+    });  
+
+    // POLLING STATUS PAYINAJA  
+    const intervalId = setInterval(async () => {  
+      try {  
+        const statusRes = await fetch(`${PAYINAJA_BASE_URL}/api/v1/transaction/${d.payinaja_trx_id}`, {  
+          method: "GET",  
+          headers: { "x-api-key": PAYINAJA_API_KEY }  
+        });  
+
+        const statusData = await statusRes.json();  
+        if (statusData.success === true && statusData.data) {  
+          const currStatus = statusData.data.status;  
+
+          if (currStatus === "success") {  
+            const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": d.payinaja_trx_id });  
+            const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === d.payinaja_trx_id);  
+
+            if (txInDb && txInDb.status !== "success") {  
+              await editHistoryDeposit(user._id, d.payinaja_trx_id, "success");  
+              await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });  
+            }  
+            clearInterval(intervalId);  
+          } else if (["failed", "expired", "cancel"].includes(currStatus)) {  
+            await editHistoryDeposit(user._id, d.payinaja_trx_id, currStatus);  
+            clearInterval(intervalId);  
+          }  
+        }  
+      } catch (e) {  
+        console.error("Polling Error:", e.message);  
+      }  
+    }, 5000);  
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// === ROUTE CEK STATUS (HANYA RICHMARKET) ===
+router.post("/deposit/status", requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
+  
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
+
+  try {
+    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
+    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
+
+    const localData = userHistory.historyDeposit[0];
+
+    // Cek ke API RichMarket
+    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
+        method: "GET",
+        headers: { "X-API-KEY": RICH_API_KEY }
+    });
+    const result = await response.json();
+    
+    if (result.status !== "success") return res.status(404).json({ success: false, message: "Data tidak ditemukan di provider." });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: result.data.trx_id,
+        status: result.data.payment_status.toLowerCase(),
+        nominal: parseInt(result.data.amount),
+        // --- PERUBAHAN DISINI: Mengambil fee dari DB yang dihitung berdasarkan ENV ---
+        fee: localData.fee || 0,
+        get_balance: localData.get_balance || 0,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// === ROUTE CANCEL DEPOSIT (HANYA RICHMARKET) ===
+router.post("/deposit/cancel", requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
+  
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
+
+  try {
+    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
+    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
+
+    // Request Pembatalan ke RichMarket
+    const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
+      method: "POST",
+      headers: {
+        "X-API-KEY": RICH_API_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        trx_id: id // Mengirimkan trx_id sesuai dokumentasi
+      })
+    });
+
+    const result = await richResponse.json();
+
+    if (result.status !== "success") {
+      return res.status(502).json({
+        success: false,
+        message: result.message || "Gagal membatalkan deposit.",
       });
     }
 
-    const d = result.data;
+    // Update status di database internal
+    await editHistoryDeposit(user._id, id, "cancel");
 
-    // 4. Perhitungan Fee Internal & Saldo Diterima (Mencegah NaN)
-    // Pastikan user.role ada, jika tidak default ke 0.2
-    const feePercent = user.role === "reseller" ? 0.1 : 0.2;
-    const internalFee = Math.round(parsedNominal * feePercent);
-    const finalBalance = parsedNominal - internalFee;
-
-    // 5. Simpan ke Database
-    const history = {
-      id: d.payinaja_trx_id,
-      reff_id: d.merchant_ref,
-      nominal: parsedNominal, // Nominal asli yang diinput user
-      fee: internalFee,       // Biaya admin internal Anda
-      get_balance: finalBalance,
-      metode: "QRIS",
-      status: d.status,
-      total: d.total_amount,  // Total yang harus dibayar user (termasuk fee provider)
-      uniq: d.qris_string,
-      qris_image_url: d.qris_image_url,
-      created_at: new Date(),
-    };
-
-    await tambahHistoryDeposit(user._id, history);
-
-    // 6. Response ke Frontend
     return res.status(200).json({
       success: true,
-      message: "QRIS berhasil dibuat",
       data: {
-        id: d.payinaja_trx_id,
-        nominal: parsedNominal,
-        fee: internalFee,       // Dikirim agar "Biaya Admin" tidak NaN
-        total_bayar: d.total_amount,
-        get_balance: finalBalance,
-        status: d.status,
-        metode: "QRIS",
-        qris_string: d.qris_string,
-        qris_image_url: d.qris_image_url // Gunakan ini di tag <img src="...">
+        id: result.data.trx_id,
+        status: result.data.new_status.toLowerCase(), // Status baru: "CANCELLED"
       },
     });
-
-  } catch (err) {
-    console.error("Deposit Error:", err);
-    return res.status(500).json({ success: false, message: "Terjadi kesalahan pada server." });
-  }
-});
-router.post("/deposit/status", requireLogin, async (req, res) => {
-  try {
-    const user = await User.findById(req.session.userId);
-    if (!user) return res.status(401).json({ success: false, message: "Sesi habis" });
-
-    const { id } = req.body; // TRX-...
-    if (!id) return res.status(400).json({ success: false, message: "ID Kosong" });
-
-    const API_KEY = process.env.PAYINAJA_API_KEY;
-    const BASE_URL = process.env.PAYINAJA_BASE_URL || "https://payinaja.web.id/api/v1";
-
-    const response = await fetch(`${BASE_URL}/transaction/${id}`, {
-      method: "GET",
-      headers: { "x-api-key": API_KEY }
-    });
-
-    const result = await response.json();
-    if (!result.success || !result.data) {
-        return res.status(200).json({ success: true, status: "pending", message: "Menunggu pembayaran" });
-    }
-
-    const d = result.data;
-    const statusApi = d.status.toLowerCase();
-
-    // CEK DATA LOKAL (Gunakan Array kosong [] jika history_deposit tidak ada)
-    const historyList = user.history_deposit || [];
-    const history = historyList.find(h => h.id === id);
-
-    // LOGIKA PEMBAYARAN SUKSES
-    if (statusApi === "success") {
-        if (history && history.status === "pending") {
-            // Update saldo hanya jika status di kita masih pending
-            await editHistoryDeposit(user._id, id, "success");
-            await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance || 0 } });
-        }
-        return res.status(200).json({ 
-            success: true, 
-            status: "success", 
-            message: "Pembayaran Berhasil" 
-        });
-    }
-
-    // JIKA MASIH PENDING
-    return res.status(200).json({ 
-        success: true, 
-        status: "pending", 
-        message: "Menunggu pembayaran atau belum terkonfirmasi." 
-    });
-
-  } catch (err) {
-    console.error("DEBUG ERROR:", err.message);
-    // Kirim JSON, jangan biarkan server kirim error HTML merah
-    res.status(200).json({ success: true, status: "pending", message: "Sedang memproses..." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
 
-
-router.post("/deposit/cancel", requireLogin, async (req, res) => {
-  const { id } = req.body; // trx_id
-  if (!id) return res.status(400).json({ success: false, message: "ID transaksi diperlukan." });
-
-  try {
-    const API_KEY = process.env.PAYINAJA_API_KEY; // API_KEY dari ENV
-    const BASE_URL = `${process.env.PAYINAJA_BASE_URL}/transaction/cancel/${id}`;
-
-    const response = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        "x-api-key": API_KEY, // Menggunakan API_KEY dari ENV
-      },
-    });
-
-    const result = await response.json();
-
-    if (!result.success) {
-      return res.status(404).json({ success: false, message: result.message || "Gagal membatalkan transaksi." });
-    }
-
-    await editHistoryDeposit(req.session.userId, id, "cancelled"); // Update status di history
-
-    return res.status(200).json({
-      success: true,
-      message: "Deposit berhasil dibatalkan.",
-    });
-
-  } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
-  }
-});
 router.post("/layanan/price-list", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) {
     return res.status(401).json({
       success: false,
-      message: "User tidak ditemukan atau sesi tidak valid.",
+      message: "User tidak ditemukan atau sesi tidak valid."
     });
   }
-
-  const { code } = req.body; // code = brand (XL/AXIS/DANA) ATAU type (pulsa-reguler/voucher-game/...)
-
+  const {
+    code
+  } = req.body;
   try {
-    const apiId = process.env.PUSATPPOB_API_ID;
-    const apiKey = process.env.PUSATPPOB_API_KEY;
-
-    if (!apiId || !apiKey) {
-      return res.status(500).json({
-        success: false,
-        message: "ENV PUSATPPOB_API_ID / PUSATPPOB_API_KEY belum di-set.",
-      });
-    }
-
-    // FIX: pakai nodeCrypto (sesuai import bacend.js kamu)
-    const sign = nodeCrypto
-      .createHash("md5")
-      .update(String(apiId) + String(apiKey))
-      .digest("hex");
-
-    // request ke PusatPPOB PREPAID services
-    const formData = {
-      key: apiKey,
-      sign: sign,
-      type: "services",
+    const formDataToAtlantic = {
+      api_key: process.env.ATLAN_API_KEY,
+      type: 'prabayar',
+      code: code,
     };
-
-    // optional filter: pakai "code" biar FE gak berubah
-    // auto-detect: kalau ada "-" anggap type, kalau tidak anggap brand
-    if (code && String(code).trim() !== "") {
-      const v = String(code).trim();
-
-      if (v.includes("-")) {
-        // contoh: pulsa-reguler, voucher-game, saldo-e-money, paket-internet, dll
-        formData.filter_type = "type";
-        formData.filter_value = v;
-      } else {
-        // contoh: XL, AXIS, DANA, TELKOMSEL, dll
-        formData.filter_type = "brand";
-        formData.filter_value = v;
-      }
-    }
-
-    const response = await cloudscraper.post(`${PUSATPPOB_BASE_URL}/api/prepaid`, {
-      body: qs.stringify(formData),
-      headers: {
-        ...(cloudscraperHeaders || {}),
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
+      body: qs.stringify(formDataToAtlantic),
+      headers: cloudscraperHeaders
     });
-
-    const result = typeof response === "string" ? JSON.parse(response) : response;
-
-    // validasi format pusatppob
-    if (!result || result.result !== true || !Array.isArray(result.data)) {
+    const resultFromAtlantic = JSON.parse(response);
+    if (!resultFromAtlantic || !resultFromAtlantic.status || !Array.isArray(resultFromAtlantic.data)) {
       return res.status(502).json({
         success: false,
-        message: result?.message || "Gagal mendapatkan daftar layanan dari provider.",
-        error: result,
+        message: resultFromAtlantic?.message || "Gagal mendapatkan daftar harga dari provider.",
+        error: resultFromAtlantic?.data || resultFromAtlantic,
       });
     }
-
-    const modifiedData = result.data.map((item) => {
-      const originalPrice = parseInt(item.price, 10) || 0;
+    const modifiedData = resultFromAtlantic.data.map((item) => {
+      let originalPrice = parseInt(item.price) || 0;
       let modifiedPrice = originalPrice;
-
       if (user.role === "user") {
         modifiedPrice = originalPrice + 600;
       } else if (user.role === "reseller") {
         modifiedPrice = originalPrice + 260;
       }
-
-      // map ke struktur lama biar FE aman
       return {
         code: item.code,
         name: item.name,
-        category: item.type,      // FE kamu pakai category
-        type: item.type,          // contoh: pulsa-reguler
-        provider: item.brand,     // brand dari pusatppob
-        price: String(modifiedPrice),
-        note: item.note || "",
-        status: item.status || "",
-        img_url: "",              // pusatppob biasanya gak ada img_url
+        category: item.category,
+        type: item.type,
+        provider: item.provider,
+        price: modifiedPrice.toString(),
+        note: item.note,
+        status: item.status,
+        img_url: item.img_url,
       };
     });
-
     return res.status(200).json({
       success: true,
       data: modifiedData,
     });
   } catch (error) {
+    const apiError = error.response?.data;
     return res.status(500).json({
       success: false,
-      message: error?.message || "Terjadi kesalahan internal saat memproses permintaan.",
-      error: error?.response?.data || error,
+      message: apiError?.message || "Terjadi kesalahan internal saat memproses permintaan.",
+      error: apiError || error.message,
+    });
+  }
+});
+
+router.get("/produk", requireLogin, async (req, res) => {
+  const {
+    category
+  } = req.query;
+  const user = await User.findById(req.session.userId);
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: "User tidak ditemukan."
+    });
+  }
+  try {
+    const formDataToAtlantic = {
+      api_key: process.env.ATLAN_API_KEY,
+      type: "prabayar",
+      code: "",
+    };
+    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
+      body: qs.stringify(formDataToAtlantic),
+      headers: cloudscraperHeaders,
+    });
+    const result = JSON.parse(response);
+    const allProduk = result.data || [];
+    const filtered = category ?
+      allProduk.filter((item) => item.category?.toLowerCase() === category.toLowerCase()) :
+      allProduk;
+    const providerMap = {};
+    filtered.forEach(item => {
+      if (!providerMap[item.provider]) {
+        providerMap[item.provider] = {
+          provider: item.provider,
+          img_url: item.img_url,
+        };
+      }
+    });
+    const listProvider = Object.values(providerMap);
+    return res.json({
+      success: true,
+      data: listProvider
+    });
+  } catch (error) {
+    const errData = error.response?.data;
+    return res.status(500).json({
+      success: false,
+      message: errData?.message || "Gagal memproses data provider.",
+      error: errData || error.message,
     });
   }
 });
 
 router.get("/produk-provider", requireLogin, async (req, res) => {
-  const { provider, category } = req.query;
-
+  const {
+    provider
+  } = req.query;
   const user = await User.findById(req.session.userId);
   if (!user) {
-    return res.status(400).json({ success: false, message: "User tidak ditemukan." });
-  }
-
-  try {
-    const apiId = process.env.PUSATPPOB_API_ID;
-    const apiKey = process.env.PUSATPPOB_API_KEY;
-    if (!apiId || !apiKey) {
-      return res.status(500).json({ success: false, message: "ENV PUSATPPOB_API_ID / PUSATPPOB_API_KEY belum di-set." });
-    }
-
-    const sign = nodeCrypto.createHash("md5").update(String(apiId) + String(apiKey)).digest("hex");
-
-    const response = await cloudscraper.post(`${PUSATPPOB_BASE_URL}/api/prepaid`, {
-      body: qs.stringify({ key: apiKey, sign, type: "services" }),
-      headers: cloudscraperHeaders,
-    });
-
-    const result = JSON.parse(response);
-
-    if (!result || result.result !== true || !Array.isArray(result.data)) {
-      return res.status(502).json({
-        success: false,
-        message: result?.message || "Provider tidak mengembalikan data services.",
-        error: result,
-      });
-    }
-
-    let data = result.data;
-
-    // optional filter category juga
-    const cat = (category || "").toLowerCase().trim();
-    if (cat) {
-      data = data.filter((item) => {
-        const t = String(item.type || item.category || "").toLowerCase();
-        if (t === cat) return true;
-        if (t.includes(cat)) return true;
-        if (cat === "games" || cat === "game") return t.includes("game") || t.includes("voucher");
-        return false;
-      });
-    }
-
-    if (provider) {
-      const p = String(provider).toLowerCase().trim();
-      data = data.filter((item) => String(item.brand || "").toLowerCase() === p);
-
-      return res.json({ success: true, data });
-    }
-
-    // kalau provider kosong → list brand
-    const map = {};
-    data.forEach((item) => {
-      const brand = item.brand || "";
-      if (!brand) return;
-      if (!map[brand]) map[brand] = { provider: brand, img_url: "" };
-    });
-
-    return res.json({ success: true, data: Object.values(map) });
-
-  } catch (error) {
-    const errData = error.response?.data;
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: "Gagal memproses data produk/provider.",
-      error: errData || error.message,
+      message: "User tidak ditemukan."
     });
   }
-});
-router.get("/produk", requireLogin, async (req, res) => {
-  const { category } = req.query;
-
-  const user = await User.findById(req.session.userId);
-  if (!user) {
-    return res.status(400).json({ success: false, message: "User tidak ditemukan." });
-  }
-
   try {
-    const apiId = process.env.PUSATPPOB_API_ID;
-    const apiKey = process.env.PUSATPPOB_API_KEY;
-
-    if (!apiId || !apiKey) {
-      return res.status(500).json({
-        success: false,
-        message: "ENV PUSATPPOB_API_ID / PUSATPPOB_API_KEY belum di-set."
-      });
-    }
-
-    const sign = nodeCrypto
-      .createHash("md5")
-      .update(String(apiId) + String(apiKey))
-      .digest("hex");
-
-    const response = await cloudscraper.post(`${PUSATPPOB_BASE_URL}/api/prepaid`, {
-      body: qs.stringify({ key: apiKey, sign, type: "services" }),
+    const formDataToAtlantic = {
+      api_key: process.env.ATLAN_API_KEY,
+      type: "prabayar",
+      code: "",
+    };
+    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
+      body: qs.stringify(formDataToAtlantic),
       headers: cloudscraperHeaders,
     });
-
     const result = JSON.parse(response);
-
-    // ✅ validasi struktur provider
-    if (!result || result.result !== true || !Array.isArray(result.data)) {
-      return res.status(502).json({
-        success: false,
-        message: result?.message || "Provider tidak mengembalikan data services.",
-        error: result,
+    const allProduk = result.data || [];
+    if (provider) {
+      const produkByProvider = allProduk.filter(item =>
+        item.provider?.toLowerCase() === provider.toLowerCase()
+      );
+      return res.json({
+        success: true,
+        data: produkByProvider
       });
     }
-
-    const allProduk = result.data;
-
-    // ✅ filter kategori yang fleksibel
-    const cat = (category || "").toLowerCase().trim();
-
-    const filtered = !cat
-      ? allProduk
-      : allProduk.filter((item) => {
-          const t = String(item.type || item.category || "").toLowerCase();
-
-          // match biasa (contains)
-          if (t === cat) return true;
-          if (t.includes(cat)) return true;
-
-          // khusus GAMES
-          if (cat === "games" || cat === "game") {
-            return t.includes("game") || t.includes("voucher");
-          }
-
-          return false;
-        });
-
-    // ✅ bikin list provider/brand unik
     const providerMap = {};
-    filtered.forEach((item) => {
-      const brand = item.brand || "";
-      if (!brand) return;
-      if (!providerMap[brand]) {
-        providerMap[brand] = { provider: brand, img_url: "" };
+    allProduk.forEach(item => {
+      if (!providerMap[item.provider]) {
+        providerMap[item.provider] = {
+          provider: item.provider,
+          img_url: item.img_url,
+        };
       }
     });
-
+    const listProvider = Object.values(providerMap);
     return res.json({
       success: true,
-      data: Object.values(providerMap),
+      data: listProvider
     });
-
   } catch (error) {
     const errData = error.response?.data;
     return res.status(500).json({
       success: false,
-      message: "Gagal memproses data provider.",
+      message: errData?.message || "Gagal memproses data produk/provider.",
       error: errData || error.message,
     });
   }
 });
+
 router.post("/order/create", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) {
