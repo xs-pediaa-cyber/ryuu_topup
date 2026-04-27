@@ -142,10 +142,10 @@ async function getCurrentUser(userId) {
     // Return dummy admin data
     return {
       _id: "custom-admin",
-      fullname: "Admin Felix",
-      username: "Felix",
+      fullname: "Admin Ryuu",
+      username: "RyuuXiao",
       nomor: "-",
-      email: "admin@Felixtopup.com",
+      email: "csryuuxiao@gmail.com",
       profileUrl: "https://i.pinimg.com/236x/a2/80/e2/a280e2a50bf6240f29b49a72875adee5.jpg",
       saldo: 0,
       coin: 0,
@@ -617,41 +617,53 @@ async function CatBox(buffer, originalname) {
   return api.data;
 }
 
-app.post("/profile/update-photo",requireLogin, uploadMemory.single("photo"), async (req, res) => {
-    try {
-      // Skip untuk custom admin
-      if (req.session.userId === "custom-admin") {
-        return res.status(400).json({
-          success: false,
-          message: "Admin tidak dapat mengubah foto profil",
-        });
-      }
-      
-      const file = req.file;
-      if (!file) {
-        return res
-          .status(400)
-          .json({ success: false, message: "No file uploaded" });
-      }
-      const uploadedUrl = await CatBox(file.buffer, file.originalname);
-      await User.findByIdAndUpdate(req.session.userId, {
-        profileUrl: uploadedUrl,
-      });
-      return res.status(200).json({
-        success: true,
-        message: "Profile photo updated successfully",
-        profileUrl: uploadedUrl,
-      });
-    } catch (error) {
-      console.error("Error update profile photo:", error);
-      return res.status(500).json({
+app.post("/profile/update-photo", requireLogin, uploadMemory.single("photo"), async (req, res) => {
+  try {
+    if (req.session.userId === "custom-admin") {
+      return res.status(400).json({
         success: false,
-        message: "Failed to update profile photo",
+        message: "Admin tidak dapat mengubah foto profil",
       });
     }
-  }
-);
 
+    let file = req.file;
+
+    // 🔥 fallback kalau field name beda
+    if (!file && req.files && req.files.file) {
+      file = req.files.file[0];
+    }
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "File tidak terbaca (req.file null)",
+      });
+    }
+
+    // 🔥 debug log
+    console.log("FILE:", file.originalname, file.mimetype);
+
+    const uploadedUrl = await CatBox(file.buffer, file.originalname);
+
+    await User.findByIdAndUpdate(req.session.userId, {
+      profileUrl: uploadedUrl,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo updated successfully",
+      profileUrl: uploadedUrl,
+    });
+
+  } catch (error) {
+    console.error("ERROR UPDATE FOTO:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update profile photo",
+    });
+  }
+});
 app.post("/get/forgot-password", async (req, res) => {
   const { nomor } = req.body;
   if (!nomor) {
