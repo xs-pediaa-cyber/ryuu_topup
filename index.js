@@ -599,22 +599,34 @@ app.get("/api/history/order", requireLogin, async (req, res) => {
 const uploadMemory = multer({ storage: multer.memoryStorage() }); 
 
 async function CatBox(buffer, originalname) {
-  const data = new FormData();
-  data.append("reqtype", "fileupload");
-  data.append("userhash", "");
-  data.append("fileToUpload", buffer, { filename: originalname });
-  const config = {
-    method: "POST",
-    url: "https://catbox.moe/user/api.php",
-    headers: {
-      ...data.getHeaders(),
-      "User-Agent":
-        "Mozilla/5.0 (Android 10; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
-    },
-    data: data,
-  };
-  const api = await axios.request(config);
-  return api.data;
+  try {
+    const data = new FormData();
+    data.append("reqtype", "fileupload");
+    data.append("fileToUpload", buffer, { filename: originalname });
+
+    const res = await axios.post(
+      "https://catbox.moe/user/api.php",
+      data,
+      {
+        headers: data.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      }
+    );
+
+    console.log("CATBOX RESPONSE:", res.data);
+
+    // 🔥 validasi wajib
+    if (typeof res.data !== "string" || !res.data.startsWith("http")) {
+      throw new Error("CatBox gagal upload: " + res.data);
+    }
+
+    return res.data;
+
+  } catch (err) {
+    console.error("CATBOX ERROR:", err.message);
+    throw err;
+  }
 }
 
 app.post("/profile/update-photo", requireLogin, uploadMemory.single("photo"), async (req, res) => {
