@@ -598,81 +598,53 @@ app.get("/api/history/order", requireLogin, async (req, res) => {
 
 const uploadMemory = multer({ storage: multer.memoryStorage() }); 
 
-async function CatBox(buffer, originalname) {
-  try {
-    const data = new FormData();
-    data.append("reqtype", "fileupload");
-    data.append("fileToUpload", buffer, { filename: originalname });
+async function uploadTelegraph(buffer, filename) {
+  const form = new FormData();
+  form.append("file", buffer, filename);
 
-    const res = await axios.post(
-      "https://catbox.moe/user/api.php",
-      data,
-      {
-        headers: data.getHeaders(),
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      }
-    );
+  const res = await axios.post("https://telegra.ph/upload", form, {
+    headers: form.getHeaders()
+  });
 
-    console.log("CATBOX RESPONSE:", res.data);
-
-    // 🔥 validasi wajib
-    if (typeof res.data !== "string" || !res.data.startsWith("http")) {
-      throw new Error("CatBox gagal upload: " + res.data);
-    }
-
-    return res.data;
-
-  } catch (err) {
-    console.error("CATBOX ERROR:", err.message);
-    throw err;
+  if (!res.data[0]?.src) {
+    throw new Error("Upload gagal");
   }
+
+  return "https://telegra.ph" + res.data[0].src;
 }
+const multer = require("multer");
+
+const uploadMemory = multer({
+  storage: multer.memoryStorage()
+});
 
 app.post("/profile/update-photo", requireLogin, uploadMemory.single("photo"), async (req, res) => {
   try {
-    if (req.session.userId === "custom-admin") {
-      return res.status(400).json({
-        success: false,
-        message: "Admin tidak dapat mengubah foto profil",
-      });
-    }
-
-    let file = req.file;
-
-    // 🔥 fallback kalau field name beda
-    if (!file && req.files && req.files.file) {
-      file = req.files.file[0];
-    }
+    const file = req.file;
 
     if (!file) {
-      return res.status(400).json({
+      return res.json({
         success: false,
-        message: "File tidak terbaca (req.file null)",
+        message: "File tidak terbaca"
       });
     }
 
-    // 🔥 debug log
-    console.log("FILE:", file.originalname, file.mimetype);
-
-    const uploadedUrl = await CatBox(file.buffer, file.originalname);
+    const url = await uploadTelegraph(file.buffer, file.originalname);
 
     await User.findByIdAndUpdate(req.session.userId, {
-      profileUrl: uploadedUrl,
+      profileUrl: url
     });
 
-    return res.status(200).json({
+    res.json({
       success: true,
-      message: "Profile photo updated successfully",
-      profileUrl: uploadedUrl,
+      profileUrl: url
     });
 
-  } catch (error) {
-    console.error("ERROR UPDATE FOTO:", error);
-
-    return res.status(500).json({
+  } catch (err) {
+    console.log(err);
+    res.json({
       success: false,
-      message: error.message || "Failed to update profile photo",
+      message: "Gagal upload foto"
     });
   }
 });
