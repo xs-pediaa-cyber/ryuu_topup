@@ -1360,39 +1360,62 @@
     photoUpload.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+
       if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
         showNotification("Hanya file JPG, PNG, atau GIF yang diizinkan", "error");
         return;
       }
-      const reader = new FileReader();
-      reader.onload = function (event) {
-        profileImage.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
+
+      // simpan gambar lama (biar bisa rollback kalau gagal)
+      const oldImage = profileImage.src;
+
+      // preview dulu (UX lebih enak)
+      const previewURL = URL.createObjectURL(file);
+      profileImage.src = previewURL;
+
       try {
         profileImage.style.opacity = '0.5';
+
         const formData = new FormData();
         formData.append("photo", file);
+        formData.append("file", file); // fallback key (kadang backend pakai ini)
+
         const response = await fetch("/profile/update-photo", {
           method: "POST",
           body: formData,
           credentials: "include",
         });
-        const data = await response.json();
-        if (data.success) {
-          showNotification("Foto profil berhasil diperbarui", "success");
-          profileImage.src = data.profileUrl;
-          if(currentUserData) currentUserData.profileUrl = data.profileUrl;
-        } else {
-          showNotification(data.message || "Gagal memperbarui foto profil", "error");
-          profileImage.src = currentUserData ? (currentUserData.profileUrl || "https://placehold.co/120x120/png?text=Profile+Picture") : "https://placehold.co/120x120/png?text=Profile+Picture";
+
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
         }
+
+        const data = await response.json();
+
+        if (data.success && data.profileUrl) {
+          // pakai cache buster biar gambar langsung update
+          const finalUrl = data.profileUrl + "?t=" + Date.now();
+          profileImage.src = finalUrl;
+
+          if (currentUserData) {
+            currentUserData.profileUrl = finalUrl;
+          }
+
+          showNotification("Foto profil berhasil diperbarui", "success");
+        } else {
+          throw new Error(data.message || "Upload gagal");
+        }
+
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Upload error:", error);
+
+        // rollback ke gambar lama
+        profileImage.src = oldImage;
+
         showNotification("Gagal memperbarui foto profil", "error");
-        profileImage.src = currentUserData ? (currentUserData.profileUrl || "https://placehold.co/120x120/png?text=Profile+Picture") : "https://placehold.co/120x120/png?text=Profile+Picture";
       } finally {
         profileImage.style.opacity = '1';
+        URL.revokeObjectURL(previewURL);
       }
     });
 
