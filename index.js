@@ -598,56 +598,60 @@ app.get("/api/history/order", requireLogin, async (req, res) => {
 
 const uploadMemory = multer({ storage: multer.memoryStorage() }); 
 
-async function uploadTelegraph(buffer, filename) {
-  const form = new FormData();
-  form.append("file", buffer, filename);
-
-  const res = await axios.post("https://telegra.ph/upload", form, {
-    headers: form.getHeaders()
-  });
-
-  if (!res.data[0]?.src) {
-    throw new Error("Upload gagal");
-  }
-
-  return "https://telegra.ph" + res.data[0].src;
+async function CatBox(buffer, originalname) {
+  const data = new FormData();
+  data.append("reqtype", "fileupload");
+  data.append("userhash", "");
+  data.append("fileToUpload", buffer, { filename: originalname });
+  const config = {
+    method: "POST",
+    url: "https://catbox.moe/user/api.php",
+    headers: {
+      ...data.getHeaders(),
+      "User-Agent":
+        "Mozilla/5.0 (Android 10; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
+    },
+    data: data,
+  };
+  const api = await axios.request(config);
+  return api.data;
 }
-const multer = require("multer");
 
-const uploadMemory = multer({
-  storage: multer.memoryStorage()
-});
-
-app.post("/profile/update-photo", requireLogin, uploadMemory.single("photo"), async (req, res) => {
-  try {
-    const file = req.file;
-
-    if (!file) {
-      return res.json({
+app.post("/profile/update-photo",requireLogin, uploadMemory.single("photo"), async (req, res) => {
+    try {
+      // Skip untuk custom admin
+      if (req.session.userId === "custom-admin") {
+        return res.status(400).json({
+          success: false,
+          message: "Admin tidak dapat mengubah foto profil",
+        });
+      }
+      
+      const file = req.file;
+      if (!file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "No file uploaded" });
+      }
+      const uploadedUrl = await CatBox(file.buffer, file.originalname);
+      await User.findByIdAndUpdate(req.session.userId, {
+        profileUrl: uploadedUrl,
+      });
+      return res.status(200).json({
+        success: true,
+        message: "Profile photo updated successfully",
+        profileUrl: uploadedUrl,
+      });
+    } catch (error) {
+      console.error("Error update profile photo:", error);
+      return res.status(500).json({
         success: false,
-        message: "File tidak terbaca"
+        message: "Failed to update profile photo",
       });
     }
-
-    const url = await uploadTelegraph(file.buffer, file.originalname);
-
-    await User.findByIdAndUpdate(req.session.userId, {
-      profileUrl: url
-    });
-
-    res.json({
-      success: true,
-      profileUrl: url
-    });
-
-  } catch (err) {
-    console.log(err);
-    res.json({
-      success: false,
-      message: "Gagal upload foto"
-    });
   }
-});
+);
+
 app.post("/get/forgot-password", async (req, res) => {
   const { nomor } = req.body;
   if (!nomor) {
