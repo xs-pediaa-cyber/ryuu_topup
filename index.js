@@ -654,24 +654,37 @@ app.post("/profile/update-photo",requireLogin, uploadMemory.single("photo"), asy
 
 app.post("/get/forgot-password", async (req, res) => {
   const { nomor } = req.body;
+
   if (!nomor) {
     return res.status(400).json({ success: false, message: "Nomor telepon harus diisi" });
   }
+
   try {
-    const normalizedNomor = nomor.startsWith("62") ? nomor : "62" + nomor.substring(1);
+    // 🔧 normalisasi nomor (08 → 628)
+    const normalizedNomor = nomor.startsWith("62")
+      ? nomor
+      : "62" + nomor.substring(1);
+
     const user = await User.findOne({ nomor: normalizedNomor });
     if (!user) {
       return res.status(404).json({ success: false, message: "User tidak ditemukan awali nomor dengan 62" });
     }
+
     const now = new Date();
+
+    // 🧹 hapus OTP lama kalau sudah expired
     if (user.otpCodeExpired && user.otpCodeExpired <= new Date(now - 5 * 60 * 1000)) {
       await User.updateOne(
         { nomor: normalizedNomor },
         { $set: { otpCode: null, otpCodeExpired: null } }
       );
     }
+
+    // ✅ generate OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // OTP berlaku 5 menit
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    // ✅ simpan ke user
     await User.findOneAndUpdate(
       { nomor: normalizedNomor },
       {
@@ -681,10 +694,37 @@ app.post("/get/forgot-password", async (req, res) => {
       },
       { new: true, upsert: false }
     );
-    return res.json({ success: true, message: "OTP berhasil dikirim", otp: otpCode });
+
+    console.log("Kirim OTP ke:", normalizedNomor);
+    console.log("OTP:", otpCode);
+
+    // 🔥 KIRIM OTP KE WHATSAPP (FONNTE)
+    const axios = require("axios");
+
+    const send = await axios.post(
+      "https://api.fonnte.com/send",
+      {
+        target: normalizedNomor,
+        message: `Kode OTP reset password kamu: ${otpCode}`
+      },
+      {
+        headers: {
+          Authorization: process.env.FONNTE_TOKEN
+        }
+      }
+    );
+
+    console.log("Respon Fonnte:", send.data);
+
+    // ❗ JANGAN kirim OTP ke frontend
+    return res.json({
+      success: true,
+      message: "OTP berhasil dikirim ke WhatsApp"
+    });
+
   } catch (error) {
-    console.error("Error generate OTP:", error);
-    return res.status(500).json({ success: false, message: "Gagal generate OTP" });
+    console.error("Error forgot password:", error.response?.data || error.message);
+    return res.status(500).json({ success: false, message: "Gagal kirim OTP" });
   }
 });
 
