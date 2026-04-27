@@ -705,7 +705,7 @@ app.post("/get/forgot-password", async (req, res) => {
       "https://api.fonnte.com/send",
       {
         target: normalizedNomor,
-        message: `Kode OTP reset password kamu: ${otpCode}`
+        message: `Halo Saya Cs xs-pedia.my.id Berikut Kode Otp Untuk Reset Password Anda💖: ${otpCode}`
       },
       {
         headers: {
