@@ -942,82 +942,75 @@
             margin-bottom: 1rem;
         }
 
-        .vp-history-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
+        
+/* ===== HISTORY MOBILE FIX FINAL ===== */
 
-        .vp-history-table th,
-        .vp-history-table td {
-            padding: 0.875rem 1rem;
-            vertical-align: middle;
-            text-align: left;
-            border: none;
-        }
+.vp-history-table {
+    width: 100%;
+    border: none;
+    overflow: hidden;
+}
 
-        .vp-history-table thead {
-            background-color: var(--vp-primary-light);
-        }
+.vp-history-table thead {
+    display: none;
+}
 
-        .vp-history-table thead th {
-            font-family: var(--vp-font-heading);
-            font-weight: 600;
-            color: var(--vp-primary);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-top: 1px solid var(--vp-border-color);
-            border-bottom: 1px solid var(--vp-border-color);
-        }
+.vp-history-table tbody {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 8px;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+}
 
-        .vp-history-table thead th:first-child {
-            border-left: 1px solid var(--vp-border-color);
-            border-top-left-radius: var(--vp-radius-md);
-        }
+.vp-history-table tbody tr {
+    flex: 0 0 85%;
+    max-width: 85%;
+    box-sizing: border-box;
+    display: block;
+    border: 1px solid var(--vp-border-color);
+    border-radius: 14px;
+    padding: 12px;
+    background-color: var(--vp-card-bg);
+    box-shadow: var(--vp-shadow-sm);
+    scroll-snap-align: start;
+}
 
-        .vp-history-table thead th:last-child {
-            border-right: 1px solid var(--vp-border-color);
-            border-top-right-radius: var(--vp-radius-md);
-        }
+.vp-history-table tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--vp-shadow-md);
+}
 
-        .vp-history-table tbody tr {
-            background-color: var(--vp-card-bg);
-            transition: all var(--vp-transition);
-            border-left: 1px solid var(--vp-border-color);
-            border-right: 1px solid var(--vp-border-color);
-            border-bottom: 1px solid var(--vp-border-color);
-        }
+.vp-history-table tbody td {
+    display: block;
+    padding: 6px 0;
+    border: none;
+}
 
-        .vp-history-table tbody tr:hover {
-            background-color: var(--vp-primary-light);
-            transform: translateY(-1px);
-            box-shadow: var(--vp-shadow-sm);
-        }
+.vp-history-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--vp-text-muted);
+    display: block;
+    margin-bottom: 2px;
+}
 
-        .vp-history-table tbody tr:last-child td:first-child {
-            border-bottom-left-radius: var(--vp-radius-md);
-        }
+.vp-history-table .action-buttons {
+    flex-direction: column;
+    gap: 6px;
+}
 
-        .vp-history-table tbody tr:last-child td:last-child {
-            border-bottom-right-radius: var(--vp-radius-md);
-        }
+.vp-history-table tbody::after {
+    content: "";
+    flex: 0 0 8px;
+}
 
-        .vp-history-table td {
-            font-size: 0.875rem;
-            color: var(--vp-dark);
-            font-weight: 500;
-        }
+.vp-history-table tbody::-webkit-scrollbar {
+    display: none;
+}
 
-        .vp-history-table .status-badge {
-            display: inline-block;
-            padding: 0.375rem 0.75rem;
-            border-radius: var(--vp-radius-sm);
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: capitalize;
-            white-space: nowrap;
-        }
 
         .status-pending {
             background-color: rgba(255, 193, 7, 0.15);
@@ -1332,70 +1325,87 @@
                 right: -40px;
             }
 
-/* ===== HISTORY JADI MENYAMPING (MOBILE) ===== */
-.vp-history-table {
-    border: none;
-    overflow: hidden;
-}
+            .vp-history-table {
+                border: 1px solid var(--vp-border-color);
+                border-radius: var(--vp-radius-md);
+                overflow: hidden;
+            }
 
-.vp-history-table thead {
-    display: none;
-}
+            .vp-history-table thead {
+                display: none;
+            }
 
-.vp-history-table tbody {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    scroll-snap-type: x mandatory;
-}
+            .vp-history-table tbody {
+                display: block;
+            }
 
-/* Card tiap history */
-.vp-history-table tbody tr {
-    min-width: 260px;
-    flex: 0 0 auto;
-    display: block;
-    border: 1px solid var(--vp-border-color);
-    border-radius: 14px;
-    padding: 12px;
-    background-color: var(--vp-card-bg);
-    box-shadow: var(--vp-shadow-sm);
-    scroll-snap-align: start;
-}
+            .vp-history-table tbody tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid var(--vp-border-color);
+                border-radius: var(--vp-radius-md);
+                padding: 1rem;
+                background-color: var(--vp-card-bg);
+                box-shadow: var(--vp-shadow-sm);
+                position: relative;
+            }
 
-/* Hover effect */
-.vp-history-table tbody tr:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--vp-shadow-md);
-}
+            .vp-history-table tbody tr:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--vp-shadow-md);
+            }
 
-/* Isi card */
-.vp-history-table tbody td {
-    display: block;
-    padding: 6px 0;
-    border: none;
-}
+            .vp-history-table tbody tr:last-child {
+                margin-bottom: 0;
+            }
 
-/* Label atas (ID, Nominal, dll) */
-.vp-history-table tbody td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    font-size: 11px;
-    color: var(--vp-text-muted);
-    display: block;
-    margin-bottom: 2px;
-}
+            .vp-history-table tbody td {
+                display: block;
+                text-align: left;
+                padding: 0.5rem 0;
+                border: none;
+                position: relative;
+                padding-left: 0;
+            }
 
-/* Tombol */
-.vp-history-table .action-buttons {
-    flex-direction: column;
-    gap: 6px;
-}
+            .vp-history-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--vp-text-muted);
+                display: block;
+                margin-bottom: 0.25rem;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
 
-/* Hide scrollbar biar clean */
-.vp-history-table tbody::-webkit-scrollbar {
-    display: none;
-}
+            .vp-history-table tbody td:last-child {
+                padding-top: 1rem;
+                border-top: 1px solid var(--vp-border-color);
+                margin-top: 0.75rem;
+            }
+
+            .vp-history-table tbody td:last-child::before {
+                content: "Aksi";
+            }
+
+            .vp-history-table .action-buttons {
+                justify-content: flex-start;
+                gap: 0.5rem;
+            }
+
+            .vp-history-table .action-buttons .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+                min-width: auto;
+            }
+
+            .vp-history-table .status-badge {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+                display: inline-block;
+            }
+        }
 
         @media (max-width: 575.98px) {
             .vp-notification-dropdown {
