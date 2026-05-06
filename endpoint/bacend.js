@@ -73,8 +73,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const { nominal } = req.body;
     const parsedNominal = parseInt(nominal);
 
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
-      return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
+    // Filter awal di sisi kamu sudah benar Rp250
+    if (!nominal || isNaN(parsedNominal) || parsedNominal < 250) {
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp250" });
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
@@ -89,16 +90,22 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     });
 
     const result = await response.json();
-    if (!result || !result.success) return res.status(400).json({ success: false, message: "Gagal ke Payinaja" });
+    
+    // Jika gagal, tampilkan pesan error asli dari Payinaja agar kamu tahu batasan minimal mereka
+    if (!result || !result.success) {
+      return res.status(400).json({ 
+        success: false, 
+        message: result.message || "Gagal ke Payinaja (Cek apakah nominal terlalu kecil)" 
+      });
+    }
 
     const payData = result.data;
 
-    // --- FIX KALKULASI AGAR TIDAK NaN ---
+    // --- FIX KALKULASI & ROUNDING ---
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
     const feePayinaja = Number(payData.fee) || 0;
-    const totalBayar = Number(payData.total_amount) || (nominalAsli + feePayinaja);
     
-    // Kalkulasi tambahan fee sesuai role (seperti logic Atlantic kamu)
+    // Hitung additional fee
     let additionalFee = 0;
     if (user.role === "user") {
         additionalFee = Math.ceil(nominalAsli * 0.002);
@@ -106,11 +113,13 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         additionalFee = Math.ceil(nominalAsli * 0.001);
     }
 
+    // Pastikan total bayar adalah Integer (Bulat) karena QRIS tidak menerima desimal
+    const totalBayar = Math.ceil(Number(payData.total_amount) || (nominalAsli + feePayinaja));
     const totalFee = feePayinaja + additionalFee;
     const finalGetBalance = nominalAsli - additionalFee;
 
     const historyDataForDb = {
-      id: payData.payinaja_trx_id, // ID UTAMA
+      id: payData.payinaja_trx_id,
       nominal: nominalAsli,
       fee: totalFee,
       get_balance: finalGetBalance,
@@ -122,23 +131,22 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     await tambahHistoryDeposit(user._id, historyDataForDb);
 
-    // --- RESPONSE KE FRONTEND (Pastikan key sesuai dengan yg dipanggil UI) ---
     res.status(200).json({
       success: true,
       data: {
-        id: payData.payinaja_trx_id, // Untuk ID TRX
+        id: payData.payinaja_trx_id,
         trx_id: payData.payinaja_trx_id,
-        metode: "QRIS", // Untuk Metode
+        metode: "QRIS",
         nominal: nominalAsli,
         fee: totalFee,
         total_amount: totalBayar,
-        get_balance: finalGetBalance, // Untuk Saldo Diterima
+        get_balance: finalGetBalance,
         qr_image: payData.qris_image_url,
         status: "pending"
       }
     });
 
-    // Polling Otomatis
+    // Polling tetap sama
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.web.id/api/v1/transaction/${payData.payinaja_trx_id}`, {
@@ -150,10 +158,10 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
           await editHistoryDeposit(user._id, payData.payinaja_trx_id, "success");
           await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalGetBalance } });
           clearInterval(intervalId);
-        } else if (["failed", "expired", "cancel"].includes(checkData?.data?.status.toLowerCase())) {
+        } else if (checkData?.data && ["failed", "expired", "cancel"].includes(checkData.data.status.toLowerCase())) {
           clearInterval(intervalId);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Polling Error:", e); }
     }, 10000);
 
   } catch (err) {
@@ -161,7 +169,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   }
 });
 
-// === ROUTE CEK STATUS (HANYA RICHMARKET) ===
+
+// === ROUTE CEK STATUS (HANYA PAYINAJAMARKET) ===
 router.post("/deposit/status", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -175,10 +184,10 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
 
     const localData = userHistory.historyDeposit[0];
 
-    // Cek ke API RichMarket
-    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
+    // Cek ke API PAYINAJAMarket
+    const response = await fetch(`${PAYINAJA_BASE_URL}/get_status.php?trx_id=${id}`, {
         method: "GET",
-        headers: { "X-API-KEY": RICH_API_KEY }
+        headers: { "X-API-KEY": PAYINAJA_API_KEY }
     });
     const result = await response.json();
     
@@ -200,7 +209,7 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
   }
 });
 
-// === ROUTE CANCEL DEPOSIT (HANYA RICHMARKET) ===
+// === ROUTE CANCEL DEPOSIT (HANYA PAYINAJAMARKET) ===
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -212,11 +221,11 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
     const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
     if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
-    // Request Pembatalan ke RichMarket
-    const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
+    // Request Pembatalan ke PAYINAJAMarket
+    const richResponse = await fetch(`${PAYINAJA_BASE_URL}/cancel_payment.php`, {
       method: "POST",
       headers: {
-        "X-API-KEY": RICH_API_KEY,
+        "X-API-KEY": PAYINAJA_API_KEY,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
