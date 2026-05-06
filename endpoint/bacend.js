@@ -48,7 +48,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: "QRIS",  
       type: "ewallet",  
       name: "QRIS All Payment (Otomatis)",  
-      min: 200,  
+      min: 101,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -88,10 +88,10 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
 
     const parsedNominal = parseInt(nominal);
-    if (parsedNominal < 200) {
+    if (parsedNominal < 1000) {
       return res.status(400).json({
         success: false,
-        message: "Minimal deposit Rp200"
+        message: "Minimal deposit Rp1.000"
       });
     }
 
@@ -248,9 +248,9 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const localData = userHistory.historyDeposit[0];
 
     // Cek ke API RichMarket
-    const response = await fetch(`${PAYINAJA_BASE_URL}/get_status.php?trx_id=${id}`, {
+    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
         method: "GET",
-        headers: { "X-API-KEY": PAYINAJA_API_KEY }
+        headers: { "X-API-KEY": RICH_API_KEY }
     });
     const result = await response.json();
     
@@ -285,10 +285,10 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
     if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
     // Request Pembatalan ke RichMarket
-    const richResponse = await fetch(`${PAYINAJA_BASE_URL}/cancel_payment.php`, {
+    const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
       method: "POST",
       headers: {
-        "X-API-KEY": PAYINAJA_API_KEY,
+        "X-API-KEY": RICH_API_KEY,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
