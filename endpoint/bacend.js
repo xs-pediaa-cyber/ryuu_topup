@@ -48,7 +48,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: "QRIS",  
       type: "ewallet",  
       name: "QRIS All Payment (Otomatis)",  
-      min: 101,  
+      min: 200,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -73,8 +73,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const { nominal } = req.body;
     const parsedNominal = parseInt(nominal);
 
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
-      return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
+    if (!nominal || isNaN(parsedNominal) || parsedNominal < 200) {
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp200" });
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
