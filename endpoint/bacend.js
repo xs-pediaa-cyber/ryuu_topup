@@ -73,8 +73,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const { nominal } = req.body;
     const parsedNominal = parseInt(nominal);
 
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 250) {
-      return res.status(400).json({ success: false, message: "Minimal deposit Rp250" });
+    if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
@@ -160,6 +160,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 
 // === ROUTE CEK STATUS (HANYA PAYINAJA) ===
