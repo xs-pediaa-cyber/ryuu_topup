@@ -248,9 +248,9 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const localData = userHistory.historyDeposit[0];
 
     // Cek ke API RichMarket
-    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
+    const response = await fetch(`${PAYINAJA_BASE_URL}/get_status.php?trx_id=${id}`, {
         method: "GET",
-        headers: { "X-API-KEY": RICH_API_KEY }
+        headers: { "X-API-KEY": PAYINAJA_API_KEY }
     });
     const result = await response.json();
     
@@ -285,10 +285,10 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
     if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
     // Request Pembatalan ke RichMarket
-    const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
+    const richResponse = await fetch(`${PAYINAJA_BASE_URL}/cancel_payment.php`, {
       method: "POST",
       headers: {
-        "X-API-KEY": RICH_API_KEY,
+        "X-API-KEY": PAYINAJA_API_KEY,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
