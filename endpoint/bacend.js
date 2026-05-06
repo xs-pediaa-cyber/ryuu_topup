@@ -13,7 +13,7 @@ app.use(express.json());
 const domain = process.env.PTERO_DOMAIN;
 const apikey = process.env.PTERO_API_KEY;
 
-// KONFIGURASI RICHMARKET
+// KONFIGURASI PAYINAJA
 const PAYINAJA_API_KEY = process.env.PAYINAJA_API_KEY;
 const PAYINAJA_BASE_URL = "https://payinaja.web.id/api/v1";
 
@@ -162,7 +162,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 });
 
 
-// === ROUTE CEK STATUS (HANYA RICHMARKET) ===
+// === ROUTE CEK STATUS (HANYA PAYINAJA) ===
 router.post("/deposit/status", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -176,10 +176,10 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
 
     const localData = userHistory.historyDeposit[0];
 
-    // Cek ke API RichMarket
-    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
+    // Cek ke API PAYINAJAMarket
+    const response = await fetch(`${PAYINAJA_BASE_URL}/get_status.php?trx_id=${id}`, {
         method: "GET",
-        headers: { "X-API-KEY": RICH_API_KEY }
+        headers: { "X-API-KEY": PAYINAJA_API_KEY }
     });
     const result = await response.json();
     
@@ -201,7 +201,7 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
   }
 });
 
-// === ROUTE CANCEL DEPOSIT (HANYA RICHMARKET) ===
+// === ROUTE CANCEL DEPOSIT (HANYA PAYINAJAMARKET) ===
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -213,11 +213,11 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
     const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
     if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
-    // Request Pembatalan ke RichMarket
-    const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
+    // Request Pembatalan ke PAYINAJAMarket
+    const richResponse = await fetch(`${PAYINAJA_BASE_URL}/cancel_payment.php`, {
       method: "POST",
       headers: {
-        "X-API-KEY": RICH_API_KEY,
+        "X-API-KEY": PAYINAJA_API_KEY,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
