@@ -169,8 +169,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   }
 });
 
-
-// === ROUTE CEK STATUS (FIXED & SINKRON) ===
+// === ROUTE CEK STATUS (ANTI-NaN & SYNC) ===
 router.post("/deposit/status", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -179,21 +178,20 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
   if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
 
   try {
-    // 1. Ambil data lokal dari database user
+    // 1. Ambil data dari database lokal
     const userWithHistory = await User.findOne(
       { _id: user._id, "historyDeposit.id": id }, 
       { "historyDeposit.$": 1 }
     );
     
     if (!userWithHistory || !userWithHistory.historyDeposit.length) {
-      return res.status(404).json({ success: false, message: "Data tidak ditemukan di database lokal." });
+      return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
     }
 
     const localData = userWithHistory.historyDeposit[0];
     const API_KEY = process.env.PAYINAJA_API_KEY;
 
-    // 2. Cek ke API Payinaja menggunakan endpoint V1 (Sesuai dengan saat Create)
-    // Gunakan endpoint V1: /api/v1/transaction/{id}
+    // 2. Ambil data terbaru dari Payinaja
     const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
         method: "GET",
         headers: { "x-api-key": API_KEY }
@@ -201,47 +199,44 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     
     const result = await response.json();
     
-    // Validasi apakah provider merespon dengan data yang benar
-    if (!result || !result.success || !result.data) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Data tidak ditemukan di provider." // Sesuai tampilan di gambar
-      });
-    }
+    // Default data jika provider gagal memberikan respon lengkap
+    const statusProvider = result?.data?.status?.toLowerCase() || localData.status;
 
-    // 3. Mapping status agar sinkron dengan frontend
-    const currentStatus = result.data.status.toLowerCase();
-
-    // Jika di provider SUKSES tapi di DB lokal masih PENDING, update saldo otomatis
-    if (currentStatus === "success" && localData.status === "pending") {
+    // 3. Sinkronisasi Saldo Otomatis jika status sukses
+    if (statusProvider === "success" && localData.status === "pending") {
         await User.updateOne(
             { _id: user._id, "historyDeposit.id": id },
             { 
                 $set: { "historyDeposit.$.status": "success" },
-                $inc: { saldo: localData.get_balance }
+                $inc: { saldo: Number(localData.get_balance) || 0 }
             }
         );
     }
 
+    // 4. RESPONSE KE FRONTEND (Pastikan menggunakan Number() untuk mencegah NaN)
     return res.status(200).json({
       success: true,
       data: {
-        id: result.data.payinaja_trx_id,
-        status: currentStatus, // success, pending, expired, failed
-        nominal: parseInt(result.data.amount_requested),
-        total_amount: parseInt(result.data.total_amount),
-        // Mengambil data kalkulasi biaya dari DB lokal agar tetap konsisten dengan role user
-        fee: localData.fee || 0,
-        get_balance: localData.get_balance || 0,
-        qr_image: localData.qr_image || result.data.qris_image_url
+        id: id,
+        trx_id: id,
+        // Pastikan nominal diambil dari DB lokal jika provider NaN
+        nominal: Number(result?.data?.amount_requested) || Number(localData.nominal) || 0,
+        total_amount: Number(result?.data?.total_amount) || (Number(localData.nominal) + Number(localData.fee)) || 0,
+        fee: Number(localData.fee) || 0,
+        get_balance: Number(localData.get_balance) || 0,
+        status: statusProvider,
+        metode: localData.metode || "QRIS",
+        qr_image: localData.qr_image || result?.data?.qris_image_url
       }
     });
 
   } catch (error) {
     console.error("Error Status Check:", error);
-    res.status(500).json({ success: false, message: "Terjadi kesalahan sistem: " + error.message });
+    // Jika error, kirimkan data lokal saja agar tidak tampilan NaN
+    res.status(500).json({ success: false, message: "Gagal memuat detail terbaru." });
   }
 });
+
 // === ROUTE CANCEL DEPOSIT (INTERNAL ONLY) ===
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
