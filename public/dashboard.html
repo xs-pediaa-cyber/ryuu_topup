@@ -1447,6 +1447,37 @@
         [data-theme="dark"] .vp-notification-title {
             color: var(--vp-light);
         }
+    
+    /* Penyesuaian agar History menyamping (Horizontal Scroll) */
+    #history-container, .history-list, #transaction-list, #deposit-history {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        gap: 15px !important;
+        padding: 10px 5px !important;
+        white-space: nowrap !important;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Memastikan card di dalam history memiliki ukuran yang pas dan tidak menciut */
+    #history-container > div, .history-list > div, .history-item, .transaction-card {
+        flex: 0 0 300px !important; 
+        display: inline-block !important;
+        vertical-align: top !important;
+        white-space: normal !important; /* Supaya teks di dalam card tetap wrap */
+    }
+
+    /* Styling scrollbar agar tetap minimalis */
+    #history-container::-webkit-scrollbar, .history-list::-webkit-scrollbar {
+        height: 6px;
+    }
+    #history-container::-webkit-scrollbar-thumb, .history-list::-webkit-scrollbar-thumb {
+        background: #3BB143;
+        border-radius: 10px;
+    }
+
     </style>
 
 <style id="comic-override-dashboard">
@@ -1554,7 +1585,38 @@ footer{
   border-color: rgba(255,255,255,.22) !important;
   box-shadow: 6px 6px 0 rgba(0,0,0,.65) !important;
 }
-</style>
+
+    /* Penyesuaian agar History menyamping (Horizontal Scroll) */
+    #history-container, .history-list, #transaction-list, #deposit-history {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        gap: 15px !important;
+        padding: 10px 5px !important;
+        white-space: nowrap !important;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Memastikan card di dalam history memiliki ukuran yang pas dan tidak menciut */
+    #history-container > div, .history-list > div, .history-item, .transaction-card {
+        flex: 0 0 300px !important; 
+        display: inline-block !important;
+        vertical-align: top !important;
+        white-space: normal !important; /* Supaya teks di dalam card tetap wrap */
+    }
+
+    /* Styling scrollbar agar tetap minimalis */
+    #history-container::-webkit-scrollbar, .history-list::-webkit-scrollbar {
+        height: 6px;
+    }
+    #history-container::-webkit-scrollbar-thumb, .history-list::-webkit-scrollbar-thumb {
+        background: #3BB143;
+        border-radius: 10px;
+    }
+
+    </style>
 
 </head>
 <body data-theme="light">
