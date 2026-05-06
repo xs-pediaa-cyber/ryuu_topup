@@ -48,7 +48,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: "QRIS",  
       type: "ewallet",  
       name: "QRIS All Payment (Otomatis)",  
-      min: 101,  
+      min: 250,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
