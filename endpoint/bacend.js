@@ -13,7 +13,7 @@ app.use(express.json());
 const domain = process.env.PTERO_DOMAIN;
 const apikey = process.env.PTERO_API_KEY;
 
-// KONFIGURASI PAYINAJA
+// KONFIGURASI RICHMARKET
 const PAYINAJA_API_KEY = process.env.PAYINAJA_API_KEY;
 const PAYINAJA_BASE_URL = "https://payinaja.web.id/api/v1";
 
@@ -48,7 +48,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: "QRIS",  
       type: "ewallet",  
       name: "QRIS All Payment (Otomatis)",  
-      min: 250,  
+      min: 101,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -70,157 +70,209 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
 router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
-    const { nominal } = req.body;
-    const parsedNominal = parseInt(nominal);
-
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 100) {
-      return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Sesi tidak valid."
+      });
     }
 
-    const API_KEY = process.env.PAYINAJA_API_KEY;
-    const response = await fetch("https://payinaja.web.id/api/v1/qris/create", {
+    const { nominal, reference_id, customer_name } = req.body;
+
+    // VALIDASI NOMINAL
+    if (!nominal || isNaN(nominal)) {
+      return res.status(400).json({
+        success: false,
+        message: "Nominal tidak valid."
+      });
+    }
+
+    const parsedNominal = parseInt(nominal);
+    if (parsedNominal < 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimal deposit Rp1.000"
+      });
+    }
+
+    // HIT PAYINAJA API
+    const response = await fetch(`${process.env.PAYINAJA_BASE_URL}/api/v1/qris/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
+      headers: {
+        "x-api-key": process.env.PAYINAJA_API_KEY,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         amount: parsedNominal,
-        reference_id: `DEP-${Date.now()}`,
-        customer_name: user.username || "User"
+        reference_id: reference_id || `INV-${Date.now()}`,
+        customer_name: customer_name || user.username || "User"
       })
     });
 
-    const result = await response.json();
-    if (!result || !result.success) return res.status(400).json({ success: false, message: "Gagal ke Payinaja" });
+    // DEBUG STATUS
+    const contentType = response.headers.get("content-type");
+    const rawText = await response.text();
 
-    const payData = result.data;
+    // CEK RESPONSE HTML (INI PENYEBAB ERROR KAMU)
+    if (!contentType || !contentType.includes("application/json")) {
+      console.error("❌ Response bukan JSON:");
+      console.error(rawText);
 
-    // --- FIX KALKULASI AGAR TIDAK NaN ---
-    const nominalAsli = Number(payData.amount_requested) || parsedNominal;
-    const feePayinaja = Number(payData.fee) || 0;
-    const totalBayar = Number(payData.total_amount) || (nominalAsli + feePayinaja);
-    
-    // Kalkulasi tambahan fee sesuai role (seperti logic Atlantic kamu)
-    let additionalFee = 0;
-    if (user.role === "user") {
-        additionalFee = Math.ceil(nominalAsli * 0.002);
-    } else if (user.role === "reseller") {
-        additionalFee = Math.ceil(nominalAsli * 0.001);
+      return res.status(502).json({
+        success: false,
+        message: "API Payinaja error (bukan JSON)"
+      });
     }
 
-    const totalFee = feePayinaja + additionalFee;
-    const finalGetBalance = nominalAsli - additionalFee;
+    let result;
+    try {
+      result = JSON.parse(rawText);
+    } catch (err) {
+      console.error("❌ JSON parse error:", rawText);
+      return res.status(502).json({
+        success: false,
+        message: "Gagal parsing response Payinaja"
+      });
+    }
 
-    const historyDataForDb = {
-      id: payData.payinaja_trx_id, // ID UTAMA
-      nominal: nominalAsli,
-      fee: totalFee,
-      get_balance: finalGetBalance,
+    // CEK SUCCESS
+    if (!result.success) {
+      return res.status(502).json({
+        success: false,
+        message: result.message || "Gagal membuat QRIS"
+      });
+    }
+
+    const d = result.data;
+
+    // HITUNG FEE
+    const feePercent = user.role === "reseller"
+      ? parseFloat(process.env.FEE_PERCENT_RESELLER || "0.001")
+      : parseFloat(process.env.FEE_PERCENT_USER || "0.002");
+
+    const additionalFee = Math.ceil(parsedNominal * feePercent);
+    const finalBalance = parsedNominal - additionalFee;
+
+    // SIMPAN HISTORY
+    const history = {
+      id: d.payinaja_trx_id,
+      reff_id: `XIAO_${Date.now()}`,
+      nominal: parsedNominal,
+      fee: additionalFee,
+      get_balance: finalBalance,
       metode: "QRIS",
       status: "pending",
-      qr_image: payData.qris_image_url,
-      created_at: new Date(),
+      qr_image: d.qris_image_url,
+      created_at: new Date()
     };
 
-    await tambahHistoryDeposit(user._id, historyDataForDb);
+    await tambahHistoryDeposit(user._id, history);
 
-    // --- RESPONSE KE FRONTEND (Pastikan key sesuai dengan yg dipanggil UI) ---
+    // RESPONSE KE FRONTEND
     res.status(200).json({
       success: true,
       data: {
-        id: payData.payinaja_trx_id, // Untuk ID TRX
-        trx_id: payData.payinaja_trx_id,
-        metode: "QRIS", // Untuk Metode
-        nominal: nominalAsli,
-        fee: totalFee,
-        total_amount: totalBayar,
-        get_balance: finalGetBalance, // Untuk Saldo Diterima
-        qr_image: payData.qris_image_url,
+        id: d.payinaja_trx_id,
+        nominal: parsedNominal,
+        fee: additionalFee,
+        get_balance: finalBalance,
+        qr_image: d.qris_image_url,
         status: "pending"
       }
     });
 
-    // Polling Otomatis
+    // =========================
+    // POLLING STATUS
+    // =========================
     const intervalId = setInterval(async () => {
       try {
-        const checkRes = await fetch(`https://payinaja.web.id/api/v1/transaction/${payData.payinaja_trx_id}`, {
-          method: "GET",
-          headers: { "x-api-key": API_KEY }
+        const check = await fetch(`${process.env.PAYINAJA_BASE_URL}/api/v1/transaction/${d.payinaja_trx_id}`, {
+          headers: {
+            "x-api-key": process.env.PAYINAJA_API_KEY
+          }
         });
-        const checkData = await checkRes.json();
-        if (checkData?.success && checkData.data?.status.toLowerCase() === "success") {
-          await editHistoryDeposit(user._id, payData.payinaja_trx_id, "success");
-          await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalGetBalance } });
-          clearInterval(intervalId);
-        } else if (["failed", "expired", "cancel"].includes(checkData?.data?.status.toLowerCase())) {
-          clearInterval(intervalId);
-        }
-      } catch (e) { console.error(e); }
-    }, 10000);
 
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+        const text = await check.text();
+
+        let statusData;
+        try {
+          statusData = JSON.parse(text);
+        } catch {
+          console.error("Polling bukan JSON:", text);
+          return;
+        }
+
+        if (statusData.success && statusData.data) {
+          const status = statusData.data.status;
+
+          if (status === "success") {
+            await editHistoryDeposit(user._id, d.payinaja_trx_id, "success");
+            await User.findByIdAndUpdate(user._id, {
+              $inc: { saldo: finalBalance }
+            });
+            clearInterval(intervalId);
+          }
+
+          if (["failed", "expired", "cancel"].includes(status)) {
+            await editHistoryDeposit(user._id, d.payinaja_trx_id, status);
+            clearInterval(intervalId);
+          }
+        }
+
+      } catch (err) {
+        console.error("Polling error:", err.message);
+      }
+    }, 5000);
+
+  } catch (error) {
+    console.error("ERROR CREATE DEPOSIT:", error);
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server"
+    });
   }
 });
 
-
-
-// === ROUTE CEK STATUS (HANYA PAYINAJA) ===
+// === ROUTE CEK STATUS (HANYA RICHMARKET) ===
 router.post("/deposit/status", requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
+  
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
+
   try {
-    const user = await User.findById(req.session.userId);
-    const { id } = req.body; // Mengambil ID transaksi
+    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
+    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
-    // Cari di history (Gunakan query findOne agar lebih cepat)
-    const userHistory = await User.findOne(
-      { _id: user._id, "history_deposit.id": id },
-      { "history_deposit.$": 1, role: 1 }
-    );
+    const localData = userHistory.historyDeposit[0];
 
-    if (!userHistory) {
-      return res.status(404).json({ success: false, message: "Data transaksi tidak ditemukan." });
-    }
-
-    const history = userHistory.history_deposit[0];
-
-    // Cek ke API Payinaja
-    const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
-      method: "GET",
-      headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
+    // Cek ke API RichMarket
+    const response = await fetch(`${RICH_BASE_URL}/get_status.php?trx_id=${id}`, {
+        method: "GET",
+        headers: { "X-API-KEY": RICH_API_KEY }
     });
     const result = await response.json();
+    
+    if (result.status !== "success") return res.status(404).json({ success: false, message: "Data tidak ditemukan di provider." });
 
-    if (!result.success) {
-      return res.json({ success: true, data: history });
-    }
-
-    const apiStatus = result.data.status.toLowerCase();
-
-    // Jika sukses tapi di DB masih pending, update saldo
-    if (apiStatus === "success" && history.status === "pending") {
-      await editHistoryDeposit(user._id, id, "success");
-      await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance } });
-      history.status = "success";
-    }
-
-    // Kembalikan data lengkap agar UI tidak kosong
-    return res.json({
+    return res.status(200).json({
       success: true,
       data: {
-        id: history.id,
-        metode: history.metode || "QRIS",
-        nominal: history.nominal,
-        fee: history.fee,
-        get_balance: history.get_balance, // Ini yang akan menghilangkan NaN
-        status: apiStatus,
-        qr_image: history.qr_image
+        id: result.data.trx_id,
+        status: result.data.payment_status.toLowerCase(),
+        nominal: parseInt(result.data.amount),
+        // --- PERUBAHAN DISINI: Mengambil fee dari DB yang dihitung berdasarkan ENV ---
+        fee: localData.fee || 0,
+        get_balance: localData.get_balance || 0,
       }
     });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-
-// === ROUTE CANCEL DEPOSIT (HANYA PAYINAJAMARKET) ===
+// === ROUTE CANCEL DEPOSIT (HANYA RICHMARKET) ===
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
@@ -232,11 +284,11 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
     const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
     if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
 
-    // Request Pembatalan ke PAYINAJAMarket
-    const richResponse = await fetch(`${PAYINAJA_BASE_URL}/cancel_payment.php`, {
+    // Request Pembatalan ke RichMarket
+    const richResponse = await fetch(`${RICH_BASE_URL}/cancel_payment.php`, {
       method: "POST",
       headers: {
-        "X-API-KEY": PAYINAJA_API_KEY,
+        "X-API-KEY": RICH_API_KEY,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
