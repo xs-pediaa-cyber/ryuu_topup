@@ -48,7 +48,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: "QRIS",  
       type: "ewallet",  
       name: "QRIS All Payment (Otomatis)",  
-      min: 200,  
+      min: 250,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -73,8 +73,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const { nominal } = req.body;
     const parsedNominal = parseInt(nominal);
 
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 200) {
-      return res.status(400).json({ success: false, message: "Minimal deposit Rp200" });
+    if (!nominal || isNaN(parsedNominal) || parsedNominal < 250) {
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp250" });
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
@@ -164,42 +164,60 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
 // === ROUTE CEK STATUS (HANYA PAYINAJA) ===
 router.post("/deposit/status", requireLogin, async (req, res) => {
-  const user = await User.findById(req.session.userId);
-  if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
-  
-  const { id } = req.body;
-  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
-
   try {
-    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
-    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
+    const user = await User.findById(req.session.userId);
+    const { id } = req.body; // Mengambil ID transaksi
 
-    const localData = userHistory.historyDeposit[0];
+    // Cari di history (Gunakan query findOne agar lebih cepat)
+    const userHistory = await User.findOne(
+      { _id: user._id, "history_deposit.id": id },
+      { "history_deposit.$": 1, role: 1 }
+    );
 
-    // Cek ke API PAYINAJAMarket
-    const response = await fetch(`${PAYINAJA_BASE_URL}/get_status.php?trx_id=${id}`, {
-        method: "GET",
-        headers: { "X-API-KEY": PAYINAJA_API_KEY }
+    if (!userHistory) {
+      return res.status(404).json({ success: false, message: "Data transaksi tidak ditemukan." });
+    }
+
+    const history = userHistory.history_deposit[0];
+
+    // Cek ke API Payinaja
+    const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
+      method: "GET",
+      headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
     });
     const result = await response.json();
-    
-    if (result.status !== "success") return res.status(404).json({ success: false, message: "Data tidak ditemukan di provider." });
 
-    return res.status(200).json({
+    if (!result.success) {
+      return res.json({ success: true, data: history });
+    }
+
+    const apiStatus = result.data.status.toLowerCase();
+
+    // Jika sukses tapi di DB masih pending, update saldo
+    if (apiStatus === "success" && history.status === "pending") {
+      await editHistoryDeposit(user._id, id, "success");
+      await User.findByIdAndUpdate(user._id, { $inc: { saldo: history.get_balance } });
+      history.status = "success";
+    }
+
+    // Kembalikan data lengkap agar UI tidak kosong
+    return res.json({
       success: true,
       data: {
-        id: result.data.trx_id,
-        status: result.data.payment_status.toLowerCase(),
-        nominal: parseInt(result.data.amount),
-        // --- PERUBAHAN DISINI: Mengambil fee dari DB yang dihitung berdasarkan ENV ---
-        fee: localData.fee || 0,
-        get_balance: localData.get_balance || 0,
+        id: history.id,
+        metode: history.metode || "QRIS",
+        nominal: history.nominal,
+        fee: history.fee,
+        get_balance: history.get_balance, // Ini yang akan menghilangkan NaN
+        status: apiStatus,
+        qr_image: history.qr_image
       }
     });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 // === ROUTE CANCEL DEPOSIT (HANYA PAYINAJAMARKET) ===
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
