@@ -1292,6 +1292,24 @@ input,select{
 }
 </style>
 
+
+<style>
+/* ==== HORIZONTAL HISTORY FIX ==== */
+@media (max-width: 767.98px){
+  .vp-history-table tbody{
+    display:flex !important;
+    overflow-x:auto;
+    gap:12px;
+    padding-bottom:10px;
+  }
+  .vp-history-table tbody tr{
+    min-width:260px;
+    flex:0 0 auto;
+    margin-bottom:0 !important;
+  }
+}
+</style>
+
 </head>
 <body data-theme="light">
     <div class="vp-wrapper">
