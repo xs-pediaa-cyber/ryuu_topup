@@ -5,7 +5,7 @@ const router = express.Router();
 
 // KONFIGURASI PROV
 const PAYINAJA_API_KEY = process.env.PAYINAJA_API_KEY;
-const PAYINAJA_BASE_URL = "https://payinaja.web.id/api/v1";
+const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
 
 const {
   validateApiKey,
@@ -139,7 +139,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
 
   try {
     // Request ke Payinaja
-    const response = await fetch("https://payinaja.web.id/api/v1/qris/create", {
+    const response = await fetch("https://payinaja.com/api/v1/qris/create2", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json", 
@@ -198,7 +198,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     // POLLING OTOMATIS (Tanpa cloudscraper agar tidak crash)
     const intervalId = setInterval(async () => {
       try {
-        const checkRes = await fetch(`https://payinaja.web.id/api/v1/transaction/${payData.payinaja_trx_id}`, {
+        const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
           method: "GET",
           headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
         });
@@ -241,7 +241,7 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
     const localData = userHistory.historyDeposit[0];
 
     // Cek ke API Payinaja
-    const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
+    const response = await fetch(`https://payinaja.com/api/v1/transaction/${id}`, {
         method: "GET",
         headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
     });
