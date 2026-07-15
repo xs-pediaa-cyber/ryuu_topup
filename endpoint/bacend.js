@@ -15,7 +15,7 @@ const apikey = process.env.PTERO_API_KEY;
 
 // KONFIGURASI RICHMARKET
 const PAYINAJA_API_KEY = process.env.PAYINAJA_API_KEY;
-const PAYINAJA_BASE_URL = "https://payinaja.web.id/api/v1";
+const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
 
 const {
   requireLogin,
@@ -79,7 +79,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    const response = await fetch("https://payinaja.web.id/api/v1/qris/create", {
+    const response = await fetch("https://payinaja.com/api/v1/qris/create2", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
       body: JSON.stringify({
@@ -149,7 +149,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     // Polling tetap sama
     const intervalId = setInterval(async () => {
       try {
-        const checkRes = await fetch(`https://payinaja.web.id/api/v1/transaction/${payData.payinaja_trx_id}`, {
+        const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
           method: "GET",
           headers: { "x-api-key": API_KEY }
         });
@@ -192,7 +192,7 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const API_KEY = process.env.PAYINAJA_API_KEY;
 
     // 2. Ambil data terbaru dari Payinaja
-    const response = await fetch(`https://payinaja.web.id/api/v1/transaction/${id}`, {
+    const response = await fetch(`https://payinaja.com/api/v1/transaction/${id}`, {
         method: "GET",
         headers: { "x-api-key": API_KEY }
     });
