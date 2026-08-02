@@ -79,7 +79,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    const response = await fetch("https://payinaja.com/api/v1/qris/create2", {
+    
+    // --- UPDATE: Menggunakan endpoint /api/v1/qris/create sesuai docs terbaru ---
+    const response = await fetch("https://payinaja.com/api/v1/qris/create", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
       body: JSON.stringify({
