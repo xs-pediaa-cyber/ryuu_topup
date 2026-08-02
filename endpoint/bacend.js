@@ -47,8 +47,8 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     const metodeFormatted = [{  
       metode: "QRIS",  
       type: "ewallet",  
-      name: "QRIS All Pay (Otomatis)",  
-      min: 600,  
+      name: "QRIS All Payment (Otomatis)",  
+      min: 500,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -85,7 +85,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     let response;
     try {
       // --- UPDATE: Menambahkan User-Agent & Accept agar tidak diblokir server Payinaja ---
-      response = await fetch("https://payinaja.com/api/v1/qris/create", {
+      response = await fetch("https://payinaja.com/api/v1/qris/create2", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json", 
