@@ -123,7 +123,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
   }
 });
 
-// === ROUTE BUAT DEPOSIT (STRUKTUR ASLI - PAYINAJA) ===
+// === ROUTE BUAT DEPOSIT (UPDATE ENDPOINT PAYINAJA) ===
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
   const { nominal } = req.query;
@@ -138,8 +138,8 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   try {
-    // Request ke Payinaja
-    const response = await fetch("https://payinaja.com/api/v1/qris/create2", {
+    // Request ke Payinaja menggunakan endpoint terbaru (/api/v1/qris/create)
+    const response = await fetch("https://payinaja.com/api/v1/qris/create", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json", 
@@ -153,13 +153,15 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     });
 
     const result = await response.json();
+    
     if (!result || !result.success) {
       return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS." });
     }
 
+    // Data dari API Payinaja terbaru
     const payData = result.data;
 
-    // KALKULASI ANTI-NaN
+    // KALKULASI ANTI-NaN (menggunakan key dari response docs terbaru)
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
     const feePayinaja = Number(payData.fee) || 0;
     const totalBayar = Number(payData.total_amount) || (nominalAsli + feePayinaja);
@@ -179,7 +181,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       created_at: new Date(),
     };
 
-    // Gunakan fungsi internal kamu
+    // Gunakan fungsi internal kamu tanpa ada perubahan agar tidak error/null
     await tambahHistoryDeposit(user._id, history);
 
     res.status(200).json({
@@ -206,6 +208,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
 
         if (statusData?.success && statusData.data) {
           const apiStatus = statusData.data.status.toLowerCase();
+          
           if (apiStatus === "success") {
             const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": payData.payinaja_trx_id });
             const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === payData.payinaja_trx_id);
@@ -227,7 +230,6 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-
 // === ROUTE CEK STATUS (STRUKTUR ASLI - PAYINAJA) ===
 router.get("/deposit/status", validateApiKey, async (req, res) => {
   const { id } = req.query;
