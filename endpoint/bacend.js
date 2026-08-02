@@ -47,8 +47,8 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     const metodeFormatted = [{  
       metode: "QRIS",  
       type: "ewallet",  
-      name: "QRIS All Payment (Otomatis)",  
-      min: 500,  
+      name: "QRIS All Pay (Otomatis)",  
+      min: 600,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -73,31 +73,44 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const { nominal } = req.body;
     const parsedNominal = parseInt(nominal);
 
-    // Filter awal di sisi kamu sudah benar Rp500
     if (!nominal || isNaN(parsedNominal) || parsedNominal < 500) {
       return res.status(400).json({ success: false, message: "Minimal deposit Rp500" });
     }
 
     const API_KEY = process.env.PAYINAJA_API_KEY;
-    
-    // --- UPDATE: Menggunakan endpoint /api/v1/qris/create sesuai docs terbaru ---
-    const response = await fetch("https://payinaja.com/api/v1/qris/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
-      body: JSON.stringify({
-        amount: parsedNominal,
-        reference_id: `DEP-${Date.now()}`,
-        customer_name: user.username || "User"
-      })
-    });
+    if (!API_KEY) {
+      return res.status(500).json({ success: false, message: "API Key Payinaja belum disetting di server." });
+    }
+
+    let response;
+    try {
+      // --- UPDATE: Menambahkan User-Agent & Accept agar tidak diblokir server Payinaja ---
+      response = await fetch("https://payinaja.com/api/v1/qris/create", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "x-api-key": API_KEY 
+        },
+        body: JSON.stringify({
+          amount: parsedNominal,
+          reference_id: `DEP-${Date.now()}`,
+          customer_name: user.username || "User"
+        })
+      });
+    } catch (fetchError) {
+      console.error("Fetch API Error:", fetchError);
+      // Jika errornya dari jaringan/hosting, ini yang akan tampil
+      return res.status(502).json({ success: false, message: "Koneksi server ke Payinaja gagal/diblokir." });
+    }
 
     const result = await response.json();
     
-    // Jika gagal, tampilkan pesan error asli dari Payinaja agar kamu tahu batasan minimal mereka
     if (!result || !result.success) {
       return res.status(400).json({ 
         success: false, 
-        message: result.message || "Gagal ke Payinaja (Cek apakah nominal terlalu kecil)" 
+        message: result.message || "Gagal ke Payinaja (Cek kembali pengaturan akun/nominal)" 
       });
     }
 
@@ -107,7 +120,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
     const feePayinaja = Number(payData.fee) || 0;
     
-    // Hitung additional fee
     let additionalFee = 0;
     if (user.role === "user") {
         additionalFee = Math.ceil(nominalAsli * 0.002);
@@ -115,7 +127,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         additionalFee = Math.ceil(nominalAsli * 0.001);
     }
 
-    // Pastikan total bayar adalah Integer (Bulat) karena QRIS tidak menerima desimal
     const totalBayar = Math.ceil(Number(payData.total_amount) || (nominalAsli + feePayinaja));
     const totalFee = feePayinaja + additionalFee;
     const finalGetBalance = nominalAsli - additionalFee;
@@ -148,14 +159,19 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       }
     });
 
-    // Polling tetap sama
+    // POLLING: Menggunakan User-Agent juga agar tidak kena "fetch failed" di background
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
           method: "GET",
-          headers: { "x-api-key": API_KEY }
+          headers: { 
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "x-api-key": API_KEY 
+          }
         });
         const checkData = await checkRes.json();
+        
         if (checkData?.success && checkData.data?.status.toLowerCase() === "success") {
           await editHistoryDeposit(user._id, payData.payinaja_trx_id, "success");
           await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalGetBalance } });
@@ -163,7 +179,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         } else if (checkData?.data && ["failed", "expired", "cancel"].includes(checkData.data.status.toLowerCase())) {
           clearInterval(intervalId);
         }
-      } catch (e) { console.error("Polling Error:", e); }
+      } catch (e) { 
+        console.error("Polling Error:", e.message); 
+      }
     }, 10000);
 
   } catch (err) {
