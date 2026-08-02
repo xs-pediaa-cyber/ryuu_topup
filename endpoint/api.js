@@ -104,8 +104,8 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
     const metodeFormatted = [{
       metode: "QRIS",
       type: "ewallet",
-      name: "QRIS All Payment (Otomatis)",
-      min: 500,
+      name: "QRIS All Pay (Otomatis)",
+      min: 550,
       max: 5000000,
       fee: 0,
       fee_persen: feePersen,
@@ -123,7 +123,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
   }
 });
 
-// === ROUTE BUAT DEPOSIT (UPDATE ENDPOINT PAYINAJA) ===
+// === ROUTE BUAT DEPOSIT (UPDATE ENDPOINT PAYINAJA & FIX FETCH) ===
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
   const { nominal } = req.query;
@@ -137,20 +137,33 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp500" });
   }
 
+  const API_KEY = process.env.PAYINAJA_API_KEY;
+  if (!API_KEY) {
+    return res.status(500).json({ success: false, message: "API Key Payinaja belum disetting." });
+  }
+
   try {
-    // Request ke Payinaja menggunakan endpoint terbaru (/api/v1/qris/create)
-    const response = await fetch("https://payinaja.com/api/v1/qris/create", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "x-api-key": process.env.PAYINAJA_API_KEY 
-      },
-      body: JSON.stringify({
-        amount: parsedNominal,
-        reference_id: `DEP-${Date.now()}`,
-        customer_name: user.username || "Pelanggan"
-      })
-    });
+    let response;
+    try {
+      // Request ke Payinaja menggunakan endpoint terbaru + Header Anti-Block (User-Agent)
+      response = await fetch("https://payinaja.com/api/v1/qris/create", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "x-api-key": API_KEY 
+        },
+        body: JSON.stringify({
+          amount: parsedNominal,
+          reference_id: `DEP-${Date.now()}`,
+          customer_name: user.username || "Pelanggan"
+        })
+      });
+    } catch (fetchError) {
+      console.error("Fetch API Error:", fetchError);
+      return res.status(502).json({ success: false, message: "Koneksi server ke Payinaja gagal/diblokir." });
+    }
 
     const result = await response.json();
     
@@ -197,12 +210,16 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       },
     });
 
-    // POLLING OTOMATIS (Tanpa cloudscraper agar tidak crash)
+    // POLLING OTOMATIS (Tanpa cloudscraper agar tidak crash, ditambah User-Agent)
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
           method: "GET",
-          headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
+          headers: { 
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "x-api-key": API_KEY 
+          }
         });
         const statusData = await checkRes.json();
 
@@ -223,7 +240,10 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
             clearInterval(intervalId);
           }
         }
-      } catch (e) { clearInterval(intervalId); }
+      } catch (e) { 
+        console.error("Polling API Error:", e.message);
+        clearInterval(intervalId); 
+      }
     }, 10000);
 
   } catch (error) {
