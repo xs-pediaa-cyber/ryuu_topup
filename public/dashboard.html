@@ -1851,6 +1851,25 @@ main, main.container, .container, .vp-dashboard, .vp-main, .dashboard-content {
 .vp-history-table th:nth-child(4), .vp-history-table td:nth-child(4) { min-width: 120px; }
 .vp-history-table th:nth-child(5), .vp-history-table td:nth-child(5) { min-width: 100px; }
 </style>
+
+<style id="history-final-visibility-fix">
+.vp-history-table-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+.vp-history-table {
+    min-width: 850px !important;
+    width: max-content !important;
+}
+.vp-history-table thead { display: table-header-group !important; }
+.vp-history-table tbody { display: table-row-group !important; }
+.vp-history-table tbody tr { display: table-row !important; }
+.vp-history-table tbody td { display: table-cell !important; }
+.vp-history-table tbody td::before { content: none !important; }
+</style>
+
 </head>
 <body data-theme="light">
     <div class="vp-wrapper">
@@ -2465,24 +2484,33 @@ const vpSidebar = document.getElementById('vpSidebar');
             const tbody = document.getElementById('depositHistoryBody');
             if (!tbody) return;
 
-            if (!deposits || deposits.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Belum ada riwayat deposit.</td></tr>';
+            if (!Array.isArray(deposits) || deposits.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            Belum ada riwayat deposit.
+                        </td>
+                    </tr>`;
                 return;
             }
 
             tbody.innerHTML = deposits.map(deposit => {
+                const id = deposit.id ?? deposit.reff_id ?? '-';
                 const nominalDepo = Number(deposit.nominal ?? 0);
                 const nominalMasuk = Number(deposit.get_balance ?? deposit.nominal ?? 0);
+                const metode = deposit.metode ?? '-';
 
                 return `
                     <tr>
-                        <td data-label="ID Trx">${deposit.id || deposit.reff_id || '-'}</td>
+                        <td data-label="ID Trx">${id}</td>
                         <td data-label="Nominal Depo">Rp ${nominalDepo.toLocaleString('id-ID')}</td>
                         <td data-label="Nominal Masuk">Rp ${nominalMasuk.toLocaleString('id-ID')}</td>
-                        <td data-label="Metode">${deposit.metode || '-'}</td>
+                        <td data-label="Metode">${metode}</td>
                         <td data-label="Aksi">
                             <div class="action-buttons">
-                                <button type="button" class="btn btn-sm btn-primary" onclick="showDepositDetail('${deposit.id}')">
+                                <button type="button"
+                                        class="btn btn-sm btn-primary"
+                                        onclick="showDepositDetail('${String(id).replace(/'/g, "\\'")}')">
                                     <i class="bi bi-eye"></i> Detail
                                 </button>
                             </div>
@@ -2509,19 +2537,13 @@ const vpSidebar = document.getElementById('vpSidebar');
             document.body.style.overflowY = 'auto';
             document.body.classList.toggle('showing-all-deposits', showingAllDeposits);
 
+            const all = Array.isArray(dashboardDepositHistory) ? dashboardDepositHistory : [];
             const deposits = showingAllDeposits
-                ? [...dashboardDepositHistory].reverse()
-                : [...dashboardDepositHistory].slice(0, 3);
+                ? [...all].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+                : [...all].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 3);
 
             renderDepositRows(deposits);
             updateViewAllDepositsButton();
-
-            const historySection = document.querySelector('.vp-history-section');
-            if (showingAllDeposits && historySection) {
-                setTimeout(() => {
-                    historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 50);
-            }
         }
 
         function renderHistory(userData) {
