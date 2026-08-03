@@ -128,6 +128,10 @@
                     <label for="otpCode" class="form-label">Kode OTP</label>
                     <input type="text" class="form-control" id="otpCode" placeholder="Masukkan 6 digit OTP" required>
                     <div class="form-text text-muted-small" id="otpInstruction">Kode OTP telah dikirimkan ke nomor Anda.</div>
+                    <div class="text-center mt-2">
+                        <span id="otpTimer" class="text-muted-small">Minta OTP lagi dalam 30 detik</span>
+                        <button type="button" class="btn btn-primary w-100 py-2 mt-2 d-none" id="resendOtpBtn">Ulang OTP</button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label for="newPassword" class="form-label">Password Baru</label>
@@ -158,6 +162,9 @@
         const sendOtpSpinner = document.getElementById('sendOtpSpinner');
         const otpRequestMessage = document.getElementById('otpRequestMessage');
         const otpInstruction = document.getElementById('otpInstruction');
+        const otpTimer = document.getElementById('otpTimer');
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
+        let otpCountdown = null;
 
         const resetPasswordForm = document.getElementById('resetPasswordForm');
         const nomorReset = document.getElementById('nomorReset');
@@ -182,45 +189,80 @@
             }
         }
 
-        requestOtpForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nomor = nomorRequest.value.trim();
+        function startOtpCountdown() {
+            clearInterval(otpCountdown);
+            let seconds = 30;
+            resendOtpBtn.classList.add('d-none');
+            otpTimer.classList.remove('d-none');
+            otpTimer.textContent = `Minta OTP lagi dalam ${seconds} detik`;
 
+            otpCountdown = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    clearInterval(otpCountdown);
+                    otpTimer.classList.add('d-none');
+                    resendOtpBtn.classList.remove('d-none');
+                    return;
+                }
+                otpTimer.textContent = `Minta OTP lagi dalam ${seconds} detik`;
+            }, 1000);
+        }
+
+        async function requestOtp(nomor, isResend = false) {
             if (!nomor) {
                 showMessage(otpRequestMessage, 'danger', 'Nomor telepon harus diisi.');
-                return;
+                return false;
             }
 
-            toggleLoading(sendOtpBtn, sendOtpSpinner, true);
+            if (isResend) {
+                resendOtpBtn.disabled = true;
+            } else {
+                toggleLoading(sendOtpBtn, sendOtpSpinner, true);
+            }
             otpRequestMessage.innerHTML = '';
 
             try {
                 const response = await fetch('/get/forgot-password', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nomor }),
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    showMessage(otpRequestMessage, 'success', data.message);
+                    showMessage(otpRequestMessage, 'success', data.message || 'Kode OTP berhasil dikirim.');
                     nomorReset.value = nomor;
                     step1.classList.add('d-none');
                     step2.classList.remove('d-none');
-                    // Instruksi untuk user agar memeriksa WA/SMS mereka
                     otpInstruction.textContent = 'Kode OTP telah dikirimkan ke nomor Anda. Periksa pesan WhatsApp/SMS Anda.';
+                    startOtpCountdown();
+                    return true;
                 } else {
-                    showMessage(otpRequestMessage, 'danger', data.message);
+                    showMessage(otpRequestMessage, 'danger', data.message || 'Gagal mengirim OTP.');
+                    return false;
                 }
             } catch (error) {
                 showMessage(otpRequestMessage, 'danger', 'Terjadi kesalahan jaringan atau server.');
+                return false;
             } finally {
-                toggleLoading(sendOtpBtn, sendOtpSpinner, false);
+                if (isResend) resendOtpBtn.disabled = false;
+                else toggleLoading(sendOtpBtn, sendOtpSpinner, false);
             }
+        }
+
+        requestOtpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await requestOtp(nomorRequest.value.trim());
         });
+
+        resendOtpBtn.addEventListener('click', async () => {
+            const nomor = nomorReset.value.trim() || nomorRequest.value.trim();
+            if (!nomor) return;
+
+            await requestOtp(nomor, true);
+        });
+
 
         resetPasswordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
