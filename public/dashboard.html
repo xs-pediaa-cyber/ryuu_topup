@@ -1810,6 +1810,38 @@ footer {
 }
 </style>
 
+
+<style id="dashboard-scroll-fix">
+html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+body {
+    position: relative !important;
+}
+main, main.container, .container, .vp-dashboard, .vp-main, .dashboard-content {
+    max-height: none !important;
+    height: auto !important;
+    overflow-y: visible !important;
+}
+.vp-history-table-container {
+    max-height: none !important;
+    height: auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+}
+#depositHistoryBody {
+    max-height: none !important;
+    overflow: visible !important;
+}
+</style>
+
 </head>
 <body data-theme="light">
     <div class="vp-wrapper">
@@ -2482,6 +2514,10 @@ const vpSidebar = document.getElementById('vpSidebar');
 
         function toggleAllDeposits() {
             showingAllDeposits = !showingAllDeposits;
+
+            document.documentElement.style.overflowY = 'auto';
+            document.body.style.overflowY = 'auto';
+            document.body.classList.toggle('showing-all-deposits', showingAllDeposits);
 
             const deposits = showingAllDeposits
                 ? dashboardDepositHistory
