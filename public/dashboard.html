@@ -916,16 +916,7 @@
         .footer-social-links a:hover {
             color: var(--vp-primary);
         }
-        
-        .footer-copyright {
-            width: 100%; 
-            text-align: left; 
-            margin-top: 1rem; 
-            font-size: 0.75rem; 
-            color: var(--vp-text-muted);
-        }
-
-        .vp-history-section {
+.vp-history-section {
             background-color: var(--vp-card-bg);
             padding: 1.25rem;
             border-radius: var(--vp-radius-lg);
@@ -1693,6 +1684,132 @@ footer {
 }
 </style>
 
+
+<style id="dashboard-history-final-fix">
+/* History: tabel tetap satu baris dan digeser ke SAMPING di layar kecil */
+.vp-history-table-container {
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+
+.vp-history-table {
+    min-width: 760px !important;
+    width: max-content !important;
+}
+
+.vp-history-table thead {
+    display: table-header-group !important;
+}
+
+.vp-history-table tbody {
+    display: table-row-group !important;
+}
+
+.vp-history-table tbody tr {
+    display: table-row !important;
+    transform: none !important;
+}
+
+.vp-history-table tbody td {
+    display: table-cell !important;
+    padding: .75rem 1rem !important;
+}
+
+.vp-history-table tbody td::before {
+    content: none !important;
+}
+
+.vp-history-table tbody td:last-child {
+    border-top: none !important;
+    margin-top: 0 !important;
+    padding-top: .75rem !important;
+}
+
+.vp-history-table .action-buttons {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+}
+
+.vp-history-table .action-buttons .btn {
+    width: auto !important;
+    white-space: nowrap;
+}
+
+#allDepositsHistoryHint {
+    display: none;
+    text-align: center;
+    margin-top: .5rem;
+    font-size: .78rem;
+    color: var(--vp-text-muted);
+}
+
+/* Detail pembayaran mengikuti struktur deposit.html */
+.deposit-amount-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin: 1rem 0;
+}
+
+.deposit-amount-box {
+    padding: .9rem;
+    border: 1px solid var(--vp-border-color);
+    border-radius: var(--vp-radius-md);
+    background: var(--vp-light);
+}
+
+[data-theme="dark"] .deposit-amount-box {
+    background: var(--vp-body-bg);
+}
+
+.deposit-amount-box .amount-label {
+    display: block;
+    color: var(--vp-text-muted);
+    font-size: .78rem;
+    margin-bottom: .3rem;
+    font-weight: 600;
+}
+
+.deposit-amount-box .amount-value {
+    display: block;
+    color: var(--vp-dark);
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.deposit-amount-box.payment .amount-value {
+    color: var(--vp-primary);
+}
+
+.deposit-amount-box.incoming .amount-value {
+    color: var(--vp-success);
+}
+
+@media (max-width: 575.98px) {
+    .vp-history-table {
+        min-width: 760px !important;
+    }
+
+    .deposit-amount-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: .5rem;
+    }
+
+    .deposit-amount-box {
+        padding: .75rem;
+    }
+
+    .deposit-amount-box .amount-value {
+        font-size: .9rem;
+    }
+}
+</style>
+
 </head>
 <body data-theme="light">
     <div class="vp-wrapper">
@@ -1878,7 +1995,7 @@ footer {
             <thead>
                 <tr>
                     <th>ID Transaksi</th>
-                    <th>Nominal</th>
+                    <th>Nominal Masuk</th>
                     <th>Metode</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -2329,7 +2446,7 @@ const vpSidebar = document.getElementById('vpSidebar');
 
                 row.innerHTML = `
                     <td data-label="ID Transaksi">${deposit.id || '-'}</td>
-                    <td data-label="Nominal">Rp ${balance.toLocaleString('id-ID')}</td>
+                    <td data-label="Nominal Masuk">Rp ${balance.toLocaleString('id-ID')}</td>
                     <td data-label="Metode">${deposit.metode || '-'}</td>
                     <td data-label="Status">${statusBadge}</td>
                     <td data-label="Aksi">
@@ -2434,104 +2551,153 @@ const vpSidebar = document.getElementById('vpSidebar');
 
         function showDepositDetail(id) {
             const modalBody = document.getElementById('depositDetailModalBody');
-            modalBody.innerHTML = '<div class="vp-loading-shimmer" style="height: 150px;"></div>';
-
             const modalCheckDepositStatusBtn = document.getElementById('modalDepositDetailCheckStatusBtn');
             const modalCancelDepositBtn = document.getElementById('modalCancelDepositBtn');
 
-            if (!modalCheckDepositStatusBtn || !modalCancelDepositBtn) {
-                console.error('Elemen tombol detail deposit tidak ditemukan.');
-                return;
+            modalBody.innerHTML = '<div class="vp-loading-shimmer" style="height: 180px;"></div>';
+
+            if (modalCheckDepositStatusBtn) {
+                modalCheckDepositStatusBtn.style.display = '';
+                modalCheckDepositStatusBtn.disabled = false;
+                modalCheckDepositStatusBtn.innerHTML = 'Cek Status (API)';
+                modalCheckDepositStatusBtn.onclick = () => {
+                    modalCheckDepositStatusBtn.disabled = true;
+                    modalCheckDepositStatusBtn.innerHTML = 'Checking...';
+                    checkDepositStatus(id, true);
+                };
             }
 
-            modalCheckDepositStatusBtn.onclick = null;
-            modalCancelDepositBtn.onclick = null;
-            if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = '';
-            if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = '';
+            if (modalCancelDepositBtn) {
+                modalCancelDepositBtn.style.display = '';
+                modalCancelDepositBtn.onclick = () => cancelDeposit(id);
+            }
 
-            modalCheckDepositStatusBtn.onclick = () => {
-                modalCheckDepositStatusBtn.disabled = true;
-                modalCheckDepositStatusBtn.innerHTML = 'Checking...';
-                checkDepositStatus(id, true);
-            };
-            modalCancelDepositBtn.onclick = () => cancelDeposit(id);
+            const modalElement = document.getElementById('depositDetailModal');
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modalInstance.show();
 
             fetch(`/profile/users/deposit/${id}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.data) {
-                        const deposit = data.data;
-                        let depositStatusBadge = '';
-                        let statusClass = '';
-                        if (deposit.status === 'pending') {
-                            statusClass = 'status-pending';
-                        } else if (deposit.status === 'success') {
-                            statusClass = 'status-success';
-                        } else if (['failed', 'expired', 'cancel'].includes(deposit.status)) {
-                            statusClass = 'status-failed';
-                        }
-                        depositStatusBadge = `<span class="status-badge ${statusClass}">${deposit.status}</span>`;
+                    if (!data.success || !data.data) {
+                        modalBody.innerHTML = `<p class="text-danger text-center">${data.message || 'Gagal memuat detail deposit.'}</p>`;
+                        if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
+                        if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
+                        return;
+                    }
 
-                        let qrCodeHtml = '';
-                        if (deposit.status === 'pending' && deposit.qr_image) {
-                            qrCodeHtml = `<div class="detail-item text-center"><strong>QR Code:</strong> <br><img src="${deposit.qr_image}" alt="QR Code" style="max-width: 150px; height: auto; margin-top: 10px;"></div>`;
-                        }
+                    const deposit = data.data;
+                    const paymentAmount = Number(deposit.nominal ?? 0);
+                    const incomingAmount = Number(deposit.get_balance ?? deposit.nominal ?? 0);
+                    const fee = Number(deposit.fee ?? 0);
 
-                        modalBody.innerHTML = `
-                            <div class="detail-item">
-                                <strong>ID Transaksi:</strong> ${deposit.id || '-'}
+                    let statusClass = '';
+                    const currentStatus = String(deposit.status || '').toLowerCase();
+
+                    if (currentStatus === 'pending') {
+                        statusClass = 'status-pending';
+                    } else if (currentStatus === 'success') {
+                        statusClass = 'status-success';
+                    } else if (['failed', 'expired', 'cancel'].includes(currentStatus)) {
+                        statusClass = 'status-failed';
+                    }
+
+                    const statusBadge = `<span class="status-badge ${statusClass}">${deposit.status || '-'}</span>`;
+
+                    let qrCodeHtml = '';
+                    if (currentStatus === 'pending' && deposit.qr_image) {
+                        qrCodeHtml = `
+                            <div class="qr-code-container">
+                                <p class="mb-2 fw-bold">Silakan scan QR Code di bawah ini:</p>
+                                <img src="${deposit.qr_image}" alt="QR Code Pembayaran">
+                                <p class="mt-2 text-muted" style="font-size:11px;">Status: Menunggu Pembayaran</p>
+                            </div>`;
+                    }
+
+                    modalBody.innerHTML = `
+                        <div class="payment-details-card" style="margin-top:0;">
+                            <div class="payment-detail-item">
+                                <span class="label">ID Transaksi:</span>
+                                <span class="value">${deposit.id || deposit.reff_id || '-'}</span>
                             </div>
-                            <div class="detail-item">
-                                <strong>Ref ID:</strong> ${deposit.reff_id || '-'}
+
+                            <div class="payment-detail-item">
+                                <span class="label">Reff ID:</span>
+                                <span class="value">${deposit.reff_id || '-'}</span>
                             </div>
-                            <div class="detail-item">
-                                <strong>Nominal:</strong> Rp ${deposit.get_balance.toLocaleString('id-ID')}
+
+                            <div class="deposit-amount-grid">
+                                <div class="deposit-amount-box payment">
+                                    <span class="amount-label">Nominal Pembayaran</span>
+                                    <span class="amount-value">Rp ${paymentAmount.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div class="deposit-amount-box incoming">
+                                    <span class="amount-label">Nominal Masuk</span>
+                                    <span class="amount-value">Rp ${incomingAmount.toLocaleString('id-ID')}</span>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <strong>Fee:</strong> Rp ${deposit.fee.toLocaleString('id-ID')}
+
+                            <div class="payment-detail-item">
+                                <span class="label">Biaya Admin:</span>
+                                <span class="value">Rp ${fee.toLocaleString('id-ID')}</span>
                             </div>
-                            <div class="detail-item">
-                                <strong>Diterima:</strong> Rp ${deposit.get_balance.toLocaleString('id-ID')}
+
+                            <div class="payment-detail-item">
+                                <span class="label">Metode:</span>
+                                <span class="value">${deposit.metode || '-'}</span>
                             </div>
-                            <div class="detail-item">
-                                <strong>Metode:</strong> ${deposit.metode || '-'}
+
+                            ${deposit.tujuan ? `
+                            <div class="payment-detail-item">
+                                <span class="label">Nomor Tujuan/VA:</span>
+                                <span class="value">${deposit.tujuan}</span>
+                            </div>` : ''}
+
+                            ${deposit.atas_nama ? `
+                            <div class="payment-detail-item">
+                                <span class="label">Atas Nama:</span>
+                                <span class="value">${deposit.atas_nama}</span>
+                            </div>` : ''}
+
+                            <div class="payment-detail-item">
+                                <span class="label">Status:</span>
+                                <span class="value">${statusBadge}</span>
                             </div>
-                            ${deposit.tujuan ? `<div class="detail-item"><strong>Tujuan:</strong> ${deposit.tujuan}</div>` : ''}
-                            ${deposit.atas_nama ? `<div class="detail-item"><strong>Atas Nama:</strong> ${deposit.atas_nama}</div>` : ''}
-                            <div class="detail-item">
-                                <strong>Status:</strong> ${depositStatusBadge}
+
+                            <div class="payment-detail-item">
+                                <span class="label">Tanggal Dibuat:</span>
+                                <span class="value">${deposit.created_at ? new Date(deposit.created_at).toLocaleString('id-ID') : '-'}</span>
                             </div>
-                            <div class="detail-item">
-                                <strong>Tanggal:</strong> ${new Date(deposit.created_at).toLocaleString('id-ID')}
-                            </div>
+
+                            ${deposit.expired_at && currentStatus === 'pending' ? `
+                            <div class="payment-detail-item text-danger">
+                                <span class="label">Bayar Sebelum:</span>
+                                <span class="value">${new Date(deposit.expired_at).toLocaleString('id-ID')}</span>
+                            </div>` : ''}
+
                             ${qrCodeHtml}
-                        `;
+                        </div>
+                    `;
 
-                        if (deposit.status === 'pending') {
+                    if (modalCheckDepositStatusBtn) {
+                        if (['success', 'failed', 'expired', 'cancel'].includes(currentStatus)) {
+                            modalCheckDepositStatusBtn.style.display = 'none';
+                        } else {
                             modalCheckDepositStatusBtn.style.display = '';
-                            modalCancelDepositBtn.style.display = '';
                             modalCheckDepositStatusBtn.disabled = false;
                             modalCheckDepositStatusBtn.innerHTML = 'Cek Status (API)';
-                        } else {
-                            modalCheckDepositStatusBtn.style.display = 'none';
-                            modalCancelDepositBtn.style.display = 'none';
                         }
+                    }
 
-                        const modalElement = document.getElementById('depositDetailModal');
-                        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
-                        modalInstance.show();
-
-                    } else {
-                        modalBody.innerHTML = `<p class="text-danger text-center">${data.message || 'Gagal memuat detail deposit.'}</p>`;
-                        modalCheckDepositStatusBtn.style.display = 'none';
-                        modalCancelDepositBtn.style.display = 'none';
+                    if (modalCancelDepositBtn) {
+                        modalCancelDepositBtn.style.display = currentStatus === 'pending' ? '' : 'none';
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching deposit detail:', error);
-                    modalBody.innerHTML = `<p class="text-danger text-center">Terjadi kesalahan saat memuat detail deposit.</p>`;
-                    modalCheckDepositStatusBtn.style.display = 'none';
-                    modalCancelDepositBtn.style.display = 'none';
+                    modalBody.innerHTML = '<p class="text-danger text-center">Terjadi kesalahan saat memuat detail deposit.</p>';
+                    if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
+                    if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
                 });
         }
 
@@ -2850,5 +3016,6 @@ const vpSidebar = document.getElementById('vpSidebar');
             fetchNotifications();
         });
     </script>
+<style>footer{display:none !important;}</style>
 </body>
 </html>
