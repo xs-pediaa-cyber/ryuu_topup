@@ -1,1724 +1,555 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1" name="viewport"/>
-    <title>RyuuXiao - Layanan TopUp & PPOB Terpercaya</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>RyuuXiao - Layanan TopUp & PPOB Terpercaya</title>
+  <meta name="description" content="Xiao-Store TopUp — layanan topup dan pembayaran digital yang cepat, aman, dan mudah.">
+  <link rel="icon" href="/media/banner.png" type="image/png">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <link rel="icon" href="/media/banner.png" type="image/png">
-
-    <meta name="description" content="Xiao-Store TopUp: Platform topup terdepan di Indonesia. Layanan cepat, aman, dan terpercaya untuk pulsa, data, game, e-wallet, dan pembayaran digital.">
-    <meta name="keywords" content="Xiao-Store TopUp, topup, pulsa, paket data, game online, e-wallet, pembayaran digital, PPOB">
-    <meta name="author" content="Xiao-Store Official">
-    <meta property="og:title" content="Xiao-Store TopUp - Solusi TopUp Cepat & Terpercaya">
-    <meta property="og:description" content="Platform topup terbaru di Indonesia. Layanan cepat, aman, dan terpercaya.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="#">
-    <meta property="og:image" content="/media/banner.png">
-    <meta property="og:image:alt" content="Xiao-Store TopUp">
-    <meta property="og:site_name" content="Xiao-Store TopUp">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Xiao-Store TopUp - Solusi TopUp Cepat & Terpercaya">
-    <meta name="twitter:description" content="Platform topup terbaru di Indonesia. Layanan cepat, aman, dan terpercaya.">
-    <meta name="twitter:image" content="/media/banner.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
     :root {
-      --primary-hue: 140;
-      --secondary-hue: 145;
-      --primary-color: hsl(var(--primary-hue), 85%, 60%);
-      --primary-color-dark: hsl(var(--primary-hue), 85%, 50%);
-      --primary-color-light: hsl(var(--primary-hue), 85%, 96%);
-      --secondary-color: hsl(var(--secondary-hue), 75%, 65%);
-      --secondary-color-light: hsl(var(--secondary-hue), 75%, 96%);
-      --text-dark: hsl(var(--primary-hue), 15%, 15%);
-      --text-light: hsl(var(--primary-hue), 15%, 45%);
-      --text-white: hsl(0, 0%, 100%);
-      --bg-light: hsl(var(--primary-hue), 20%, 98%);
-      --bg-white: hsl(0, 0%, 100%);
-      --bg-dark: hsl(var(--primary-hue), 20%, 10%);
-      --border-color: hsl(var(--primary-hue), 20%, 90%);
-      --shadow: 0 10px 30px hsla(var(--primary-hue), 40%, 60%, 0.15);
-      --shadow-sm: 0 5px 15px hsla(var(--primary-hue), 40%, 60%, 0.08);
-      --border-radius-md: 12px;
-      --border-radius-lg: 16px;
-      --transition-cubic: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      --font-family: 'Inter', sans-serif;
+      --green-light: #b9ff72;
+      --green: #35d65a;
+      --green-dark: #079447;
+      --green-deep: #056b38;
+      --ink: #141414;
+      --cream: #fffef7;
+      --muted: #53605a;
+      --white: #ffffff;
     }
 
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
     }
 
-    html {
-      scroll-behavior: smooth;
-      font-size: 16px;
-    }
-
+    html,
     body {
-      font-family: var(--font-family);
-      background-color: var(--bg-light);
-      color: var(--text-dark);
-      line-height: 1.7;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    ::selection {
-      background-color: var(--primary-color);
-      color: var(--text-white);
-    }
-
-    img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    a {
-      text-decoration: none;
-      color: inherit;
-    }
-
-    ul {
-      list-style: none;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-    }
-
-    .section {
-      padding: 6rem 0;
-    }
-
-    .section-title {
-      text-align: center;
-      margin-bottom: 4rem;
-    }
-
-    .section-title h2 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin-bottom: 1rem;
-      position: relative;
-      display: inline-block;
-      line-height: 1.2;
-    }
-
-    .section-title h2::after {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 70px;
-      height: 4px;
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-      border-radius: 2px;
-    }
-
-    .section-title p {
-      color: var(--text-light);
-      max-width: 650px;
-      margin: 0 auto;
-      font-size: 1.125rem;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.875rem 1.75rem;
-      border-radius: var(--border-radius-md);
-      font-weight: 600;
-      cursor: pointer;
-      transition: var(--transition-cubic);
-      text-align: center;
-      border: none;
-      outline: none;
-      white-space: nowrap;
-      font-size: 1rem;
-    }
-
-    .btn i {
-      font-size: 1.1em;
-    }
-
-    .btn-primary {
-      background-color: var(--primary-color);
-      color: var(--text-white);
-      box-shadow: 0 4px 15px hsla(var(--primary-hue), 85%, 60%, 0.3);
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-color-dark);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px hsla(var(--primary-hue), 85%, 50%, 0.4);
-    }
-
-    .btn-secondary {
-      background-color: var(--bg-white);
-      color: var(--primary-color);
-      border: 2px solid var(--primary-color);
-    }
-
-    .btn-secondary:hover {
-      background-color: var(--primary-color-light);
-      transform: translateY(-3px);
-    }
-    
-    .btn-outline {
-      background-color: transparent;
-      color: var(--primary-color);
-      border: 2px solid var(--primary-color);
-    }
-    .btn-outline:hover {
-      background-color: var(--primary-color);
-      color: var(--text-white);
-    }
-
-    .btn-primary-improved {
-      background-color: var(--primary-color);
-      color: var(--text-white);
-      border: 2px solid var(--primary-color);
-      box-shadow: 0 4px 15px hsla(var(--primary-hue), 85%, 60%, 0.3);
-      position: relative;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
 
-    .btn-primary-improved:hover {
-      background-color: var(--primary-color-dark);
-      border-color: var(--primary-color-dark);
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px hsla(var(--primary-hue), 85%, 50%, 0.4);
+    body {
+      font-family: "Comic Neue", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255,255,255,.34) 0 2px, transparent 2.5px) 0 0 / 18px 18px,
+        linear-gradient(135deg, var(--green-light) 0%, var(--green) 46%, var(--green-dark) 100%);
+      -webkit-font-smoothing: antialiased;
+      position: relative;
     }
 
-    .btn-primary-improved:active {
-      transform: translateY(-1px);
+    body::before {
+      content: "";
+      position: fixed;
+      width: 55vmax;
+      height: 55vmax;
+      left: -25vmax;
+      bottom: -34vmax;
+      border: 2px solid rgba(20,20,20,.12);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 38px rgba(20,20,20,.035),
+        0 0 0 76px rgba(20,20,20,.035),
+        0 0 0 114px rgba(20,20,20,.035);
+      pointer-events: none;
     }
 
-    header {
-      background-color: var(--bg-white);
-      box-shadow: var(--shadow-sm);
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(120deg, rgba(255,255,255,.18), transparent 42%, rgba(0,0,0,.08));
+    }
+
+    button {
+      font: inherit;
+    }
+
+    /* ---------- Loading ---------- */
+    .loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--green-deep), var(--green), var(--green-light));
+      transition: opacity .45s ease, visibility .45s ease;
+    }
+
+    .loader.hide {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loader-inner {
+      text-align: center;
+    }
+
+    .loader-logo {
+      width: 82px;
+      height: 82px;
+      object-fit: contain;
+      margin: 0 auto 14px;
+      filter: drop-shadow(5px 5px 0 var(--ink));
+      animation: loaderBounce .8s ease-in-out infinite alternate;
+    }
+
+    .loader-title {
+      font-family: "Bangers", cursive;
+      font-size: 3rem;
+      letter-spacing: 2px;
+      color: var(--white);
+      -webkit-text-stroke: 2px var(--ink);
+      text-shadow: 5px 5px 0 var(--ink);
+    }
+
+    .loader-line {
+      width: 145px;
+      height: 7px;
+      margin: 18px auto 0;
+      overflow: hidden;
+      border: 2px solid var(--ink);
+      border-radius: 99px;
+      background: rgba(255,255,255,.35);
+    }
+
+    .loader-line::after {
+      content: "";
+      display: block;
+      width: 45%;
+      height: 100%;
+      background: var(--white);
+      animation: loading 1s ease-in-out infinite;
+    }
+
+    @keyframes loaderBounce {
+      to { transform: translateY(-7px) rotate(-3deg); }
+    }
+
+    @keyframes loading {
+      from { transform: translateX(-120%); }
+      to { transform: translateX(330%); }
+    }
+
+    /* ---------- Header ---------- */
+    .topbar {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
-      z-index: 1000;
-      transition: var(--transition-cubic);
-      padding: 1rem 0;
+      z-index: 100;
+      padding: 20px clamp(18px, 5vw, 72px);
     }
 
-    header.scrolled {
-      box-shadow: var(--shadow);
-      padding: 0.75rem 0;
-      background-color: hsla(0, 0%, 100%, 0.95);
-      backdrop-filter: blur(10px);
-    }
-
-    .header-container {
+    .topbar-inner {
+      width: min(1180px, 100%);
+      margin: 0 auto;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
+      gap: 20px;
     }
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .logo img {
-      height: 40px;
-      transition: transform 0.3s ease;
-    }
-    .logo:hover img {
-      transform: rotate(-7deg) scale(1.05);
-    }
-
-    .logo-text {
-      font-weight: 800;
-      font-size: 1.75rem;
-      color: var(--primary-color);
-    }
-    
-    nav {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem; 
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-    }
-
-    .nav-links a {
-      color: var(--text-dark);
-      font-weight: 500;
-      position: relative;
-      padding: 0.5rem 0;
-      transition: color 0.3s ease;
-    }
-
-    .nav-links a::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background-color: var(--primary-color);
-      transition: width 0.3s ease;
-    }
-
-    .nav-links a:hover, .nav-links a.active {
-      color: var(--primary-color);
-    }
-
-    .nav-links a:hover::after, .nav-links a.active::after {
-      width: 100%;
-    }
-
-    .auth-buttons { 
-      display: flex;
-      gap: 1rem;
-    }
-    .auth-buttons .btn {
-      padding: 0.6rem 1.2rem;
-      font-size: 0.9rem;
-    }
-    
-    .auth-buttons .btn-outline { 
-      background-color: var(--bg-white);
-      color: var(--text-dark);
-      border: 1px solid var(--border-color);
-      box-shadow: var(--shadow-sm);
-    }
-    .auth-buttons .btn-outline:hover {
-      background-color: var(--primary-color-light);
-      color: var(--primary-color-dark);
-      border-color: var(--primary-color);
-      transform: translateY(-2px);
-    }
-    
-    .auth-buttons-mobile { 
-      display: none; 
-      flex-direction: column;
-      gap: 1rem;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border-color);
-    }
-    .auth-buttons-mobile .btn {
-      width: 100%; 
-      justify-content: center; 
-    }
-    .auth-buttons-mobile .btn i {
-       font-size: 1em; 
-    }
-
-    .mobile-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 1.75rem;
-      color: var(--text-dark);
-      cursor: pointer;
-      padding: 0.5rem;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, var(--primary-color-light) 0%, var(--secondary-color-light) 100%);
-      padding-top: 8rem; 
-      padding-bottom: 6rem;
-      overflow: hidden;
-      position: relative;
-    }
-    .hero::before, .hero::after {
-        content: '';
-        position: absolute;
-        border-radius: 50%;
-        opacity: 0.1;
-        pointer-events: none;
-    }
-    .hero::before {
-        width: 50vw;
-        height: 50vw;
-        background-color: var(--primary-color);
-        top: -10vw;
-        left: -10vw;
-        animation: pulse 8s infinite ease-in-out;
-    }
-    .hero::after {
-        width: 40vw;
-        height: 40vw;
-        background-color: var(--secondary-color);
-        bottom: -15vw;
-        right: -15vw;
-        animation: pulse 10s infinite ease-in-out reverse;
-    }
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.1; }
-        50% { transform: scale(1.2); opacity: 0.15; }
-    }
-
-
-    .hero-container {
-      display: flex;
-      align-items: center;
-      gap: 4rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .hero-content {
-      flex: 1;
-    }
-
-    .hero-title {
-      font-size: clamp(2.5rem, 5vw, 3.5rem);
-      font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 1.5rem;
-      color: var(--text-dark);
-    }
-
-    .hero-title span {
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero-subtitle {
-      font-size: 1.125rem;
-      color: var(--text-light);
-      margin-bottom: 2.5rem;
-      max-width: 550px;
-    }
-
-    .hero-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 3rem;
-      flex-wrap: wrap;
-    }
-
-    .hero-stats {
-      display: flex;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .stat-icon {
-      font-size: 2rem;
-      color: var(--primary-color);
-    }
-    .stat-number {
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-    .stat-label {
-      font-size: 0.9rem;
-      color: var(--text-light);
-    }
-
-    .hero-image-wrapper {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-    .hero-image-wrapper img {
-        border-radius: var(--border-radius-lg);
-        box-shadow: 0 20px 50px hsla(var(--primary-hue), 50%, 60%, 0.2);
-        animation: float-hero 6s ease-in-out infinite;
-        max-height: 450px;
-        object-fit: cover;
-    }
-    @keyframes float-hero {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-      100% { transform: translateY(0px); }
-    }
-
-
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
-    }
-
-    .service-card {
-      background-color: var(--bg-white);
-      border-radius: var(--border-radius-lg);
-      padding: 2.5rem 2rem;
-      transition: var(--transition-cubic);
-      border: 1px solid var(--border-color);
-      position: relative;
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-    }
-    .service-card:hover {
-      transform: translateY(-10px);
-      box-shadow: var(--shadow);
-      border-color: var(--primary-color);
-    }
-    .service-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-        transform: scaleX(0);
-        transform-origin: left;
-        transition: transform 0.4s ease;
-    }
-    .service-card:hover::before {
-        transform: scaleX(1);
-    }
-
-    .service-icon {
-      font-size: 3rem;
-      margin-bottom: 1.5rem;
-      display: inline-block;
-      color: var(--primary-color);
-      padding: 1rem;
-      background-color: var(--primary-color-light);
-      border-radius: 50%;
-      line-height: 1;
-    }
-    .service-title {
-      font-size: 1.375rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-    }
-    .service-description {
-      color: var(--text-light);
-      margin-bottom: 1.5rem;
-      font-size: 0.95rem;
-    }
-    .service-link {
-      color: var(--primary-color);
-      font-weight: 600;
+    .brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
-      transition: gap 0.3s ease;
-    }
-    .service-link:hover {
-      gap: 0.6rem;
-    }
-    .service-link i {
-      transition: transform 0.3s ease;
-    }
-    .service-link:hover i {
-      transform: translateX(3px);
+      gap: 11px;
+      text-decoration: none;
+      color: var(--ink);
     }
 
-
-    .ewallet {
-      background-color: var(--bg-white);
-    }
-    .ewallet-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 3rem;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .ewallet-title h2 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    .ewallet-title p {
-      color: var(--text-light);
-      max-width: 500px;
-    }
-    .ewallet-controls {
-      display: flex;
-      gap: 0.75rem;
-    }
-    .ewallet-btn {
+    .brand img {
       width: 45px;
       height: 45px;
-      border-radius: 50%;
-      background-color: var(--bg-white);
-      border: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: var(--transition-cubic);
-      color: var(--primary-color);
-      font-size: 1.1rem;
-    }
-    .ewallet-btn:hover {
-      background-color: var(--primary-color);
-      color: var(--text-white);
-      border-color: var(--primary-color);
-      transform: scale(1.1);
-    }
-    .ewallet-slider {
-      display: flex;
-      gap: 1.5rem;
-      overflow-x: auto;
-      padding: 1rem 0.5rem;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-    }
-    .ewallet-slider::-webkit-scrollbar { display: none; }
-
-    .ewallet-card {
-      min-width: 200px;
-      max-width: 200px;
-      background-color: var(--bg-white);
-      border-radius: var(--border-radius-lg);
-      padding: 2rem 1.5rem;
-      box-shadow: var(--shadow-sm);
-      transition: var(--transition-cubic);
-      scroll-snap-align: start;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      border: 1px solid var(--border-color);
-    }
-    .ewallet-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: var(--shadow);
-      border-color: var(--primary-color);
-    }
-    .ewallet-logo {
-      width: 70px;
-      height: 70px;
       object-fit: contain;
-      margin-bottom: 1.25rem;
-      transition: transform 0.3s ease;
-    }
-    .ewallet-card:hover .ewallet-logo {
-      transform: scale(1.1);
-    }
-    .ewallet-name {
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
-    }
-    .ewallet-desc {
-      font-size: 0.875rem;
-      color: var(--text-light);
-      margin-bottom: 1.25rem;
-      flex-grow: 1;
-    }
-    .ewallet-link {
-      font-size: 0.9rem;
+      filter: drop-shadow(3px 3px 0 var(--ink));
     }
 
+    .brand-name {
+      font-family: "Bangers", cursive;
+      font-size: clamp(1.7rem, 3.4vw, 2.25rem);
+      letter-spacing: 1.5px;
+      color: var(--white);
+      -webkit-text-stroke: 1.7px var(--ink);
+      text-shadow: 4px 4px 0 var(--ink);
+    }
 
-    .feature-tabs {
+    .auth {
       display: flex;
-      justify-content: center;
-      gap: 1rem;
-      margin-bottom: 3.5rem;
-      flex-wrap: wrap;
-      background-color: var(--primary-color-light);
-      padding: 0.5rem;
-      border-radius: var(--border-radius-lg);
+      gap: 10px;
     }
-    .tab-btn {
-      padding: 0.75rem 1.75rem;
-      background-color: transparent;
-      border: none;
-      border-radius: var(--border-radius-md);
-      font-weight: 600;
+
+    .btn {
+      min-height: 45px;
+      padding: 9px 17px;
+      border: 3px solid var(--ink);
+      border-radius: 11px;
       cursor: pointer;
-      transition: var(--transition-cubic);
-      color: var(--text-light);
-      font-size: 1rem;
-    }
-    .tab-btn.active {
-      background-color: var(--primary-color);
-      color: var(--text-white);
-      box-shadow: 0 4px 10px hsla(var(--primary-hue), 85%, 60%, 0.25);
-    }
-    .tab-content { display: none; animation: fadeInContent 0.5s ease; }
-    .tab-content.active { display: block; }
-    @keyframes fadeInContent {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-    }
-    .feature-item {
-      background-color: var(--bg-white);
-      border-radius: var(--border-radius-lg);
-      padding: 2rem;
-      box-shadow: var(--shadow-sm);
-      transition: var(--transition-cubic);
-      border-left: 4px solid transparent;
-    }
-    .feature-item:hover {
-      transform: translateY(-5px);
-      box-shadow: var(--shadow);
-      border-left-color: var(--primary-color);
-    }
-    .feature-item h3 {
-      font-size: 1.25rem;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
       font-weight: 700;
-    }
-    .feature-item h3 i {
-      color: var(--primary-color);
-      font-size: 1.3em;
-    }
-    .feature-item p {
-      color: var(--text-light);
-      font-size: 0.95rem;
+      font-size: .98rem;
+      box-shadow: 4px 4px 0 var(--ink);
+      transition: transform .13s ease, box-shadow .13s ease, filter .2s ease;
     }
 
+    .btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--ink);
+      filter: brightness(1.04);
+    }
 
-    .pricing { background-color: var(--bg-white); }
-    .pricing-grid {
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
+    .btn-login {
+      background: var(--white);
+      color: var(--ink);
+    }
+
+    .btn-register {
+      background: var(--green-deep);
+      color: var(--white);
+    }
+
+    /* ---------- Main ---------- */
+    .page {
+      width: 100%;
+      height: 100vh;
+      min-height: 520px;
+      position: relative;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      align-items: stretch; 
+      place-items: center;
+      overflow: hidden;
+      padding: 90px 20px 25px;
     }
-    .pricing-card {
-      background-color: var(--bg-white);
-      border-radius: var(--border-radius-lg);
-      padding: 2.5rem;
+
+    .content {
+      position: relative;
+      z-index: 4;
+      width: min(840px, 94vw);
       text-align: center;
-      border: 1px solid var(--border-color);
-      transition: var(--transition-cubic);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: var(--shadow-sm);
-    }
-    .pricing-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      box-shadow: var(--shadow);
-      border-color: var(--primary-color);
-    }
-    .pricing-card.popular {
-      border: 2px solid var(--primary-color);
-      transform: scale(1.05);
-    }
-    .pricing-card.popular:hover {
-      transform: translateY(-10px) scale(1.07);
-    }
-    .popular-badge {
-      position: absolute;
-      top: 20px;
-      right: -35px;
-      background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-      color: var(--text-white);
-      padding: 0.35rem 2.5rem;
-      font-size: 0.8rem;
-      font-weight: 700;
-      transform: rotate(45deg);
-      letter-spacing: 0.5px;
-    }
-    .pricing-title {
-      font-size: 1.375rem;
-      font-weight: 700;
-      margin-bottom: 1.25rem;
-    }
-    .pricing-price {
-      font-size: 3rem;
-      font-weight: 800;
-      color: var(--primary-color);
-      margin-bottom: 1.75rem;
-      line-height: 1;
-    }
-    .pricing-price span {
-      font-size: 1rem;
-      color: var(--text-light);
-      font-weight: 500;
-      margin-left: 0.25rem;
-    }
-    .pricing-features {
-      margin-bottom: 2.5rem;
-      text-align: left;
-      flex-grow: 1; 
-    }
-    .pricing-features li {
-      margin-bottom: 0.875rem;
-      color: var(--text-light);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.95rem;
-    }
-    .pricing-features li i {
-      color: var(--primary-color);
-      font-size: 1.1em;
-    }
-    .pricing-card .btn {
-      margin-top: auto; 
+      animation: heroIn .7s cubic-bezier(.2,.8,.2,1) both;
     }
 
-
-    .testimonials { background-color: var(--primary-color-light); }
-    .testimonial-slider {
-      display: flex;
-      gap: 2rem;
-      overflow-x: auto;
-      padding: 1rem 0.5rem 2rem;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-    }
-    .testimonial-slider::-webkit-scrollbar { height: 8px; }
-    .testimonial-slider::-webkit-scrollbar-track { background: hsl(var(--primary-hue), 20%, 85%); border-radius: 10px; }
-    .testimonial-slider::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; }
-    
-    .testimonial-card {
-      min-width: 340px;
-      max-width: 360px;
-      background-color: var(--bg-white);
-      border-radius: var(--border-radius-lg);
-      padding: 2.5rem 2rem;
-      box-shadow: var(--shadow-sm);
-      scroll-snap-align: start;
-      transition: var(--transition-cubic);
-      border: 1px solid var(--border-color);
-    }
-    .testimonial-card:hover {
-      transform: translateY(-8px);
-      box-shadow: var(--shadow);
-    }
-    .testimonial-rating {
-      color: hsl(45, 100%, 50%);
-      margin-bottom: 1.25rem;
-      font-size: 1.1rem;
-    }
-    .testimonial-text {
-      font-style: italic;
-      color: var(--text-light);
-      margin-bottom: 1.75rem;
-      position: relative;
-      padding-left: 2rem;
-      font-size: 1rem;
-    }
-    .testimonial-text::before {
-      content: '\f10d'; 
-      font-family: "Font Awesome 6 Free";
-      font-weight: 900;
-      position: absolute;
-      top: -5px;
-      left: 0;
-      font-size: 1.5rem;
-      color: var(--primary-color);
-      opacity: 0.8;
-    }
-    .testimonial-author {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .author-avatar {
-      width: 55px;
-      height: 55px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid var(--primary-color-light);
-    }
-    .author-info h4 {
-      font-weight: 700;
-      margin-bottom: 0.1rem;
-    }
-    .author-info p {
-      font-size: 0.875rem;
-      color: var(--text-light);
+    @keyframes heroIn {
+      from { opacity: 0; transform: translateY(20px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-
-    .cta {
-      padding: 5rem 0;
-      background: linear-gradient(135deg, var(--primary-color), var(--primary-color-dark));
-      color: var(--text-white);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .cta .container { position: relative; z-index: 1; }
-    .cta::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 150%;
-        height: 150%;
-        background-image: radial-gradient(circle, hsla(0,0%,100%,.05) 1px, transparent 1px);
-        background-size: 20px 20px;
-        transform: translate(-50%,-50%);
-        animation: cta-pattern 60s linear infinite;
-    }
-    @keyframes cta-pattern{ 0%{ background-position: 0 0; } 100%{ background-position: 1200px 1200px; } }
-
-    .cta h2 {
-      font-size: clamp(2rem, 4vw, 2.8rem);
-      margin-bottom: 1.5rem;
-      font-weight: 700;
-    }
-    .cta p {
-      margin-bottom: 2.5rem;
-      opacity: 0.9;
-      font-size: 1.125rem;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .cta-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 1.25rem;
-      flex-wrap: wrap;
-    }
-    .btn-light-cta {
-      background-color: var(--bg-white);
-      color: var(--primary-color);
-      box-shadow: 0 4px 15px hsla(0, 0%, 0%, 0.1);
-    }
-    .btn-light-cta:hover {
-      background-color: var(--bg-light);
-      transform: translateY(-3px) scale(1.03);
-    }
-    .btn-outline-light-cta {
-      background-color: transparent;
-      color: var(--text-white);
-      border: 2px solid var(--text-white);
-    }
-    .btn-outline-light-cta:hover {
-      background-color: hsla(0, 0%, 100%, 0.1);
-      transform: translateY(-3px) scale(1.03);
-    }
-
-
-    .faq-item {
-      margin-bottom: 1rem;
-      border-radius: var(--border-radius-md);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      background-color: var(--bg-white);
-      border: 1px solid var(--border-color);
-    }
-    .faq-question {
-      padding: 1.25rem 1.75rem;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 1.05rem;
-    }
-    .faq-question:hover {
-      background-color: var(--primary-color-light);
-    }
-    .faq-question i {
-      transition: transform 0.3s ease;
-      color: var(--primary-color);
-      font-size: 1.1rem;
-    }
-    .faq-item.active .faq-question i {
-      transform: rotate(180deg);
-    }
-    .faq-answer {
-      padding: 0 1.75rem;
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.4s ease-out, padding 0.4s ease-out;
-      color: var(--text-light);
-      font-size: 0.95rem;
-    }
-    .faq-item.active .faq-answer {
-      padding: 0.5rem 1.75rem 1.5rem;
-      max-height: 500px; 
-    }
-
-
-    footer {
-      background-color: var(--text-dark);
-      color: hsla(0, 0%, 100%, 0.7);
-      padding: 5rem 0 2rem;
-    }
-    .footer-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 3rem;
-    }
-    .footer-logo img { height: 35px; }
-    .footer-logo-text { font-size: 1.5rem; color: var(--text-white); }
-    .footer-about p { margin: 1.5rem 0; line-height: 1.8; font-size: 0.95rem; }
-    .footer-social { display: flex; gap: 1rem; }
-    .footer-social a {
-      color: var(--text-white);
-      font-size: 1.25rem;
-      transition: var(--transition-cubic);
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background-color: hsla(0, 0%, 100%, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .footer-social a:hover {
-      background-color: var(--primary-color);
-      transform: translateY(-4px) scale(1.1);
-    }
-    .footer-links h3, .footer-contact h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--text-white);
-      margin-bottom: 1.75rem;
-      position: relative;
-      padding-bottom: 0.75rem;
-    }
-    .footer-links h3::after, .footer-contact h3::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 50px;
-      height: 3px;
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    }
-    .footer-links li { margin-bottom: 0.875rem; }
-    .footer-links a {
-      transition: color 0.3s ease, transform 0.3s ease;
+    .tag {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.95rem;
-    }
-    .footer-links a:hover {
-      color: var(--text-white);
-      transform: translateX(5px);
-    }
-    .footer-links a i { font-size: 0.8em; opacity: 0.7; }
-    .contact-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.875rem;
-      margin-bottom: 1.125rem;
-      font-size: 0.95rem;
-    }
-    .contact-item i {
-      margin-top: 4px;
-      color: var(--primary-color);
-      font-size: 1.1em;
-    }
-    .contact-item a:hover { color: var(--text-white); }
-    .footer-bottom {
-      margin-top: 4rem;
-      padding-top: 2rem;
-      border-top: 1px solid hsla(0, 0%, 100%, 0.1);
-      text-align: center;
-      font-size: 0.9rem;
-    }
-    .footer-bottom a { color: var(--primary-color-light); font-weight: 500; }
-    .footer-bottom a:hover { text-decoration: underline; }
-
-
-    .back-to-top {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background-color: var(--primary-color);
-      color: var(--text-white);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      cursor: pointer;
-      opacity: 0;
-      visibility: hidden;
-      transition: var(--transition-cubic);
-      z-index: 999;
-      box-shadow: var(--shadow);
-    }
-    .back-to-top.visible { opacity: 1; visibility: visible; }
-    .back-to-top:hover {
-      background-color: var(--primary-color-dark);
-      transform: translateY(-5px) scale(1.05);
+      gap: 8px;
+      padding: 7px 15px;
+      background: var(--cream);
+      border: 3px solid var(--ink);
+      border-radius: 9px;
+      box-shadow: 4px 4px 0 var(--ink);
+      font-size: .92rem;
+      font-weight: 700;
+      transform: rotate(-1.5deg);
+      margin-bottom: 18px;
     }
 
-    @media (max-width: 992px) {
-      nav {
-        gap: 0;
-      }
-      .hero-container { flex-direction: column; text-align: center; }
-      .hero-content { margin-bottom: 3rem; }
-      .hero-buttons, .hero-stats { justify-content: center; }
-      .nav-links {
-        position: fixed;
-        top: 0;
-        left: -100%;
-        width: 300px;
-        height: 100vh;
-        background-color: var(--bg-white);
-        padding: 6rem 2rem 2rem;
-        box-shadow: var(--shadow);
-        flex-direction: column;
-        gap: 1.5rem; 
-        z-index: 998;
-        transition: left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-        overflow-y: auto; 
-      }
-      .nav-links.active { left: 0; }
-      .nav-links a { font-size: 1.1rem; }
-      
-      .header-container .auth-buttons { 
-         display: none;
-      }
-      .nav-links.active .auth-buttons-mobile { 
-        display: flex;
-      }
-      .mobile-menu-btn { display: flex; z-index: 999; }
+    .tag i {
+      color: var(--green-deep);
     }
 
-    @media (max-width: 768px) {
-      .section { padding: 4rem 0; }
-      .section-title h2 { font-size: 2rem; }
-      .section-title p { font-size: 1rem; }
-      .hero-title { font-size: clamp(2rem, 6vw, 2.8rem); }
-      .footer-container { grid-template-columns: 1fr; }
+    h1 {
+      font-family: "Bangers", cursive;
+      font-size: clamp(3.25rem, 8.5vw, 7.2rem);
+      line-height: .88;
+      letter-spacing: 2px;
+      color: var(--white);
+      -webkit-text-stroke: clamp(1.5px, .3vw, 3px) var(--ink);
+      text-shadow: 7px 7px 0 var(--ink);
+      transform: rotate(-1deg);
     }
-    .animate__animated.animate__fadeInUp {
-        --animate-distance: 30px;
+
+    h1 span {
+      display: block;
+      color: var(--green-light);
+    }
+
+    .description {
+      width: min(650px, 100%);
+      margin: 24px auto 26px;
+      padding: 14px 20px;
+      background: rgba(255,255,255,.94);
+      border: 3px solid var(--ink);
+      border-radius: 13px;
+      box-shadow: 5px 5px 0 var(--ink);
+      color: var(--muted);
+      font-size: clamp(1rem, 2.2vw, 1.2rem);
+      line-height: 1.45;
+      font-weight: 600;
+    }
+
+    .start {
+      min-height: 57px;
+      padding: 12px 28px;
+      background: linear-gradient(135deg, var(--green-light), var(--green-dark));
+      color: var(--white);
+      font-family: "Bangers", cursive;
+      font-size: clamp(1.35rem, 3vw, 1.8rem);
+      letter-spacing: 1.3px;
+      border-radius: 13px;
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+
+    .start:hover {
+      animation: wiggle .35s ease-in-out;
+    }
+
+    @keyframes wiggle {
+      0%,100% { transform: translate(-2px,-2px) rotate(-1deg); }
+      30% { transform: translate(-3px,-3px) rotate(1deg); }
+      60% { transform: translate(-2px,-4px) rotate(-1deg); }
+    }
+
+    /* Decorative comic elements — deliberately subtle */
+    .burst {
+      position: absolute;
+      z-index: 2;
+      width: 150px;
+      height: 150px;
+      background: var(--green-light);
+      clip-path: polygon(50% 0%, 59% 25%, 78% 7%, 76% 31%, 100% 27%, 80% 45%, 100% 58%, 75% 61%, 84% 86%, 62% 73%, 50% 100%, 40% 74%, 16% 89%, 24% 64%, 0% 62%, 22% 47%, 3% 31%, 27% 32%, 22% 7%, 42% 25%);
+      border: 0;
+      filter: drop-shadow(5px 5px 0 var(--ink));
+      opacity: .9;
+    }
+
+    .burst.one {
+      left: 5%;
+      top: 29%;
+      transform: rotate(-16deg) scale(.8);
+    }
+
+    .burst.two {
+      right: 5%;
+      bottom: 18%;
+      transform: rotate(18deg) scale(.7);
+      background: var(--white);
+    }
+
+    .comic-word {
+      position: absolute;
+      z-index: 3;
+      font-family: "Bangers", cursive;
+      font-size: clamp(2rem, 4.5vw, 3.8rem);
+      color: var(--white);
+      -webkit-text-stroke: 2px var(--ink);
+      text-shadow: 4px 4px 0 var(--ink);
+      letter-spacing: 1px;
+      pointer-events: none;
+    }
+
+    .pow {
+      left: 8%;
+      top: 25%;
+      transform: rotate(-13deg);
+    }
+
+    .zap {
+      right: 8%;
+      top: 30%;
+      color: var(--green-light);
+      transform: rotate(12deg);
+    }
+
+    @media (max-width: 650px) {
+      .topbar {
+        padding: 13px 13px;
+      }
+
+      .brand img {
+        width: 34px;
+        height: 34px;
+      }
+
+      .brand-name {
+        font-size: 1.45rem;
+        -webkit-text-stroke: 1.2px var(--ink);
+        text-shadow: 3px 3px 0 var(--ink);
+      }
+
+      .auth {
+        gap: 6px;
+      }
+
+      .btn {
+        min-height: 38px;
+        padding: 7px 10px;
+        border-width: 2px;
+        box-shadow: 3px 3px 0 var(--ink);
+        font-size: .8rem;
+      }
+
+      .page {
+        padding-top: 75px;
+      }
+
+      .tag {
+        margin-bottom: 14px;
+        border-width: 2px;
+        box-shadow: 3px 3px 0 var(--ink);
+        font-size: .76rem;
+      }
+
+      h1 {
+        font-size: clamp(3rem, 15vw, 5.1rem);
+        text-shadow: 5px 5px 0 var(--ink);
+      }
+
+      .description {
+        margin-top: 19px;
+        padding: 11px 13px;
+        border-width: 2px;
+        box-shadow: 4px 4px 0 var(--ink);
+        font-size: .96rem;
+      }
+
+      .start {
+        min-height: 51px;
+        padding: 10px 21px;
+        border-width: 2px;
+        box-shadow: 4px 4px 0 var(--ink);
+        font-size: 1.35rem;
+      }
+
+      .burst {
+        width: 100px;
+        height: 100px;
+      }
+
+      .burst.one {
+        left: -18px;
+        top: 27%;
+      }
+
+      .burst.two {
+        right: -18px;
+        bottom: 20%;
+      }
+
+      .comic-word {
+        font-size: 2rem;
+      }
+
+      .pow {
+        left: 1%;
+        top: 22%;
+      }
+
+      .zap {
+        right: 1%;
+        top: 33%;
+      }
+    }
+
+    @media (max-height: 650px) and (min-width: 651px) {
+      .page {
+        padding-top: 75px;
+      }
+
+      h1 {
+        font-size: clamp(3.2rem, 15vh, 5.7rem);
+      }
+
+      .description {
+        margin: 15px auto 17px;
+      }
+
+      .tag {
+        margin-bottom: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
     }
   </style>
-
-<style id="comic-override-index">
-/* ===== COMIC STYLE OVERRIDE ===== */
-
-body{
-  font-family: "Comic Neue", sans-serif !important;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(0,0,0,.08) 1px, transparent 0) 0 0/18px 18px,
-    var(--bg-light) !important;
-}
-
-h1,h2,h3,h4,.logo-text{
-  font-family: "Bangers", cursive !important;
-  letter-spacing: 1px;
-  text-shadow: 3px 3px 0 rgba(0,0,0,.15);
-}
-
-/* Card / panel comic border */
-.service-card,
-.pricing-card,
-.feature-item,
-.testimonial-card,
-.ewallet-card,
-.faq-item{
-  border: 3px solid #111 !important;
-  box-shadow: 6px 6px 0 #111 !important;
-  border-radius: 18px !important;
-}
-
-/* Buttons comic style */
-.btn,
-.tab-btn,
-.ewallet-btn,
-.mobile-menu-btn{
-  border: 3px solid #111 !important;
-  box-shadow: 4px 4px 0 #111 !important;
-  border-radius: 14px !important;
-  font-weight: 700 !important;
-}
-
-.btn:hover,
-.tab-btn:hover{
-  transform: translate(-2px,-2px);
-  box-shadow: 6px 6px 0 #111 !important;
-}
-
-/* Header comic outline */
-header{
-  border-bottom: 4px solid #111 !important;
-}
-
-/* Footer comic */
-footer{
-  border-top: 4px solid #111 !important;
-}
-
-/* Back to top comic */
-.back-to-top{
-  border: 3px solid #111 !important;
-  box-shadow: 4px 4px 0 #111 !important;
-}
-
-</style>
-
 </head>
+
 <body>
-  <header id="header">
-    <div class="container header-container">
-      <a href="/" class="logo">
-        <img src="/media/logo.png" alt="Xiao-Store TopUp Logo">
-        <div class="logo-text">Xiao-Store TopUp</div>
+  <div class="loader" id="loader">
+    <div class="loader-inner">
+      <img class="loader-logo" src="/media/logo.png" alt="">
+      <div class="loader-title">XIAO-STORE</div>
+      <div class="loader-line"></div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Xiao-Store TopUp">
+        <img src="/media/logo.png" alt="Xiao-Store TopUp">
+        <span class="brand-name">Xiao-Store</span>
       </a>
-      
-      <nav>
-        <button class="mobile-menu-btn" aria-label="Toggle Menu">
-          <i class="fas fa-bars"></i>
+
+      <div class="auth">
+        <button class="btn btn-login" type="button" onclick="location.href='/auth/login'">
+          Masuk <i class="fas fa-arrow-right-to-bracket"></i>
         </button>
-        
-        <div class="nav-links">
-          <a href="/" class="active">Beranda <i class="fas fa-home"></i></a>
-          <a href="#layanan">Layanan <i class="fas fa-box-open"></i></a>
-          <a href="#ewallet">E-Wallet <i class="fas fa-wallet"></i></a>
-          <a href="#fitur">Fitur <i class="fas fa-magic"></i></a>
-          <a href="#harga">Harga <i class="fas fa-money-bill-wave"></i></a>
-          <a href="https://wa.me/6285143569870" target="_blank" rel="noopener noreferrer">Kontak <i class="fas fa-phone"></i></a>
-          
-          <div class="auth-buttons-mobile">
-            <button class="btn btn-outline" onclick="window.location.href='/auth/login'">
-              <i class="fas fa-sign-in-alt"></i> Masuk
-            </button>
-            <button class="btn btn-primary-improved" onclick="window.location.href='/auth/register'">
-              <i class="fas fa-user-plus"></i> Daftar
-            </button>
-          </div>
-        </div>
-        
-        <div class="auth-buttons">
-          <button class="btn btn-outline" onclick="window.location.href='/auth/login'">Masuk <i class="fas fa-sign-in-alt"></i></button>
-          <button class="btn btn-primary-improved" onclick="window.location.href='/auth/register'">Daftar <i class="fas fa-user-plus"></i></button>
-        </div>
-      </nav>
+        <button class="btn btn-register" type="button" onclick="location.href='/auth/register'">
+          Daftar <i class="fas fa-user-plus"></i>
+        </button>
+      </div>
     </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="container hero-container">
-        <div class="hero-content animate__animated animate__fadeInLeft">
-          <h1 class="hero-title">Solusi Topup & Pembayaran <span>Digital Termudah</span></h1>
-          <p class="hero-subtitle">
-            Platform terdepan untuk layanan topup game, pulsa, paket data, e-wallet, dan pembayaran PPOB yang cepat, aman, dan mudah.
-          </p>
-          <div class="hero-buttons">
-            <!-- TOMBOL YANG SUDAH DIPERBAIKI -->
-            <button class="btn btn-primary-improved animate__animated animate__fadeInUp" onclick="window.location.href='/auth/register'">
-              Mulai Sekarang <i class="fas fa-rocket"></i>
-            </button>
-            <button class="btn btn-secondary animate__animated animate__fadeInUp" data-wow-delay="0.2s" onclick="window.location.href='#fitur'">
-              Pelajari Fitur <i class="fas fa-info-circle"></i>
-            </button>
-          </div>
-          <div class="hero-stats">
-            <div class="stat-item animate__animated animate__fadeInUp" data-wow-delay="0.2s">
-              <div class="stat-icon"><i class="fas fa-users"></i></div>
-              <div>
-                <div class="stat-number">10K+</div>
-                <div class="stat-label">Pengguna Aktif</div>
-              </div>
-            </div>
-            <div class="stat-item animate__animated animate__fadeInUp" data-wow-delay="0.4s">
-              <div class="stat-icon"><i class="fas fa-sync-alt"></i></div>
-              <div>
-                <div class="stat-number">500K+</div>
-                <div class="stat-label">Transaksi Berhasil</div>
-              </div>
-            </div>
-            <div class="stat-item animate__animated animate__fadeInUp" data-wow-delay="0.6s">
-              <div class="stat-icon"><i class="fas fa-cogs"></i></div>
-              <div>
-                <div class="stat-number">50+</div>
-                <div class="stat-label">Layanan Tersedia</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="hero-image-wrapper animate__animated animate__fadeInRight">
-            <picture>
-                <source srcset="https://files.catbox.moe/75c2tn.jpg" type="image/png"> 
-                <img src="https://files.catbox.moe/75c2tn.jpg" alt="Xiao TopUp Platform">
-            </picture>
-        </div>
-      </div>
-    </section>
+  <main class="page">
+    <div class="burst one"></div>
+    <div class="burst two"></div>
+    <div class="comic-word pow">POW!</div>
+    <div class="comic-word zap">ZAP!</div>
 
-    <section class="services section" id="layanan">
-      <div class="container">
-        <div class="section-title animate__animated animate__fadeInUp">
-          <h2>Layanan Terlengkap</h2>
-          <p>Kami menyediakan solusi komprehensif untuk semua kebutuhan transaksi digital Anda.</p>
-        </div>
-        <div class="services-grid">
-          <div class="service-card animate__animated animate__fadeInUp" data-wow-delay="0.1s">
-            <div class="service-icon"><i class="fas fa-sim-card"></i></div>
-            <h3 class="service-title">Topup Pulsa & Data</h3>
-            <p class="service-description">Isi ulang pulsa dan paket data semua operator dengan harga terbaik dan proses instan.</p>
-            <a href="/auth/register" class="service-link">Lihat Detail <i class="fas fa-arrow-right"></i></a>
-          </div>
-          <div class="service-card animate__animated animate__fadeInUp" data-wow-delay="0.2s">
-            <div class="service-icon"><i class="fas fa-gamepad"></i></div>
-            <h3 class="service-title">Topup Game Online</h3>
-            <p class="service-description">Lengkapi kebutuhan gaming Anda dengan topup berbagai game populer secara cepat dan aman.</p>
-            <a href="/auth/register" class="service-link">Lihat Detail <i class="fas fa-arrow-right"></i></a>
-          </div>
-          <div class="service-card animate__animated animate__fadeInUp" data-wow-delay="0.3s">
-            <div class="service-icon"><i class="fas fa-wallet"></i></div>
-            <h3 class="service-title">Isi Saldo E-Wallet</h3>
-            <p class="service-description">Topup saldo dompet digital favoritmu seperti Dana, Gopay, OVO, dan lainnya dengan mudah.</p>
-            <a href="/auth/register" class="service-link">Lihat Detail <i class="fas fa-arrow-right"></i></a>
-          </div>
-          <div class="service-card animate__animated animate__fadeInUp" data-wow-delay="0.4s">
-            <div class="service-icon"><i class="fas fa-credit-card"></i></div>
-            <h3 class="service-title">Pembayaran PPOB</h3>
-            <p class="service-description">Solusi pembayaran tagihan, token listrik, dan berbagai kebutuhan digital lainnya dalam satu platform.</p>
-            <a href="/auth/register" class="service-link">Lihat Detail <i class="fas fa-arrow-right"></i></a>
-          </div>
-        </div>
+    <section class="content">
+      <div class="tag">
+        <i class="fas fa-bolt"></i>
+        TOPUP CEPAT & AMAN
       </div>
-    </section>
 
-    <section class="ewallet section" id="ewallet">
-      <div class="container">
-        <div class="ewallet-header">
-          <div class="ewallet-title">
-            <h2>Isi Saldo E-Wallet Favoritmu</h2>
-            <p>Topup saldo e-wallet jadi lebih mudah, cepat, dan praktis dengan berbagai pilihan.</p>
-          </div>
-          <div class="ewallet-controls">
-            <button class="ewallet-btn" id="ewallet-prev" aria-label="Previous E-Wallet"><i class="fas fa-chevron-left"></i></button>
-            <button class="ewallet-btn" id="ewallet-next" aria-label="Next E-Wallet"><i class="fas fa-chevron-right"></i></button>
-          </div>
-        </div>
-        <div class="ewallet-slider" id="ewallet-slider">
-          <div class="ewallet-card">
-            <img src="https://i.pinimg.com/736x/94/3c/97/943c971903518e53ffd324dd51e46a90.jpg" alt="Gopay" class="ewallet-logo" loading="lazy">
-            <h4 class="ewallet-name">Gopay</h4>
-            <p class="ewallet-desc">Transaksi lebih gesit dengan saldo Gopay.</p>
-            <a href="/auth/register" class="btn btn-primary-improved btn-sm ewallet-link">Topup Sekarang</a>
-          </div>
-          <div class="ewallet-card">
-            <img src="https://i.pinimg.com/736x/a3/cd/26/a3cd262b53fe602be31e0b0f1cfa597b.jpg" alt="OVO" class="ewallet-logo" loading="lazy">
-            <h4 class="ewallet-name">OVO</h4>
-            <p class="ewallet-desc">Nikmati kemudahan bayar pakai OVO.</p>
-            <a href="/auth/register" class="btn btn-primary-improved btn-sm ewallet-link">Topup Sekarang</a>
-          </div>
-          <div class="ewallet-card">
-            <img src="https://i.pinimg.com/736x/f2/7d/e0/f27de0e4a01ba9dfe8607ac03a4f7aae.jpg" alt="Dana" class="ewallet-logo" loading="lazy">
-            <h4 class="ewallet-name">Dana</h4>
-            <p class="ewallet-desc">Dompet digital untuk semua kebutuhanmu.</p>
-            <a href="/auth/register" class="btn btn-primary-improved btn-sm ewallet-link">Topup Sekarang</a>
-          </div>
-          <div class="ewallet-card">
-            <img src="https://i.pinimg.com/736x/d0/8f/b8/d08fb85716fa01b473b1ba63623ffd20.jpg" alt="LinkAja" class="ewallet-logo" loading="lazy">
-            <h4 class="ewallet-name">LinkAja</h4>
-            <p class="ewallet-desc">Solusi transaksi digital lengkap dari LinkAja.</p>
-            <a href="/auth/register" class="btn btn-primary-improved btn-sm ewallet-link">Topup Sekarang</a>
-          </div>
-          <div class="ewallet-card">
-            <img src="https://i.pinimg.com/736x/a6/cb/e6/a6cbe6a3c5e9b03ef09ebfc0969323d2.jpg" alt="ShopeePay" class="ewallet-logo" loading="lazy">
-            <h4 class="ewallet-name">ShopeePay</h4>
-            <p class="ewallet-desc">Belanja lebih hemat dengan ShopeePay.</p>
-            <a href="/auth/register" class="btn btn-primary-improved btn-sm ewallet-link">Topup Sekarang</a>
-          </div>
-        </div>
-      </div>
-    </section>
+      <h1>
+        Solusi  &amp; Pembayaran
+        <span>Digital Termudah</span>
+      </h1>
 
-    <section class="features section" id="fitur">
-      <div class="container">
-        <div class="section-title animate__animated animate__fadeInUp">
-          <h2>Kenapa Memilih Xiao TopUp?</h2>
-          <p>Kami menawarkan fitur-fitur unggulan yang dirancang untuk memberikan pengalaman terbaik bagi Anda.</p>
-        </div>
-        <div class="feature-tabs">
-          <button class="tab-btn active" data-tab="tab1">Kecepatan & Efisiensi</button>
-          <button class="tab-btn" data-tab="tab2">Keamanan Terjamin</button>
-          <button class="tab-btn" data-tab="tab3">Kemudahan Penggunaan</button>
-        </div>
-        <div class="tab-content active" id="tab1">
-          <div class="feature-grid">
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-bolt"></i> Proses Transaksi Instan</h3><p>Semua transaksi diproses secara otomatis dan selesai dalam hitungan detik, memastikan kepuasan Anda.</p></div>
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-server"></i> Infrastruktur Andal</h3><p>Didukung oleh server berkinerja tinggi dengan uptime 99.9%, menjamin layanan selalu tersedia.</p></div>
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-tachometer-alt"></i> API Super Cepat</h3><p>API kami dirancang untuk responsivitas maksimal, memberikan waktu respons yang sangat singkat.</p></div>
-          </div>
-        </div>
-        <div class="tab-content" id="tab2">
-          <div class="feature-grid">
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-shield-alt"></i> Enkripsi Data End-to-End</h3><p>Data transaksi Anda diamankan dengan teknologi enkripsi standar industri terkini, dari awal hingga akhir.</p></div>
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-user-shield"></i> Proteksi Akun Ganda</h3><p>Fitur autentikasi dua faktor (2FA) untuk lapisan keamanan tambahan pada akun Anda.</p></div>
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-history"></i> Riwayat Transaksi</h3><p>Setiap aktivitas tercatat secara detail, memudahkan pelacakan dan memastikan transparansi.</p></div>
-          </div>
-        </div>
-        <div class="tab-content" id="tab3">
-          <div class="feature-grid">
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-columns"></i> Dashboard Intuitif</h3><p>Kelola semua transaksi Anda dengan mudah melalui dashboard yang dirancang dengan baik dan ramah pengguna.</p></div>
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-book-open"></i> Dokumentasi Komprehensif</h3><p>Panduan API yang jelas dan lengkap, disertai contoh kode untuk berbagai bahasa pemrograman populer.</p></div>
-            <div class="feature-item"><h3 class="feature-title"><i class="fas fa-headset"></i> Dukungan Pelanggan 24/7</h3><p>Tim dukungan profesional kami siap membantu Anda kapan saja melalui berbagai saluran komunikasi.</p></div>
-          </div>
-        </div>
-      </div>
-    </section>
+      <p class="description">
+       Gateaway yang cepat, aman, dan mudah.
+      </p>
 
-    <section class="pricing section" id="harga">
-      <div class="container">
-        <div class="section-title animate__animated animate__fadeInUp">
-          <h2>Paket Harga Fleksibel</h2>
-          <p>Pilih paket yang paling sesuai dengan skala dan kebutuhan bisnis Anda, tanpa biaya tersembunyi.</p>
-        </div>
-        <div class="pricing-grid">
-          <div class="pricing-card animate__animated animate__fadeInUp" data-wow-delay="0.1s">
-            <h3 class="pricing-title">Pengguna Biasa</h3>
-            <div class="pricing-price">Gratis</div>
-            <ul class="pricing-features">
-              <li><i class="fas fa-check-circle"></i> Transaksi Pribadi</li>
-              <li><i class="fas fa-check-circle"></i> Harga Pengguna Standar</li>
-              <li><i class="fas fa-check-circle"></i> Riwayat Transaksi</li>
-              <li><i class="fas fa-check-circle"></i> Dukungan Pelanggan</li>
-              <li><i class="fas fa-times-circle"></i> Akses API</li>
-            </ul>
-            <button class="btn btn-primary-improved" onclick="window.location.href='/auth/register'">Mulai Gratis</button>
-          </div>
-          <div class="pricing-card popular animate__animated animate__fadeInUp" data-wow-delay="0.2s">
-            <div class="popular-badge">POPULER</div>
-            <h3 class="pricing-title">Reseller</h3>
-            <div class="pricing-price">Rp 25K<span>/bulan</span></div>
-            <ul class="pricing-features">
-              <li><i class="fas fa-check-circle"></i> Semua Fitur Pengguna</li>
-              <li><i class="fas fa-check-circle"></i> Harga Reseller Lebih Murah</li>
-              <li><i class="fas fa-check-circle"></i> Cocok untuk Jualan</li>
-              <li><i class="fas fa-check-circle"></i> Akses API Terbatas</li>
-              <li><i class="fas fa-check-circle"></i> Dukungan Prioritas</li>
-            </ul>
-            <button class="btn btn-primary-improved" onclick="window.location.href='/auth/register'">Pilih Paket</button>
-          </div>
-          <div class="pricing-card animate__animated animate__fadeInUp" data-wow-delay="0.3s">
-            <h3 class="pricing-title">Enterprise (H2H)</h3>
-            <div class="pricing-price">Hubungi<span>Kami</span></div>
-            <ul class="pricing-features">
-              <li><i class="fas fa-check-circle"></i> Semua Fitur Reseller</li>
-              <li><i class="fas fa-check-circle"></i> Harga H2H Terbaik</li>
-              <li><i class="fas fa-check-circle"></i> Akses API Penuh</li>
-              <li><i class="fas fa-check-circle"></i> Dokumentasi Lengkap</li>
-              <li><i class="fas fa-check-circle"></i> Dukungan Premium</li>
-            </ul>
-            <button class="btn btn-primary-improved" onclick="window.location.href='#'">Hubungi Sales</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="testimonials section">
-        <div class="container">
-            <div class="section-title animate__animated animate__fadeInUp">
-                <h2>Apa Kata Pelanggan Kami?</h2>
-                <p>Dengarkan pengalaman nyata dari mereka yang telah mempercayakan transaksinya kepada Xiao-Store TopUp.</p>
-            </div>
-            <div class="testimonial-slider">
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                    </div>
-                    <p class="testimonial-text">Platform yang sangat intuitif dan mudah digunakan. Proses topupnya cepat dan harganya murah. Sangat direkomendasikan!</p>
-                    <div class="testimonial-author">
-                        <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="Author" class="author-avatar" loading="lazy">
-                        <div class="author-info"><h4>Andini Putri</h4><p>Pengguna Setia</p></div>
-                    </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                    </div>
-                    <p class="testimonial-text">Layanan pelanggan Xiao-Store TopUp luar biasa responsif. Setiap kendala selalu ditangani dengan cepat dan profesional. Harga juga sangat bersaing.</p>
-                    <div class="testimonial-author">
-                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Author" class="author-avatar" loading="lazy">
-                        <div class="author-info"><h4>Rina Setyawati</h4><p>Pemilik Konter Pulsa</p></div>
-                    </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                    </div>
-                    <p class="testimonial-text">Kecepatan transaksi adalah kunci bisnis topup game, dan Xiao-Store TopUp memberikan itu. Tidak pernah ada keluhan dari pelanggan saya terkait keterlambatan.</p>
-                    <div class="testimonial-author">
-                        <img src="https://randomuser.me/api/portraits/men/56.jpg" alt="Author" class="author-avatar" loading="lazy">
-                        <div class="author-info"><h4>Bimo Nugroho</h4><p>Penjual Diamond Game</p></div>
-                    </div>
-                </div>
-                 <div class="testimonial-card">
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                    </div>
-                    <p class="testimonial-text">Sangat puas dengan fitur keamanan yang ditawarkan. Memberikan rasa aman lebih dalam bertransaksi dalam jumlah besar. CS nya juga ramah.</p>
-                    <div class="testimonial-author">
-                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Author" class="author-avatar" loading="lazy">
-                        <div class="author-info"><h4>Citra Lestari</h4><p>Agen PPOB</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="faq section">
-      <div class="container">
-        <div class="section-title animate__animated animate__fadeInUp">
-          <h2>Pertanyaan yang Sering Diajukan</h2>
-          <p>Temukan jawaban cepat untuk pertanyaan umum seputar layanan Xiao-Store TopUp.</p>
-        </div>
-        <div class="faq-container" style="max-width:800px; margin: 0 auto;">
-          <div class="faq-item">
-            <div class="faq-question"><span>Bagaimana cara mendaftar di Xiao-Store TopUp?</span><i class="fas fa-chevron-down"></i></div>
-            <div class="faq-answer"><p>Klik tombol "Daftar" di pojok kanan atas, isi formulir dengan data valid, verifikasi email Anda, dan akun Anda siap digunakan!</p></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-question"><span>Metode pembayaran apa saja yang diterima?</span><i class="fas fa-chevron-down"></i></div>
-            <div class="faq-answer"><p>Kami mendukung transfer bank (BCA, Mandiri, BRI, BNI), e-wallet (Gopay, OVO, Dana, LinkAja), QRIS, dan virtual account.</p></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-question"><span>Berapa lama proses transaksi topup?</span><i class="fas fa-chevron-down"></i></div>
-            <div class="faq-answer"><p>Mayoritas transaksi diproses instan (kurang dari 1 menit). Beberapa produk mungkin memerlukan waktu sedikit lebih lama tergantung kebijakan provider.</p></div>
-          </div>
-          <div class="faq-item">
-            <div class="faq-question"><span>Apakah ada biaya tersembunyi?</span><i class="fas fa-chevron-down"></i></div>
-            <div class="faq-answer"><p>Tidak, kami berkomitmen pada transparansi. Semua biaya (jika ada) akan ditampilkan dengan jelas sebelum Anda menyelesaikan transaksi.</p></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="cta">
-      <div class="container">
-        <h2 class="animate__animated animate__fadeInUp">Siap Memulai Transaksi Mudah?</h2>
-        <p class="animate__animated animate__fadeInUp" data-wow-delay="0.2s">Bergabunglah dengan ribuan pengguna Xiao-Store TopUp dan rasakan kemudahan transaksi digital dengan harga terbaik.</p>
-        <div class="cta-buttons animate__animated animate__fadeInUp" data-wow-delay="0.4s">
-          <button class="btn btn-light-cta" onclick="window.location.href='/auth/register'">
-            Daftar Sekarang Gratis <i class="fas fa-user-plus"></i>
-          </button>
-          <button class="btn btn-outline-light-cta" onclick="window.location.href='https://wa.me/6285143569870'" target="_blank" rel="noopener noreferrer">
-            Konsultasi via WhatsApp <i class="fab fa-whatsapp"></i>
-          </button>
-        </div>
-      </div>
+      <button class="btn start" type="button" onclick="location.href='/auth/register'">
+        MULAI SEKARANG <i class="fas fa-rocket"></i>
+      </button>
     </section>
   </main>
 
-  <footer>
-    <div class="container footer-container">
-      <div class="footer-about">
-        <a href="/" class="logo footer-logo">
-          <img src="/media/logo.png" alt="Xiao-Store TopUp Logo" loading="lazy">
-          <div class="footer-logo-text">Xiao-Store TopUp</div>
-        </a>
-        <p>Platform terdepan yang menyediakan solusi topup dan pembayaran digital dengan teknologi canggih, aman, dan terpercaya untuk Anda.</p>
-        <div class="footer-social">
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-        </div>
-      </div>
-      <div class="footer-links">
-        <h3>Tautan Navigasi</h3>
-        <ul>
-          <li><a href="/"><i class="fas fa-angle-right"></i> Beranda</a></li>
-          <li><a href="#layanan"><i class="fas fa-angle-right"></i> Layanan</a></li>
-          <li><a href="#fitur"><i class="fas fa-angle-right"></i> Fitur Unggulan</a></li>
-          <li><a href="#harga"><i class="fas fa-angle-right"></i> Paket Harga</a></li>
-          <li><a href="#faq"><i class="fas fa-angle-right"></i> FAQ</a></li>
-        </ul>
-      </div>
-      <div class="footer-links">
-        <h3>Produk Populer</h3>
-        <ul>
-          <li><a href="/auth/register"><i class="fas fa-angle-right"></i> Topup Pulsa All Operator</a></li>
-          <li><a href="/auth/register"><i class="fas fa-angle-right"></i> Diamond Mobile Legends</a></li>
-          <li><a href="#ewallet"><i class="fas fa-angle-right"></i> Saldo Dana & Gopay</a></li>
-          <li><a href="/auth/register"><i class="fas fa-angle-right"></i> Token Listrik PLN</a></li>
-          <li><a href="/auth/register"><i class="fas fa-angle-right"></i> Voucher Game Lainnya</a></li>
-        </ul>
-      </div>
-      <div class="footer-contact">
-        <h3>Hubungi Kami</h3>
-        <div class="contact-item"><i class="fas fa-map-marker-alt"></i><span>Jakarta, Indonesia</span></div>
-        <div class="contact-item"><i class="fas fa-phone-alt"></i><a href="tel:+6285143569870">+62 851-4356-9870</a></div>
-        <div class="contact-item"><i class="fas fa-envelope"></i><a href="csryuuxiao@gmail.com">csryuuxiao@gmail.com</a></div>
-        <div class="contact-item"><i class="fas fa-headset"></i><span>Dukungan: Setiap Hari, 24 Jam</span></div>
-      </div>
-    </div>
-    <div class="container footer-bottom">
-      © <span id="currentYear"></span> Xiao-Store TopUp. Hak Cipta Dilindungi. Dibuat dengan <i class="fas fa-heart" style="color: var(--secondary-color);"></i> oleh <a href="#" target="_blank" rel="noopener noreferrer">Xiao-Store Shop Official</a>.
-      <br><a href="#">Syarat & Ketentuan</a> | <a href="#">Kebijakan Privasi</a>
-    </div>
-  </footer>
-
-  <div class="back-to-top" id="backToTop" aria-label="Kembali ke Atas">
-    <i class="fas fa-arrow-up"></i>
-  </div>
-
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-      const navLinks = document.querySelector('.nav-links');
-      const header = document.getElementById('header');
-      const backToTopBtn = document.getElementById('backToTop');
-      const currentYearEl = document.getElementById('currentYear');
-      
-      if (currentYearEl) currentYearEl.textContent = new Date().getFullYear();
-
-      mobileMenuBtn.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
-        mobileMenuBtn.querySelector('i').classList.toggle('fa-bars');
-        mobileMenuBtn.querySelector('i').classList.toggle('fa-times');
-        document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : '';
-      });
-
-      document.querySelectorAll('.nav-links a, .auth-buttons-mobile .btn').forEach(link => {
-        link.addEventListener('click', (e) => {
-          if (link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
-          } else {
-          }
-
-          if ((link.tagName === 'A' && (link.getAttribute('href').startsWith('#') || link.getAttribute('href') === '/')) || 
-              (e.currentTarget.classList.contains('btn') && e.currentTarget.closest('.auth-buttons-mobile'))) {
-              if (navLinks.classList.contains('active')) {
-                navLinks.classList.remove('active');
-                mobileMenuBtn.querySelector('i').classList.remove('fa-times');
-                mobileMenuBtn.querySelector('i').classList.add('fa-bars');
-                document.body.style.overflow = '';
-              }
-          }
-          
-          if (link.tagName === 'A' && (link.getAttribute('href').startsWith('#') || link.getAttribute('href') === '/')) {
-            document.querySelectorAll('.nav-links a').forEach(navLink => navLink.classList.remove('active'));
-            if(link.closest('.auth-buttons-mobile') === null){ 
-                 link.classList.add('active');
-            }
-          }
-        });
-      });
-      
-      const setActiveNavLink = () => {
-          let scrollY = window.pageYOffset;
-          document.querySelectorAll('section').forEach(current => {
-              const sectionHeight = current.offsetHeight;
-              const sectionTop = current.offsetTop - 150; 
-              let sectionId = current.getAttribute('id');
-
-              if (sectionId) {
-                const navLink = document.querySelector('.nav-links a[href*="#' + sectionId + '"]');
-                if(navLink) { 
-                    if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-                        document.querySelectorAll('.nav-links a').forEach(link => link.classList.remove('active'));
-                        navLink.classList.add('active');
-                    }
-                }
-              }
-          });
-          
-          if (scrollY < (document.getElementById('layanan')?.offsetTop - 150 || 300) ) {
-             document.querySelectorAll('.nav-links a').forEach(link => link.classList.remove('active'));
-             const berandaLink = document.querySelector('.nav-links a[href="/"]');
-             if(berandaLink) berandaLink.classList.add('active');
-          }
-      };
-
-
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      const tabContents = document.querySelectorAll('.tab-content');
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          tabBtns.forEach(b => b.classList.remove('active'));
-          tabContents.forEach(c => c.classList.remove('active'));
-          btn.classList.add('active');
-          const tabId = btn.getAttribute('data-tab');
-          document.getElementById(tabId).classList.add('active');
-        });
-      });
-
-      const faqItems = document.querySelectorAll('.faq-item');
-      faqItems.forEach(item => {
-        const question = item.querySelector('.faq-question');
-        question.addEventListener('click', () => {
-          const isActive = item.classList.contains('active');
-          faqItems.forEach(otherItem => otherItem.classList.remove('active'));
-          if (!isActive) item.classList.add('active');
-        });
-      });
-
-      const ewalletSlider = document.getElementById('ewallet-slider');
-      if (ewalletSlider) {
-          const ewalletPrev = document.getElementById('ewallet-prev');
-          const ewalletNext = document.getElementById('ewallet-next');
-          const ewalletCard = ewalletSlider.querySelector('.ewallet-card');
-          const scrollAmount = ewalletCard ? ewalletCard.offsetWidth + parseFloat(getComputedStyle(ewalletSlider).gap || '0px') : 220;
-          
-          ewalletPrev.addEventListener('click', () => ewalletSlider.scrollBy({ left: -scrollAmount, behavior: 'smooth' }));
-          ewalletNext.addEventListener('click', () => ewalletSlider.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
-      }
-
-
-      window.addEventListener('scroll', () => {
-        if (window.pageYOffset > 50) header.classList.add('scrolled');
-        else header.classList.remove('scrolled');
-
-        if (window.pageYOffset > 300) backToTopBtn.classList.add('visible');
-        else backToTopBtn.classList.remove('visible');
-        
-        setActiveNavLink();
-      });
-      setActiveNavLink(); 
-
-      backToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-
-      if (typeof WOW === 'function') {
-          new WOW({
-              boxClass: 'animate__animated',
-              animateClass: 'animate__animated',
-              offset: 50,
-              mobile: true,
-              live: true
-          }).init();
-      }
+    window.addEventListener("load", function () {
+      setTimeout(function () {
+        const loader = document.getElementById("loader");
+        if (loader) {
+          loader.classList.add("hide");
+          setTimeout(function () { loader.remove(); }, 500);
+        }
+      }, 650);
     });
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
 </body>
 </html>
