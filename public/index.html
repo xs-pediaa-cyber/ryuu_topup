@@ -3,26 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>RyuuXiao - Layanan TopUp & PPOB Terpercaya</title>
-  <meta name="description" content="Xiao-Store TopUp — layanan topup dan pembayaran digital yang cepat, aman, dan mudah.">
+
+  <title>RyuuXiao & PPOB Terpercaya</title>
+
+  <meta
+    name="description"
+    content="Xiao-Store — pembayaran digital yang cepat, aman, dan mudah."
+  >
+
   <link rel="icon" href="/media/banner.png" type="image/png">
 
+  <!-- FONT -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- FONT AWESOME -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  >
 
   <style>
+
     :root {
       --green-light: #b9ff72;
       --green: #35d65a;
       --green-dark: #079447;
       --green-deep: #056b38;
+
       --ink: #141414;
       --cream: #fffef7;
       --muted: #53605a;
       --white: #ffffff;
     }
+
+
+    /* =========================
+       RESET
+    ========================= */
 
     * {
       box-sizing: border-box;
@@ -37,519 +60,1284 @@
       overflow: hidden;
     }
 
+
+    /* =========================
+       BODY
+    ========================= */
+
     body {
       font-family: "Comic Neue", sans-serif;
       color: var(--ink);
+
       background:
-        radial-gradient(circle at 20% 18%, rgba(255,255,255,.34) 0 2px, transparent 2.5px) 0 0 / 18px 18px,
-        linear-gradient(135deg, var(--green-light) 0%, var(--green) 46%, var(--green-dark) 100%);
+        radial-gradient(
+          circle at 20% 18%,
+          rgba(255,255,255,.34) 0 2px,
+          transparent 2.5px
+        ) 0 0 / 18px 18px,
+
+        linear-gradient(
+          135deg,
+          var(--green-light) 0%,
+          var(--green) 46%,
+          var(--green-dark) 100%
+        );
+
       -webkit-font-smoothing: antialiased;
+
       position: relative;
     }
 
+
+    /* =========================
+       BACKGROUND SHAPE
+    ========================= */
+
     body::before {
       content: "";
+
       position: fixed;
+
       width: 55vmax;
       height: 55vmax;
+
       left: -25vmax;
       bottom: -34vmax;
+
       border: 2px solid rgba(20,20,20,.12);
+
       border-radius: 50%;
+
       box-shadow:
         0 0 0 38px rgba(20,20,20,.035),
         0 0 0 76px rgba(20,20,20,.035),
         0 0 0 114px rgba(20,20,20,.035);
+
       pointer-events: none;
     }
 
+
     body::after {
       content: "";
+
       position: fixed;
       inset: 0;
+
       pointer-events: none;
-      background: linear-gradient(120deg, rgba(255,255,255,.18), transparent 42%, rgba(0,0,0,.08));
+
+      background:
+        linear-gradient(
+          120deg,
+          rgba(255,255,255,.18),
+          transparent 42%,
+          rgba(0,0,0,.08)
+        );
     }
+
 
     button {
       font: inherit;
     }
 
-    /* ---------- Loading ---------- */
+
+    /* =========================
+       LOADER
+    ========================= */
+
     .loader {
       position: fixed;
       inset: 0;
+
       z-index: 9999;
+
       display: grid;
       place-items: center;
-      background: linear-gradient(135deg, var(--green-deep), var(--green), var(--green-light));
-      transition: opacity .45s ease, visibility .45s ease;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--green-deep),
+          var(--green),
+          var(--green-light)
+        );
+
+      transition:
+        opacity .45s ease,
+        visibility .45s ease;
     }
+
 
     .loader.hide {
       opacity: 0;
       visibility: hidden;
     }
 
+
     .loader-inner {
       text-align: center;
     }
 
+
     .loader-logo {
       width: 82px;
       height: 82px;
+
       object-fit: contain;
+
       margin: 0 auto 14px;
-      filter: drop-shadow(5px 5px 0 var(--ink));
-      animation: loaderBounce .8s ease-in-out infinite alternate;
+
+      filter:
+        drop-shadow(5px 5px 0 var(--ink));
+
+      animation:
+        loaderBounce .8s ease-in-out infinite alternate;
     }
+
 
     .loader-title {
       font-family: "Bangers", cursive;
+
       font-size: 3rem;
+
       letter-spacing: 2px;
+
       color: var(--white);
+
       -webkit-text-stroke: 2px var(--ink);
-      text-shadow: 5px 5px 0 var(--ink);
+
+      text-shadow:
+        5px 5px 0 var(--ink);
     }
+
 
     .loader-line {
       width: 145px;
       height: 7px;
+
       margin: 18px auto 0;
+
       overflow: hidden;
+
       border: 2px solid var(--ink);
       border-radius: 99px;
-      background: rgba(255,255,255,.35);
+
+      background:
+        rgba(255,255,255,.35);
     }
+
 
     .loader-line::after {
       content: "";
+
       display: block;
+
       width: 45%;
       height: 100%;
+
       background: var(--white);
-      animation: loading 1s ease-in-out infinite;
+
+      animation:
+        loading 1s ease-in-out infinite;
     }
+
 
     @keyframes loaderBounce {
-      to { transform: translateY(-7px) rotate(-3deg); }
+      to {
+        transform:
+          translateY(-7px)
+          rotate(-3deg);
+      }
     }
+
 
     @keyframes loading {
-      from { transform: translateX(-120%); }
-      to { transform: translateX(330%); }
+      from {
+        transform: translateX(-120%);
+      }
+
+      to {
+        transform: translateX(330%);
+      }
     }
 
-    /* ---------- Header ---------- */
+
+    /* =========================
+       HEADER
+    ========================= */
+
     .topbar {
       position: fixed;
+
       top: 0;
       left: 0;
+
       width: 100%;
+
       z-index: 100;
-      padding: 20px clamp(18px, 5vw, 72px);
+
+      padding:
+        20px
+        clamp(18px, 5vw, 72px);
     }
+
 
     .topbar-inner {
       width: min(1180px, 100%);
+
       margin: 0 auto;
+
       display: flex;
+
       align-items: center;
+
       justify-content: space-between;
+
       gap: 20px;
     }
 
+
     .brand {
       display: inline-flex;
+
       align-items: center;
+
       gap: 11px;
+
       text-decoration: none;
+
       color: var(--ink);
     }
+
 
     .brand img {
       width: 45px;
       height: 45px;
+
       object-fit: contain;
-      filter: drop-shadow(3px 3px 0 var(--ink));
+
+      filter:
+        drop-shadow(3px 3px 0 var(--ink));
     }
+
 
     .brand-name {
       font-family: "Bangers", cursive;
-      font-size: clamp(1.7rem, 3.4vw, 2.25rem);
+
+      font-size:
+        clamp(1.7rem, 3.4vw, 2.25rem);
+
       letter-spacing: 1.5px;
+
       color: var(--white);
-      -webkit-text-stroke: 1.7px var(--ink);
-      text-shadow: 4px 4px 0 var(--ink);
+
+      -webkit-text-stroke:
+        1.7px var(--ink);
+
+      text-shadow:
+        4px 4px 0 var(--ink);
     }
+
 
     .auth {
       display: flex;
+
       gap: 10px;
     }
 
+
+    /* =========================
+       BUTTON
+    ========================= */
+
     .btn {
       min-height: 45px;
-      padding: 9px 17px;
-      border: 3px solid var(--ink);
+
+      padding:
+        9px 17px;
+
+      border:
+        3px solid var(--ink);
+
       border-radius: 11px;
+
       cursor: pointer;
+
       font-weight: 700;
+
       font-size: .98rem;
-      box-shadow: 4px 4px 0 var(--ink);
-      transition: transform .13s ease, box-shadow .13s ease, filter .2s ease;
+
+      box-shadow:
+        4px 4px 0 var(--ink);
+
+      transition:
+        transform .13s ease,
+        box-shadow .13s ease,
+        filter .2s ease;
     }
+
 
     .btn:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0 var(--ink);
-      filter: brightness(1.04);
+      transform:
+        translate(-2px, -2px);
+
+      box-shadow:
+        6px 6px 0 var(--ink);
+
+      filter:
+        brightness(1.04);
     }
 
+
     .btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 var(--ink);
+      transform:
+        translate(2px, 2px);
+
+      box-shadow:
+        1px 1px 0 var(--ink);
     }
+
 
     .btn-login {
       background: var(--white);
       color: var(--ink);
     }
 
+
     .btn-register {
       background: var(--green-deep);
       color: var(--white);
     }
 
-    /* ---------- Main ---------- */
+
+    /* =========================
+       MAIN
+    ========================= */
+
     .page {
       width: 100%;
       height: 100vh;
+
       min-height: 520px;
+
       position: relative;
+
       display: grid;
+
       place-items: center;
+
       overflow: hidden;
-      padding: 90px 20px 25px;
+
+      padding:
+        90px 20px 25px;
     }
+
 
     .content {
       position: relative;
-      z-index: 4;
-      width: min(840px, 94vw);
+
+      z-index: 10;
+
+      width:
+        min(840px, 94vw);
+
       text-align: center;
-      animation: heroIn .7s cubic-bezier(.2,.8,.2,1) both;
+
+      animation:
+        heroIn .7s cubic-bezier(.2,.8,.2,1) both;
     }
+
 
     @keyframes heroIn {
-      from { opacity: 0; transform: translateY(20px) scale(.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+
+      from {
+        opacity: 0;
+
+        transform:
+          translateY(20px)
+          scale(.98);
+      }
+
+      to {
+        opacity: 1;
+
+        transform:
+          translateY(0)
+          scale(1);
+      }
+
     }
 
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 15px;
-      background: var(--cream);
-      border: 3px solid var(--ink);
-      border-radius: 9px;
-      box-shadow: 4px 4px 0 var(--ink);
-      font-size: .92rem;
-      font-weight: 700;
-      transform: rotate(-1.5deg);
-      margin-bottom: 18px;
-    }
 
-    .tag i {
-      color: var(--green-deep);
-    }
+    /* =========================
+       JUDUL
+    ========================= */
 
-    h1 {
+    .hero-title {
       font-family: "Bangers", cursive;
-      font-size: clamp(3.25rem, 8.5vw, 7.2rem);
+
+      font-size:
+        clamp(3.25rem, 8.5vw, 7.2rem);
+
       line-height: .88;
+
       letter-spacing: 2px;
+
       color: var(--white);
-      -webkit-text-stroke: clamp(1.5px, .3vw, 3px) var(--ink);
-      text-shadow: 7px 7px 0 var(--ink);
-      transform: rotate(-1deg);
+
+      -webkit-text-stroke:
+        clamp(1.5px, .3vw, 3px)
+        var(--ink);
+
+      text-shadow:
+        7px 7px 0 var(--ink);
+
+      /* Posisi judul sudah dinaikkan */
+      margin-top: -70px;
+
+      transform:
+        rotate(-1deg);
     }
 
-    h1 span {
+
+    .hero-title span {
       display: block;
-      color: var(--green-light);
+
+      color:
+        var(--green-light);
     }
+
+
+    /* =========================
+       DESCRIPTION
+    ========================= */
 
     .description {
-      width: min(650px, 100%);
-      margin: 24px auto 26px;
-      padding: 14px 20px;
-      background: rgba(255,255,255,.94);
-      border: 3px solid var(--ink);
+      width:
+        min(650px, 100%);
+
+      margin:
+        24px auto 26px;
+
+      padding:
+        14px 20px;
+
+      background:
+        rgba(255,255,255,.94);
+
+      border:
+        3px solid var(--ink);
+
       border-radius: 13px;
-      box-shadow: 5px 5px 0 var(--ink);
-      color: var(--muted);
-      font-size: clamp(1rem, 2.2vw, 1.2rem);
+
+      box-shadow:
+        5px 5px 0 var(--ink);
+
+      color:
+        var(--muted);
+
+      font-size:
+        clamp(1rem, 2.2vw, 1.2rem);
+
       line-height: 1.45;
+
       font-weight: 600;
     }
 
+
+    /* =========================
+       START BUTTON
+    ========================= */
+
     .start {
       min-height: 57px;
-      padding: 12px 28px;
-      background: linear-gradient(135deg, var(--green-light), var(--green-dark));
-      color: var(--white);
-      font-family: "Bangers", cursive;
-      font-size: clamp(1.35rem, 3vw, 1.8rem);
+
+      padding:
+        12px 28px;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--green-light),
+          var(--green-dark)
+        );
+
+      color:
+        var(--white);
+
+      font-family:
+        "Bangers", cursive;
+
+      font-size:
+        clamp(1.35rem, 3vw, 1.8rem);
+
       letter-spacing: 1.3px;
+
       border-radius: 13px;
-      box-shadow: 6px 6px 0 var(--ink);
+
+      box-shadow:
+        6px 6px 0 var(--ink);
     }
+
 
     .start:hover {
-      animation: wiggle .35s ease-in-out;
+      animation:
+        wiggle .35s ease-in-out;
     }
+
 
     @keyframes wiggle {
-      0%,100% { transform: translate(-2px,-2px) rotate(-1deg); }
-      30% { transform: translate(-3px,-3px) rotate(1deg); }
-      60% { transform: translate(-2px,-4px) rotate(-1deg); }
+
+      0%,100% {
+        transform:
+          translate(-2px,-2px)
+          rotate(-1deg);
+      }
+
+      30% {
+        transform:
+          translate(-3px,-3px)
+          rotate(1deg);
+      }
+
+      60% {
+        transform:
+          translate(-2px,-4px)
+          rotate(-1deg);
+      }
+
     }
 
-    /* Decorative comic elements — deliberately subtle */
+
+    /* =========================
+       CIRCLE DECORATION
+    ========================= */
+
+    .circle {
+      position: absolute;
+
+      border-radius: 50%;
+
+      pointer-events: none;
+
+      z-index: 2;
+
+      border:
+        3px solid rgba(20,20,20,.12);
+    }
+
+
+    .circle.one {
+      width: 90px;
+      height: 90px;
+
+      left: 7%;
+      top: 35%;
+
+      background:
+        rgba(255,255,255,.12);
+    }
+
+
+    .circle.two {
+      width: 55px;
+      height: 55px;
+
+      right: 9%;
+      top: 42%;
+
+      background:
+        rgba(185,255,114,.28);
+    }
+
+
+    .circle.three {
+      width: 125px;
+      height: 125px;
+
+      right: -35px;
+      top: 63%;
+
+      background:
+        rgba(255,255,255,.08);
+    }
+
+
+    .circle.four {
+      width: 35px;
+      height: 35px;
+
+      left: 16%;
+      bottom: 18%;
+
+      background:
+        rgba(255,255,255,.2);
+    }
+
+
+    .circle.five {
+      width: 70px;
+      height: 70px;
+
+      left: -20px;
+      top: 55%;
+
+      background:
+        rgba(7,148,71,.18);
+    }
+
+
+    .circle.six {
+      width: 25px;
+      height: 25px;
+
+      right: 23%;
+      top: 20%;
+
+      background:
+        rgba(255,255,255,.3);
+
+      border-width: 2px;
+    }
+
+
+    .circle.seven {
+      width: 42px;
+      height: 42px;
+
+      left: 25%;
+      top: 19%;
+
+      background:
+        rgba(185,255,114,.2);
+
+      border-width: 2px;
+    }
+
+
+    /* =========================
+       COMIC BURST
+    ========================= */
+
     .burst {
       position: absolute;
-      z-index: 2;
+
+      z-index: 3;
+
       width: 150px;
       height: 150px;
-      background: var(--green-light);
-      clip-path: polygon(50% 0%, 59% 25%, 78% 7%, 76% 31%, 100% 27%, 80% 45%, 100% 58%, 75% 61%, 84% 86%, 62% 73%, 50% 100%, 40% 74%, 16% 89%, 24% 64%, 0% 62%, 22% 47%, 3% 31%, 27% 32%, 22% 7%, 42% 25%);
-      border: 0;
-      filter: drop-shadow(5px 5px 0 var(--ink));
+
+      background:
+        var(--green-light);
+
+      clip-path:
+        polygon(
+          50% 0%,
+          59% 25%,
+          78% 7%,
+          76% 31%,
+          100% 27%,
+          80% 45%,
+          100% 58%,
+          75% 61%,
+          84% 86%,
+          62% 73%,
+          50% 100%,
+          40% 74%,
+          16% 89%,
+          24% 64%,
+          0% 62%,
+          22% 47%,
+          3% 31%,
+          27% 32%,
+          22% 7%,
+          42% 25%
+        );
+
+      filter:
+        drop-shadow(5px 5px 0 var(--ink));
+
       opacity: .9;
     }
+
 
     .burst.one {
       left: 5%;
       top: 29%;
-      transform: rotate(-16deg) scale(.8);
+
+      transform:
+        rotate(-16deg)
+        scale(.8);
     }
+
 
     .burst.two {
       right: 5%;
       bottom: 18%;
-      transform: rotate(18deg) scale(.7);
-      background: var(--white);
+
+      transform:
+        rotate(18deg)
+        scale(.7);
+
+      background:
+        var(--white);
     }
+
+
+    /* =========================
+       COMIC WORD
+    ========================= */
 
     .comic-word {
       position: absolute;
+
       z-index: 3;
-      font-family: "Bangers", cursive;
-      font-size: clamp(2rem, 4.5vw, 3.8rem);
-      color: var(--white);
-      -webkit-text-stroke: 2px var(--ink);
-      text-shadow: 4px 4px 0 var(--ink);
+
+      font-family:
+        "Bangers", cursive;
+
+      font-size:
+        clamp(2rem, 4.5vw, 3.8rem);
+
+      color:
+        var(--white);
+
+      -webkit-text-stroke:
+        2px var(--ink);
+
+      text-shadow:
+        4px 4px 0 var(--ink);
+
       letter-spacing: 1px;
+
       pointer-events: none;
     }
+
 
     .pow {
       left: 8%;
       top: 25%;
-      transform: rotate(-13deg);
+
+      transform:
+        rotate(-13deg);
     }
+
 
     .zap {
       right: 8%;
       top: 30%;
-      color: var(--green-light);
-      transform: rotate(12deg);
+
+      color:
+        var(--green-light);
+
+      transform:
+        rotate(12deg);
     }
 
+
+    /* =========================
+       MOBILE
+    ========================= */
+
     @media (max-width: 650px) {
+
       .topbar {
-        padding: 13px 13px;
+        padding:
+          13px;
       }
+
+
+      .brand {
+        gap: 7px;
+      }
+
 
       .brand img {
         width: 34px;
         height: 34px;
       }
 
+
       .brand-name {
-        font-size: 1.45rem;
-        -webkit-text-stroke: 1.2px var(--ink);
-        text-shadow: 3px 3px 0 var(--ink);
+        font-size:
+          1.45rem;
+
+        -webkit-text-stroke:
+          1.2px var(--ink);
+
+        text-shadow:
+          3px 3px 0 var(--ink);
       }
+
 
       .auth {
         gap: 6px;
       }
 
+
       .btn {
         min-height: 38px;
-        padding: 7px 10px;
+
+        padding:
+          7px 10px;
+
         border-width: 2px;
-        box-shadow: 3px 3px 0 var(--ink);
-        font-size: .8rem;
+
+        box-shadow:
+          3px 3px 0 var(--ink);
+
+        font-size:
+          .8rem;
       }
+
 
       .page {
-        padding-top: 75px;
+        padding:
+          75px 12px 20px;
       }
 
-      .tag {
-        margin-bottom: 14px;
-        border-width: 2px;
-        box-shadow: 3px 3px 0 var(--ink);
-        font-size: .76rem;
+
+      /*
+        Judul dinaikkan pada HP
+        supaya tidak terlalu bawah
+      */
+
+      .hero-title {
+        margin-top:
+          -45px;
+
+        font-size:
+          clamp(3rem, 15vw, 5.1rem);
+
+        text-shadow:
+          5px 5px 0 var(--ink);
       }
 
-      h1 {
-        font-size: clamp(3rem, 15vw, 5.1rem);
-        text-shadow: 5px 5px 0 var(--ink);
-      }
 
       .description {
-        margin-top: 19px;
-        padding: 11px 13px;
-        border-width: 2px;
-        box-shadow: 4px 4px 0 var(--ink);
-        font-size: .96rem;
+        margin-top:
+          19px;
+
+        padding:
+          11px 13px;
+
+        border-width:
+          2px;
+
+        box-shadow:
+          4px 4px 0 var(--ink);
+
+        font-size:
+          .96rem;
       }
+
 
       .start {
-        min-height: 51px;
-        padding: 10px 21px;
-        border-width: 2px;
-        box-shadow: 4px 4px 0 var(--ink);
-        font-size: 1.35rem;
+        min-height:
+          51px;
+
+        padding:
+          10px 21px;
+
+        border-width:
+          2px;
+
+        box-shadow:
+          4px 4px 0 var(--ink);
+
+        font-size:
+          1.35rem;
       }
+
+
+      /* Bulatan mobile */
+
+      .circle.one {
+        width: 65px;
+        height: 65px;
+
+        left: -18px;
+        top: 36%;
+      }
+
+
+      .circle.two {
+        width: 42px;
+        height: 42px;
+
+        right: 5%;
+        top: 39%;
+      }
+
+
+      .circle.three {
+        width: 90px;
+        height: 90px;
+
+        right: -35px;
+        top: 64%;
+      }
+
+
+      .circle.four {
+        width: 28px;
+        height: 28px;
+
+        left: 12%;
+        bottom: 16%;
+      }
+
+
+      .circle.five {
+        width: 48px;
+        height: 48px;
+
+        left: -18px;
+        top: 57%;
+      }
+
+
+      .circle.six {
+        width: 20px;
+        height: 20px;
+
+        right: 18%;
+        top: 17%;
+      }
+
+
+      .circle.seven {
+        width: 30px;
+        height: 30px;
+
+        left: 27%;
+        top: 18%;
+      }
+
 
       .burst {
-        width: 100px;
-        height: 100px;
+        width:
+          100px;
+
+        height:
+          100px;
       }
+
 
       .burst.one {
-        left: -18px;
-        top: 27%;
+        left:
+          -18px;
+
+        top:
+          27%;
       }
+
 
       .burst.two {
-        right: -18px;
-        bottom: 20%;
+        right:
+          -18px;
+
+        bottom:
+          20%;
       }
+
 
       .comic-word {
-        font-size: 2rem;
+        font-size:
+          2rem;
       }
+
 
       .pow {
-        left: 1%;
-        top: 22%;
+        left:
+          1%;
+
+        top:
+          22%;
       }
+
 
       .zap {
-        right: 1%;
-        top: 33%;
+        right:
+          1%;
+
+        top:
+          33%;
       }
+
     }
+
+
+    /* =========================
+       SHORT SCREEN
+    ========================= */
 
     @media (max-height: 650px) and (min-width: 651px) {
+
       .page {
-        padding-top: 75px;
+        padding-top:
+          75px;
       }
 
-      h1 {
-        font-size: clamp(3.2rem, 15vh, 5.7rem);
+
+      .hero-title {
+        margin-top:
+          -40px;
+
+        font-size:
+          clamp(3.2rem, 15vh, 5.7rem);
       }
+
 
       .description {
-        margin: 15px auto 17px;
+        margin:
+          15px auto 17px;
       }
 
-      .tag {
-        margin-bottom: 10px;
-      }
     }
+
+
+    /* =========================
+       REDUCED MOTION
+    ========================= */
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: .01ms !important;
-        transition-duration: .01ms !important;
+
+      *,
+      *::before,
+      *::after {
+
+        animation-duration:
+          .01ms !important;
+
+        transition-duration:
+          .01ms !important;
       }
+
     }
+
   </style>
 </head>
 
+
 <body>
+
+
+  <!-- =========================
+       LOADING
+  ========================= -->
+
   <div class="loader" id="loader">
+
     <div class="loader-inner">
-      <img class="loader-logo" src="/media/logo.png" alt="">
-      <div class="loader-title">XIAO-STORE</div>
+
+      <img
+        class="loader-logo"
+        src="/media/logo.png"
+        alt=""
+      >
+
+      <div class="loader-title">
+        XIAO-STORE
+      </div>
+
       <div class="loader-line"></div>
+
     </div>
+
   </div>
 
+
+
+  <!-- =========================
+       HEADER
+  ========================= -->
+
   <header class="topbar">
+
     <div class="topbar-inner">
-      <a class="brand" href="/" aria-label="Xiao-Store TopUp">
-        <img src="/media/logo.png" alt="Xiao-Store TopUp">
-        <span class="brand-name">Xiao-Store</span>
+
+
+      <!-- LOGO -->
+
+      <a
+        class="brand"
+        href="/"
+        aria-label="Xiao-Store"
+      >
+
+        <img
+          src="/media/logo.png"
+          alt="Xiao-Store"
+        >
+
+        <span class="brand-name">
+          XIAO-STORE
+        </span>
+
       </a>
 
+
+
+      <!-- LOGIN / REGISTER -->
+
       <div class="auth">
-        <button class="btn btn-login" type="button" onclick="location.href='/auth/login'">
-          Masuk <i class="fas fa-arrow-right-to-bracket"></i>
+
+        <button
+          class="btn btn-login"
+          type="button"
+          onclick="location.href='/auth/login'"
+        >
+
+          Masuk
+
+          <i
+            class="fas fa-arrow-right-to-bracket"
+          ></i>
+
         </button>
-        <button class="btn btn-register" type="button" onclick="location.href='/auth/register'">
-          Daftar <i class="fas fa-user-plus"></i>
+
+
+        <button
+          class="btn btn-register"
+          type="button"
+          onclick="location.href='/auth/register'"
+        >
+
+          Daftar
+
+          <i
+            class="fas fa-user-plus"
+          ></i>
+
         </button>
+
       </div>
+
     </div>
+
   </header>
 
+
+
+  <!-- =========================
+       MAIN
+  ========================= -->
+
   <main class="page">
+
+
+    <!-- BULATAN DEKORASI -->
+
+    <div class="circle one"></div>
+
+    <div class="circle two"></div>
+
+    <div class="circle three"></div>
+
+    <div class="circle four"></div>
+
+    <div class="circle five"></div>
+
+    <div class="circle six"></div>
+
+    <div class="circle seven"></div>
+
+
+
+    <!-- COMIC BURST -->
+
     <div class="burst one"></div>
+
     <div class="burst two"></div>
-    <div class="comic-word pow">POW!</div>
-    <div class="comic-word zap">ZAP!</div>
+
+
+
+    <!-- CONTENT -->
 
     <section class="content">
-      <div class="tag">
-        <i class="fas fa-bolt"></i>
-        TOPUP CEPAT & AMAN
-      </div>
 
-      <h1>
-        Solusi  &amp; Pembayaran
-        <span>Digital Termudah</span>
+
+      <h1 class="hero-title">
+
+        Solusi &amp; Pembayaran
+
+        <span>
+          Digital Termudah
+        </span>
+
       </h1>
 
+
+
       <p class="description">
-       Gateaway yang cepat, aman, dan mudah.
+        Gateaway yang cepat, aman, dan mudah.
       </p>
 
-      <button class="btn start" type="button" onclick="location.href='/auth/register'">
-        MULAI SEKARANG <i class="fas fa-rocket"></i>
+
+
+      <button
+        class="btn start"
+        type="button"
+        onclick="location.href='/auth/register'"
+      >
+
+        MULAI SEKARANG
+
+        <i
+          class="fas fa-rocket"
+        ></i>
+
       </button>
+
+
     </section>
+
   </main>
 
+
+
+  <!-- =========================
+       LOADING SCRIPT
+  ========================= -->
+
   <script>
-    window.addEventListener("load", function () {
-      setTimeout(function () {
-        const loader = document.getElementById("loader");
-        if (loader) {
-          loader.classList.add("hide");
-          setTimeout(function () { loader.remove(); }, 500);
-        }
-      }, 650);
-    });
+
+    window.addEventListener(
+      "load",
+      function () {
+
+        setTimeout(
+          function () {
+
+            const loader =
+              document.getElementById("loader");
+
+
+            if (loader) {
+
+              loader.classList.add("hide");
+
+
+              setTimeout(
+                function () {
+
+                  loader.remove();
+
+                },
+                500
+              );
+
+            }
+
+          },
+          650
+        );
+
+      }
+    );
+
   </script>
+
+
 </body>
 </html>
