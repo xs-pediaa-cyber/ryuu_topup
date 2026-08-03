@@ -1842,34 +1842,6 @@ main, main.container, .container, .vp-dashboard, .vp-main, .dashboard-content {
 }
 </style>
 
-<style id="history-columns-final">
-.vp-history-table { min-width: 850px !important; }
-.vp-history-table th, .vp-history-table td { white-space: nowrap; }
-.vp-history-table th:nth-child(1), .vp-history-table td:nth-child(1) { min-width: 130px; }
-.vp-history-table th:nth-child(2), .vp-history-table td:nth-child(2),
-.vp-history-table th:nth-child(3), .vp-history-table td:nth-child(3) { min-width: 145px; }
-.vp-history-table th:nth-child(4), .vp-history-table td:nth-child(4) { min-width: 120px; }
-.vp-history-table th:nth-child(5), .vp-history-table td:nth-child(5) { min-width: 100px; }
-</style>
-
-<style id="history-final-visibility-fix">
-.vp-history-table-container {
-    width: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-.vp-history-table {
-    min-width: 850px !important;
-    width: max-content !important;
-}
-.vp-history-table thead { display: table-header-group !important; }
-.vp-history-table tbody { display: table-row-group !important; }
-.vp-history-table tbody tr { display: table-row !important; }
-.vp-history-table tbody td { display: table-cell !important; }
-.vp-history-table tbody td::before { content: none !important; }
-</style>
-
 </head>
 <body data-theme="light">
     <div class="vp-wrapper">
@@ -2053,14 +2025,14 @@ main, main.container, .container, .vp-dashboard, .vp-main, .dashboard-content {
     <div class="vp-history-table-container">
         <table class="vp-history-table">
             <thead>
-                        <tr>
-                            <th>ID Trx</th>
-                            <th>Nominal Depo</th>
-                            <th>Nominal Masuk</th>
-                            <th>Metode</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
+                <tr>
+                    <th>ID Transaksi</th>
+                    <th>Nominal Masuk</th>
+                    <th>Metode</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
             <tbody id="latestDepositHistoryBody">
                 <tr>
                     <td colspan="5" class="text-center">
@@ -2481,42 +2453,52 @@ const vpSidebar = document.getElementById('vpSidebar');
         let showingAllDeposits = false;
 
         function renderDepositRows(deposits) {
-            const tbody = document.getElementById('depositHistoryBody');
-            if (!tbody) return;
+            const depositTbody = document.getElementById('latestDepositHistoryBody');
+            depositTbody.innerHTML = '';
 
-            if (!Array.isArray(deposits) || deposits.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">
-                            Belum ada riwayat deposit.
-                        </td>
-                    </tr>`;
+            if (!deposits || deposits.length === 0) {
+                depositTbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada data deposit.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = deposits.map(deposit => {
-                const id = deposit.id ?? deposit.reff_id ?? '-';
-                const nominalDepo = Number(deposit.nominal ?? 0);
-                const nominalMasuk = Number(deposit.get_balance ?? deposit.nominal ?? 0);
-                const metode = deposit.metode ?? '-';
+            deposits.forEach(deposit => {
+                const row = document.createElement('tr');
 
-                return `
-                    <tr>
-                        <td data-label="ID Trx">${id}</td>
-                        <td data-label="Nominal Depo">Rp ${nominalDepo.toLocaleString('id-ID')}</td>
-                        <td data-label="Nominal Masuk">Rp ${nominalMasuk.toLocaleString('id-ID')}</td>
-                        <td data-label="Metode">${metode}</td>
-                        <td data-label="Aksi">
-                            <div class="action-buttons">
-                                <button type="button"
-                                        class="btn btn-sm btn-primary"
-                                        onclick="showDepositDetail('${String(id).replace(/'/g, "\\'")}')">
-                                    <i class="bi bi-eye"></i> Detail
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
-            }).join('');
+                let statusClass = '';
+                if (deposit.status === 'pending') {
+                    statusClass = 'status-pending';
+                } else if (deposit.status === 'success') {
+                    statusClass = 'status-success';
+                } else if (['failed', 'expired', 'cancel'].includes(deposit.status)) {
+                    statusClass = 'status-failed';
+                }
+
+                const statusBadge = `<span class="status-badge ${statusClass}">${deposit.status || '-'}</span>`;
+                const balance = Number(deposit.get_balance || deposit.nominal || 0);
+
+                row.innerHTML = `
+                    <td data-label="ID Transaksi">${deposit.id || '-'}</td>
+                    <td data-label="Nominal Masuk">Rp ${balance.toLocaleString('id-ID')}</td>
+                    <td data-label="Metode">${deposit.metode || '-'}</td>
+                    <td data-label="Status">${statusBadge}</td>
+                    <td data-label="Aksi">
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-primary btn-sm"
+                                onclick="showDepositDetail('${String(deposit.id || '').replace(/'/g, "\\'")}')">
+                                <i class="bi bi-eye-fill"></i> Detail
+                            </button>
+                            ${deposit.status === 'pending'
+                                ? `<button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="cancelDeposit('${String(deposit.id || '').replace(/'/g, "\\'")}')">
+                                    Batal
+                                   </button>`
+                                : ''}
+                        </div>
+                    </td>
+                `;
+
+                depositTbody.appendChild(row);
+            });
         }
 
         function updateViewAllDepositsButton() {
@@ -2537,13 +2519,19 @@ const vpSidebar = document.getElementById('vpSidebar');
             document.body.style.overflowY = 'auto';
             document.body.classList.toggle('showing-all-deposits', showingAllDeposits);
 
-            const all = Array.isArray(dashboardDepositHistory) ? dashboardDepositHistory : [];
             const deposits = showingAllDeposits
-                ? [...all].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-                : [...all].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 3);
+                ? dashboardDepositHistory
+                : dashboardDepositHistory.slice(-3).reverse();
 
             renderDepositRows(deposits);
             updateViewAllDepositsButton();
+
+            const historySection = document.querySelector('.vp-history-section');
+            if (showingAllDeposits && historySection) {
+                setTimeout(() => {
+                    historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 50);
+            }
         }
 
         function renderHistory(userData) {
