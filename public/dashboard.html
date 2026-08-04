@@ -2586,6 +2586,12 @@ const vpSidebar = document.getElementById('vpSidebar');
                                 onclick="showDepositDetail('${safeId}')">
                                 <i class="bi bi-eye-fill"></i> Detail
                             </button>
+                            ${String(deposit.status || '').toLowerCase() === 'pending' ? `
+                            <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                onclick="cancelDeposit('${safeId}')">
+                                <i class="bi bi-x-circle-fill"></i> Cancel
+                            </button>` : ''}
                         </div>
                     </td>
                 `;
@@ -2730,63 +2736,78 @@ const vpSidebar = document.getElementById('vpSidebar');
             const modalBody = document.getElementById('depositDetailModalBody');
             const modalCheckDepositStatusBtn = document.getElementById('modalDepositDetailCheckStatusBtn');
             const modalCancelDepositBtn = document.getElementById('modalCancelDepositBtn');
-
-            modalBody.innerHTML = '<div class="vp-loading-shimmer" style="height: 180px;"></div>';
-
-            if (modalCheckDepositStatusBtn) {
-                modalCheckDepositStatusBtn.style.display = '';
-                modalCheckDepositStatusBtn.disabled = false;
-                modalCheckDepositStatusBtn.innerHTML = 'Cek Status (API)';
-                modalCheckDepositStatusBtn.onclick = () => {
-                    modalCheckDepositStatusBtn.disabled = true;
-                    modalCheckDepositStatusBtn.innerHTML = 'Checking...';
-                    checkDepositStatus(id, true);
-                };
-            }
-
-            if (modalCancelDepositBtn) {
-                modalCancelDepositBtn.style.display = '';
-                modalCancelDepositBtn.onclick = () => cancelDeposit(id);
-            }
-
             const modalElement = document.getElementById('depositDetailModal');
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
-            modalInstance.show();
 
-            fetch(`/profile/users/deposit/${id}`)
-                .then(response => response.json())
+            modalBody.innerHTML = `
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memuat detail deposit...</p>
+                </div>`;
+
+            if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
+            if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
+
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+
+            fetch('/api/history/deposit')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (!data.success || !data.data) {
-                        modalBody.innerHTML = `<p class="text-danger text-center">${data.message || 'Gagal memuat detail deposit.'}</p>`;
-                        if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
-                        if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
+                    const history = Array.isArray(data.historyDeposit)
+                        ? data.historyDeposit
+                        : Array.isArray(data.data)
+                            ? data.data
+                            : [];
+
+                    const deposit = history.find(item =>
+                        String(item.id ?? item.reff_id ?? '') === String(id)
+                    );
+
+                    if (!deposit) {
+                        modalBody.innerHTML = `
+                            <p class="text-danger text-center">
+                                Detail deposit tidak ditemukan.
+                            </p>`;
                         return;
                     }
 
-                    const deposit = data.data;
                     const paymentAmount = Number(deposit.nominal ?? 0);
                     const incomingAmount = Number(deposit.get_balance ?? deposit.nominal ?? 0);
                     const fee = Number(deposit.fee ?? 0);
+                    const currentStatus = String(deposit.status || 'pending').toLowerCase();
 
-                    let statusClass = '';
-                    const currentStatus = String(deposit.status || '').toLowerCase();
+                    let statusLabel = 'Pending';
+                    let statusClass = 'status-pending';
 
-                    if (currentStatus === 'pending') {
-                        statusClass = 'status-pending';
-                    } else if (currentStatus === 'success') {
+                    if (['success', 'sukses', 'paid', 'completed', 'complete'].includes(currentStatus)) {
+                        statusLabel = 'Sukses';
                         statusClass = 'status-success';
-                    } else if (['failed', 'expired', 'cancel'].includes(currentStatus)) {
-                        statusClass = 'status-failed';
+                    } else if (['cancel', 'cancelled', 'canceled', 'batal', 'failed', 'gagal', 'expired'].includes(currentStatus)) {
+                        statusLabel = 'Batal';
+                        statusClass = 'status-cancel';
                     }
 
-                    const statusBadge = `<span class="status-badge ${statusClass}">${deposit.status || '-'}</span>`;
+                    const formatDate = value => {
+                        if (!value) return '-';
+                        const date = new Date(value);
+                        return Number.isNaN(date.getTime())
+                            ? value
+                            : date.toLocaleString('id-ID');
+                    };
 
                     let qrCodeHtml = '';
                     if (currentStatus === 'pending' && deposit.qr_image) {
                         qrCodeHtml = `
-                            <div class="qr-code-container">
+                            <div class="qr-code-container" style="text-align:center;margin-top:15px;">
                                 <p class="mb-2 fw-bold">Silakan scan QR Code di bawah ini:</p>
-                                <img src="${deposit.qr_image}" alt="QR Code Pembayaran">
+                                <img src="${deposit.qr_image}" alt="QR Code Pembayaran"
+                                    style="max-width:200px;border-radius:10px;border:1px solid #ddd;padding:5px;background:#fff;">
                                 <p class="mt-2 text-muted" style="font-size:11px;">Status: Menunggu Pembayaran</p>
                             </div>`;
                     }
@@ -2794,85 +2815,84 @@ const vpSidebar = document.getElementById('vpSidebar');
                     modalBody.innerHTML = `
                         <div class="payment-details-card" style="margin-top:0;">
                             <div class="payment-detail-item">
-                                <span class="label">ID Trx:</span>
+                                <span class="label">ID Transaksi:</span>
                                 <span class="value">${deposit.id || deposit.reff_id || '-'}</span>
                             </div>
-
                             <div class="payment-detail-item">
                                 <span class="label">Reff ID:</span>
                                 <span class="value">${deposit.reff_id || '-'}</span>
                             </div>
-
                             <div class="deposit-amount-grid">
                                 <div class="deposit-amount-box payment">
-                                    <span class="amount-label">Nominal Pembayaran</span>
+                                    <span class="amount-label">Total Pembayaran</span>
                                     <span class="amount-value">Rp ${paymentAmount.toLocaleString('id-ID')}</span>
                                 </div>
                                 <div class="deposit-amount-box incoming">
-                                    <span class="amount-label">Nominal Masuk</span>
+                                    <span class="amount-label">Saldo Diterima</span>
                                     <span class="amount-value">Rp ${incomingAmount.toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
-
                             <div class="payment-detail-item">
                                 <span class="label">Biaya Admin:</span>
                                 <span class="value">Rp ${fee.toLocaleString('id-ID')}</span>
                             </div>
-
                             <div class="payment-detail-item">
                                 <span class="label">Metode:</span>
-                                <span class="value">${deposit.metode || '-'}</span>
+                                <span class="value">${deposit.metode || deposit.method || '-'}</span>
                             </div>
-
                             ${deposit.tujuan ? `
                             <div class="payment-detail-item">
                                 <span class="label">Nomor Tujuan/VA:</span>
                                 <span class="value">${deposit.tujuan}</span>
                             </div>` : ''}
-
                             ${deposit.atas_nama ? `
                             <div class="payment-detail-item">
                                 <span class="label">Atas Nama:</span>
                                 <span class="value">${deposit.atas_nama}</span>
                             </div>` : ''}
-
                             <div class="payment-detail-item">
                                 <span class="label">Status:</span>
-                                <span class="value">${statusBadge}</span>
+                                <span class="value">
+                                    <span class="status-badge ${statusClass}">${statusLabel}</span>
+                                </span>
                             </div>
-
                             <div class="payment-detail-item">
                                 <span class="label">Tanggal Dibuat:</span>
-                                <span class="value">${deposit.created_at ? new Date(deposit.created_at).toLocaleString('id-ID') : '-'}</span>
+                                <span class="value">${formatDate(deposit.created_at)}</span>
                             </div>
-
                             ${deposit.expired_at && currentStatus === 'pending' ? `
                             <div class="payment-detail-item text-danger">
                                 <span class="label">Bayar Sebelum:</span>
-                                <span class="value">${new Date(deposit.expired_at).toLocaleString('id-ID')}</span>
+                                <span class="value">${formatDate(deposit.expired_at)}</span>
                             </div>` : ''}
-
                             ${qrCodeHtml}
-                        </div>
-                    `;
+                        </div>`;
 
                     if (modalCheckDepositStatusBtn) {
-                        if (['success', 'failed', 'expired', 'cancel'].includes(currentStatus)) {
-                            modalCheckDepositStatusBtn.style.display = 'none';
-                        } else {
-                            modalCheckDepositStatusBtn.style.display = '';
-                            modalCheckDepositStatusBtn.disabled = false;
-                            modalCheckDepositStatusBtn.innerHTML = 'Cek Status (API)';
-                        }
+                        const canCheck = ['pending', 'processing'].includes(currentStatus);
+                        modalCheckDepositStatusBtn.style.display = canCheck ? '' : 'none';
+                        modalCheckDepositStatusBtn.disabled = false;
+                        modalCheckDepositStatusBtn.innerHTML = 'Cek Status (API)';
+                        modalCheckDepositStatusBtn.onclick = () => {
+                            modalCheckDepositStatusBtn.disabled = true;
+                            modalCheckDepositStatusBtn.innerHTML = 'Checking...';
+                            checkDepositStatus(deposit.id || id, true);
+                        };
                     }
 
                     if (modalCancelDepositBtn) {
                         modalCancelDepositBtn.style.display = currentStatus === 'pending' ? '' : 'none';
+                        modalCancelDepositBtn.disabled = false;
+                        modalCancelDepositBtn.innerHTML = 'Batalkan';
+                        modalCancelDepositBtn.onclick = () => cancelDeposit(deposit.id || id);
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching deposit detail:', error);
-                    modalBody.innerHTML = '<p class="text-danger text-center">Terjadi kesalahan saat memuat detail deposit.</p>';
+                    modalBody.innerHTML = `
+                        <p class="text-danger text-center">
+                            Terjadi kesalahan saat memuat detail deposit.
+                        </p>`;
                     if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
                     if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
                 });
