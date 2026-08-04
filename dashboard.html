@@ -1914,6 +1914,65 @@ main, .vp-main-container, .vp-main-content {
 }
 </style>
 
+
+<style id="dashboard-deposit-status-only">
+/* History deposit dashboard: hanya Metode dan Status */
+.vp-history-section .vp-history-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+}
+
+.vp-history-section .vp-history-table th,
+.vp-history-section .vp-history-table td {
+    width: 50% !important;
+    text-align: center !important;
+    white-space: normal !important;
+}
+
+.vp-history-section .vp-history-table-container {
+    overflow-x: hidden !important;
+}
+
+.vp-history-section .status-badge {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-width: 92px;
+}
+
+@media (max-width: 767.98px) {
+    .vp-history-section .vp-history-table {
+        display: table !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .vp-history-section .vp-history-table thead {
+        display: table-header-group !important;
+    }
+
+    .vp-history-section .vp-history-table tbody {
+        display: table-row-group !important;
+    }
+
+    .vp-history-section .vp-history-table tbody tr {
+        display: table-row !important;
+    }
+
+    .vp-history-section .vp-history-table tbody td {
+        display: table-cell !important;
+        padding: .8rem .5rem !important;
+    }
+
+    .vp-history-section .vp-history-table tbody td::before {
+        display: none !important;
+        content: none !important;
+    }
+}
+</style>
+
 </head>
 <body data-theme="light">
     <div class="vp-wrapper">
@@ -2098,16 +2157,13 @@ main, .vp-main-container, .vp-main-content {
         <table class="vp-history-table">
             <thead>
                 <tr>
-                    <th>ID Trx</th>
-                    <th>Nominal Depo</th>
-                    <th>Nominal Masuk</th>
                     <th>Metode</th>
-                    <th>Aksi</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody id="latestDepositHistoryBody">
                 <tr>
-                    <td colspan="5" class="text-center">
+                    <td colspan="2" class="text-center">
                         <div class="vp-loading-shimmer" style="width: 100%; height: 40px;"></div>
                     </td>
                 </tr>
@@ -2533,40 +2589,55 @@ const vpSidebar = document.getElementById('vpSidebar');
             if (!Array.isArray(deposits) || deposits.length === 0) {
                 depositTbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="text-center">Belum ada data deposit.</td>
+                        <td colspan="2" class="text-center">Belum ada data deposit.</td>
                     </tr>`;
                 return;
             }
 
+            const getDepositStatus = (rawStatus) => {
+                const status = String(rawStatus || 'pending').trim().toLowerCase();
+
+                if (['success', 'sukses', 'paid', 'completed', 'complete'].includes(status)) {
+                    return {
+                        label: 'Sukses',
+                        className: 'status-success',
+                        icon: 'bi-check-circle-fill'
+                    };
+                }
+
+                if (['cancel', 'cancelled', 'canceled', 'batal', 'failed', 'gagal', 'expired'].includes(status)) {
+                    return {
+                        label: 'Batal',
+                        className: 'status-cancel',
+                        icon: 'bi-x-circle-fill'
+                    };
+                }
+
+                return {
+                    label: 'Pending',
+                    className: 'status-pending',
+                    icon: 'bi-clock-fill'
+                };
+            };
+
             deposits.forEach(deposit => {
                 const row = document.createElement('tr');
-
-                const nominalDepo = Number(deposit.nominal ?? 0);
-                const nominalMasuk = Number(deposit.get_balance ?? deposit.nominal ?? 0);
-                const id = deposit.id ?? '-';
-                const metode = deposit.metode ?? '-';
-                const safeId = String(id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const metode = deposit.metode ?? deposit.method ?? '-';
+                const statusInfo = getDepositStatus(deposit.status);
 
                 row.innerHTML = `
-                    <td data-label="ID Trx">${id}</td>
-                    <td data-label="Nominal Depo">Rp ${nominalDepo.toLocaleString('id-ID')}</td>
-                    <td data-label="Nominal Masuk">Rp ${nominalMasuk.toLocaleString('id-ID')}</td>
                     <td data-label="Metode">${metode}</td>
-                    <td data-label="Aksi">
-                        <div class="action-buttons">
-                            <button type="button"
-                                class="btn btn-primary btn-sm"
-                                onclick="showDepositDetail('${safeId}')">
-                                <i class="bi bi-eye-fill"></i> Detail
-                            </button>
-                        </div>
+                    <td data-label="Status">
+                        <span class="status-badge ${statusInfo.className}">
+                            <i class="bi ${statusInfo.icon}"></i>
+                            ${statusInfo.label}
+                        </span>
                     </td>
                 `;
 
                 depositTbody.appendChild(row);
             });
         }
-
 
         function updateViewAllDepositsButton() {
             const button = document.getElementById('viewAllDepositsBtn');
@@ -3170,3 +3241,5 @@ const vpSidebar = document.getElementById('vpSidebar');
 <style>footer{display:none !important;}</style>
 </body>
 </html>
+
+<!-- TODO modified placeholder -->
