@@ -1,788 +1,3220 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Admin Dashboard - XiaoStore</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="RyuuXiao Dashboard - Platform topup, aplikasi premium, dan integrasi H2H yang cepat, mudah digunakan, aman, dan terpercaya di Indonesia">
+    <meta name="keywords" content="topup, pulsa, data internet, voucher game, e-money, PLN, aplikasi premium, H2H">
+    <meta name="author" content="RyuuXiao">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#3BB143">
+    <meta property="og:title" content="RyuuXiao Dashboard">
+    <meta property="og:description" content="Platform topup terpercaya dengan berbagai layanan digital">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="#">
+    <meta property="og:image" content="/media/logo.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="RyuuXiao Dashboard">
+    <meta name="twitter:description" content="Platform topup terpercaya dengan berbagai layanan digital">
+    <meta name="twitter:image" content="/media/logo.png">
+    <link rel="canonical" href="#">
+    <link rel="icon" type="image/png" sizes="32x32" href="/media/banner.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/media/banner.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/media/banner.png">
+    <link rel="manifest" href="/manifest.json">
+    <title>Dashboard - RyuuXiao | Platform Topup Terpercaya</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <style>
         :root {
-            --sidebar-width: 260px;
-            --topbar-height: 70px;
-            --color-primary: #4e73df;
-            --color-success: #1cc88a;
-            --color-info: #36b9cc;
-            --color-warning: #f6c23e;
-            --color-danger: #e74a3b;
-            --color-secondary: #858796;
-            --color-dark: #5a5c69;
-            --color-light: #f8f9fc;
-            --color-white: #ffffff;
-            --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --border-radius: 0.75rem;
-            --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            --primary-hue: 140;
+            --vp-primary: hsl(var(--primary-hue), 85%, 60%);
+            --vp-primary-rgb: 240, 56, 131;
+            --vp-primary-light: hsl(var(--primary-hue), 85%, 96%);
+            --vp-primary-dark: hsl(var(--primary-hue), 85%, 50%);
+            --vp-secondary: #6c757d;
+            --vp-secondary-rgb: 108, 117, 125;
+            --vp-success: #198754;
+            --vp-success-rgb: 25, 135, 84;
+            --vp-info: #0dcaf0;
+            --vp-warning: #ffc107;
+            --vp-warning-rgb: 255, 193, 7;
+            --vp-danger: #dc3545;
+            --vp-danger-rgb: 220, 53, 69;
+            --vp-light: #f8f9fa;
+            --vp-dark: #212529;
+            --vp-body-bg: hsl(var(--primary-hue), 20%, 98%);
+            --vp-card-bg: #ffffff;
+            --vp-text-muted: hsl(var(--primary-hue), 10%, 45%);
+            --vp-border-color: hsl(var(--primary-hue), 20%, 92%);
+            --vp-font-main: 'Manrope', sans-serif;
+            --vp-font-heading: 'Poppins', sans-serif;
+            --vp-transition: 0.2s ease-in-out;
+            --vp-radius-sm: 0.375rem;
+            --vp-radius-md: 0.5rem;
+            --vp-radius-lg: 0.75rem;
+            --vp-radius-xl: 1rem;
+            --vp-shadow-sm: 0 .125rem .25rem hsla(var(--primary-hue), 50%, 50%, .075);
+            --vp-shadow-md: 0 .5rem 1rem hsla(var(--primary-hue), 50%, 50%, .1);
+            --vp-shadow-lg: 0 1rem 3rem hsla(var(--primary-hue), 50%, 50%, .125);
+            --vp-shadow-xl: 0 1.5rem 4rem hsla(var(--primary-hue), 50%, 50%, .15);
+            --vp-header-bg-light-transparent: hsla(0, 0%, 100%, 0.5);
+            --vp-header-bg-dark-transparent: rgba(33, 37, 41, 0.5);
         }
-        *, *::before, *::after {
+
+        [data-theme="dark"] {
+            --vp-primary: rgba(0,244,255,0.3)%);
+            --vp-primary-rgb: 245, 102, 203;
+            --vp-primary-light: rgba(var(--vp-primary-rgb), 0.15);
+            --vp-primary-dark: rgba(0,244,255,0.3)(325, 90%, 60%);
+            --vp-body-bg: #1a161d;
+            --vp-card-bg: #251f28;
+            --vp-text-muted: #9e92a8;
+            --vp-border-color: #3c3240;
+            --vp-dark: #f0e6fc;
+            --vp-light: #21262d;
+            --vp-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --vp-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --vp-shadow-lg: 0 8px 25px rgba(0,0,0,0.5);
+            --vp-header-bg-dark-transparent: rgba(37, 31, 40, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 15px;
+        }
+
         body {
-            margin: 0;
-            font-family: var(--font-family);
-            background-color: var(--color-light);
-            color: var(--color-dark);
-            font-size: 1rem;
+            font-family: var(--vp-font-main);
+            background-color: var(--vp-body-bg);
+            color: var(--vp-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color var(--vp-transition), color var(--vp-transition);
         }
-        h1, h2, h3, h4, h5, h6 {
-            font-weight: 600;
-        }
-        a {
-            text-decoration: none;
-            color: var(--color-primary);
-        }
-        .page-wrapper {
+
+        .vp-wrapper {
             display: flex;
+            min-height: 100vh;
         }
-        .sidebar {
-            width: var(--sidebar-width);
-            min-width: var(--sidebar-width);
-            height: 100vh;
+
+        .vp-sidebar {
+            width: 260px;
+            background-color: var(--vp-card-bg);
+            box-shadow: var(--vp-shadow-md);
+            padding: 1.5rem 0;
             position: fixed;
             top: 0;
-            left: 0;
-            background-color: var(--color-primary);
-            color: rgba(255, 255, 255, 0.8);
+            left: -260px;
+            bottom: 0;
             z-index: 1030;
-            transition: transform 0.3s ease-in-out;
+            transition: transform var(--vp-transition), background-color var(--vp-transition);
             display: flex;
             flex-direction: column;
+            border-right: 1px solid var(--vp-border-color);
         }
-        .content-wrapper {
-            width: calc(100% - var(--sidebar-width));
-            margin-left: var(--sidebar-width);
-            transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+
+        .vp-sidebar.active {
+            transform: translateX(260px);
         }
-        .topbar {
-            height: var(--topbar-height);
-            background-color: var(--color-white);
-            box-shadow: var(--box-shadow);
+
+        .vp-sidebar-header {
+            padding: 0 1.5rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--vp-border-color);
+            margin-bottom: 1rem;
             display: flex;
             align-items: center;
-            padding: 0 2rem;
+            justify-content: center;
+            gap: 0.5rem;
         }
-        .main-content {
-            padding: 2rem;
+
+        .vp-sidebar-header-logo {
+            height: 30px;
+            width: auto;
         }
-        .sidebar-brand {
-            padding: 1.5rem;
+
+        .vp-sidebar-brand-text {
+            font-family: var(--vp-font-heading);
             font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--color-white);
-            text-align: center;
+            font-weight: 600;
+            color: var(--vp-primary);
+            text-decoration: none;
+            transition: color var(--vp-transition);
         }
-        .sidebar-nav {
+        .vp-sidebar-brand-text:hover {
+             color: var(--vp-primary-dark);
+        }
+
+        .vp-sidebar-menu {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 0 1rem;
+        }
+
+        .vp-sidebar-menu .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.80rem 1rem;
+            margin-bottom: 0.25rem;
+            border-radius: var(--vp-radius-md);
+            color: var(--vp-text-muted);
+            font-weight: 500;
+            font-family: var(--vp-font-heading);
+            transition: all var(--vp-transition);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            font-size: 0.9rem;
+        }
+        
+        .vp-sidebar-menu .nav-link .bi {
+            margin-right: 0.80rem;
+            font-size: 1.05rem;
+            min-width: 18px;
+            opacity: 0.7;
+            transition: opacity var(--vp-transition);
+        }
+
+        .vp-sidebar-menu .nav-link.active,
+        .vp-sidebar-menu .nav-link:hover {
+            background-color: var(--vp-primary-light);
+            color: var(--vp-primary);
+        }
+        
+        .vp-sidebar-menu .nav-link.active .bi,
+        .vp-sidebar-menu .nav-link:hover .bi {
+            opacity: 1;
+        }
+        
+        [data-theme="light"] .vp-sidebar-menu .nav-link.active,
+        [data-theme="light"] .vp-sidebar-menu .nav-link:hover {
+            color: var(--vp-primary);
+            background-color: var(--vp-primary-light);
+        }
+
+        [data-theme="dark"] .vp-sidebar-menu .nav-link.active,
+        [data-theme="dark"] .vp-sidebar-menu .nav-link:hover {
+            color: var(--vp-primary);
+            background-color: var(--vp-primary-light);
+        }
+
+        .vp-sidebar-heading {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--vp-text-muted);
+            padding: 1.1rem 1rem 0.5rem;
+            letter-spacing: 0.5px;
+            font-family: var(--vp-font-heading);
+        }
+        .vp-sidebar-menu hr {
+            border-top: 1px solid var(--vp-border-color);
+            margin: 0.75rem 0.5rem;
+        }
+
+        .vp-main-container {
+            flex-grow: 1;
+            padding-left: 0;
+            transition: padding-left var(--vp-transition), width var(--vp-transition);
+            background-color: var(--vp-body-bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .vp-topbar {
+            background-color: var(--vp-header-bg-light-transparent);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            box-shadow: var(--vp-shadow-sm);
+            padding: 0.65rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 8px;
+            z-index: 1020;
+            border: 1px solid var(--vp-border-color);
+            transition: background-color var(--vp-transition), width var(--vp-transition), margin-left var(--vp-transition);
+            border-radius: 8px;
+            margin: 8px; 
+            width: calc(100% - 16px);
+        }
+        [data-theme="dark"] .vp-topbar {
+            background-color: var(--vp-header-bg-dark-transparent);
+        }
+
+        .vp-sidebar-toggler {
+            font-size: 1.4rem;
+            color: var(--vp-dark);
+            background: none;
+            border: none;
+            padding: 0.4rem;
+            border-radius: var(--vp-radius-md);
+            transition: all var(--vp-transition);
+            order: 1; 
+        }
+
+        .vp-sidebar-toggler:hover {
+            background-color: var(--vp-primary-light);
+            color: var(--vp-primary);
+        }
+
+        .vp-topbar-brand-toggler {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .vp-topbar-brand-link { 
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            order: 2; 
+            margin-right: auto; 
+        }
+
+        .vp-topbar-logo {
+            height: 28px;
+            width: auto;
+        }
+        .vp-topbar-brand-text {
+            font-family: var(--vp-font-heading);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--vp-dark);
+            text-decoration: none;
+            margin-left: 0.5rem;
+        }
+        [data-theme="dark"] .vp-topbar-brand-text {
+            color: var(--vp-light);
+        }
+
+        .vp-topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            order: 3; 
+        }
+
+        .vp-topbar-actions .nav-link {
+            color: var(--vp-text-muted);
+            padding: 0.65rem;
+            border-radius: var(--vp-radius-md);
+            transition: all var(--vp-transition);
+            text-decoration: none;
+        }
+
+        .vp-topbar-actions .nav-link:hover {
+            color: var(--vp-primary);
+            background-color: var(--vp-primary-light);
+        }
+
+        .vp-theme-toggle {
+            background: none;
+            border: none;
+            color: var(--vp-text-muted);
+            padding: 0.65rem;
+            border-radius: var(--vp-radius-md);
+            transition: all var(--vp-transition);
+            cursor: pointer;
+        }
+
+        .vp-theme-toggle:hover {
+            color: var(--vp-primary);
+            background-color: var(--vp-primary-light);
+        }
+
+        .vp-notification-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .vp-notification-toggle {
+            background: none;
+            border: none;
+            color: var(--vp-text-muted);
+            padding: 0.65rem;
+            border-radius: var(--vp-radius-md);
+            transition: all var(--vp-transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .vp-notification-toggle:hover {
+            color: var(--vp-primary);
+            background-color: var(--vp-primary-light);
+        }
+
+        .vp-notification-badge {
+            position: absolute;
+            top: 0.3rem;
+            right: 0.3rem;
+            width: 8px;
+            height: 8px;
+            background-color: var(--vp-danger);
+            border-radius: 50%;
+            border: 2px solid var(--vp-card-bg);
+            animation: pulse 2s infinite;
+        }
+
+        .vp-notification-shake {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .vp-notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 320px;
+            background-color: var(--vp-card-bg);
+            border: 1px solid var(--vp-border-color);
+            border-radius: var(--vp-radius-lg);
+            box-shadow: var(--vp-shadow-lg);
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all var(--vp-transition);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .vp-notification-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .vp-notification-header {
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid var(--vp-border-color);
+            font-family: var(--vp-font-heading);
+            font-weight: 600;
+            color: var(--vp-dark);
+            font-size: 1rem;
+        }
+
+        .vp-notification-list {
+            padding: 0.5rem 0;
+        }
+
+        .vp-notification-item {
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--vp-border-color);
+            cursor: pointer;
+            transition: background-color var(--vp-transition);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .vp-notification-item:hover {
+            background-color: var(--vp-primary-light);
+        }
+
+        .vp-notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .vp-notification-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        .vp-notification-icon.info {
+            background-color: rgba(13, 202, 240, 0.15);
+            color: var(--vp-info);
+        }
+
+        .vp-notification-icon.promo {
+            background-color: rgba(255, 193, 7, 0.15);
+            color: var(--vp-warning);
+        }
+
+        .vp-notification-icon.maintenance {
+            background-color: rgba(220, 53, 69, 0.15);
+            color: var(--vp-danger);
+        }
+
+        .vp-notification-icon.success {
+            background-color: rgba(25, 135, 84, 0.15);
+            color: var(--vp-success);
+        }
+
+        .vp-notification-content {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .vp-notification-title {
+            font-weight: 600;
+            color: var(--vp-dark);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+
+        .vp-notification-message {
+            color: var(--vp-text-muted);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+        }
+
+        .vp-notification-time {
+            color: var(--vp-text-muted);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .vp-notification-empty {
+            padding: 2rem 1.25rem;
+            text-align: center;
+            color: var(--vp-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .vp-notification-modal .modal-content {
+            border-radius: var(--vp-radius-lg);
+            border: 1px solid var(--vp-border-color);
+            background-color: var(--vp-card-bg);
+        }
+
+        .vp-notification-modal .modal-header {
+            border-bottom: 1px solid var(--vp-border-color);
+            padding: 1.25rem;
+        }
+
+        .vp-notification-modal .modal-title {
+            font-family: var(--vp-font-heading);
+            font-weight: 600;
+            color: var(--vp-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .vp-notification-modal .modal-body {
+            padding: 1.25rem;
+        }
+
+        .vp-notification-modal .notification-detail-message {
+            color: var(--vp-dark);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .vp-notification-modal .notification-detail-time {
+            color: var(--vp-text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .vp-notification-modal .modal-footer {
+            border-top: 1px solid var(--vp-border-color);
+            padding: 1rem 1.25rem;
+        }
+
+        .vp-profile-dropdown img {
+            width: 36px;
+            height: 36px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid var(--vp-primary-light);
+            transition: border-color var(--vp-transition);
+        }
+
+        .vp-profile-dropdown img:hover {
+            border-color: var(--vp-primary);
+        }
+
+        .vp-content-wrapper {
+            padding-left: 8px; 
+            padding-right: 8px;
+            padding-bottom: 8px; 
+            display: flex;
+            gap: 1rem;
+            flex-grow: 1;
+        }
+
+        .vp-main-content {
+            flex-grow: 1;
+            max-width: 100%;
+        }
+        
+        .vp-section {
+            background-color: var(--vp-card-bg);
+            padding: 1.25rem;
+            border-radius: var(--vp-radius-lg);
+            box-shadow: var(--vp-shadow-sm);
+            margin-bottom: 1rem;
+            border: 1px solid var(--vp-border-color);
+        }
+
+        .vp-user-summary-card {
+            padding: 0.75rem;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .vp-user-summary-item {
+            padding: 0.5rem 0.6rem;
+            position: relative;
+            z-index: 1;
+            flex-basis: 0; 
+            flex-grow: 1;   
+            max-width: 50%; 
+            min-width: 120px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .vp-user-summary-item::before { 
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'bootstrap-icons';
+            font-size: 3rem; 
+            opacity: 0.05; 
+            color: var(--vp-primary);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .vp-user-summary-item.saldo-item::before {
+            content: '\F678'; 
+        }
+        .vp-user-summary-item.level-item::before {
+            content: '\F15D'; 
+        }
+
+        .vp-user-summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--vp-shadow-md);
+        }
+
+        .vp-user-summary-item .label {
+            font-size: 0.75rem;
+            color: var(--vp-text-muted);
+            margin-bottom: 0.2rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+        .vp-user-summary-item .label .bi {
+            font-size: 0.85rem;
+        }
+
+        .vp-user-summary-item .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--vp-dark);
+            font-family: var(--vp-font-heading);
+            transition: color var(--vp-transition);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .vp-user-summary-item .value.text-primary {
+            color: var(--vp-primary) !important;
+        }
+         .vp-user-summary-divider {
+            width: 1px;
+            background-color: var(--vp-border-color);
+            align-self: stretch;
+            margin: 0.25rem 0;
+            opacity: 0.5;
+            z-index: 1;
+        }
+
+        .vp-service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.75rem;
+        }
+        
+        .vp-service-item.hidden {
+            display: none;
+        }
+
+        .vp-service-item {
+            background-color: transparent; 
+            border-radius: var(--vp-radius-md); 
+            padding: 0.85rem; 
+            text-align: center;
+            box-shadow: none; 
+            transition: all var(--vp-transition);
+            text-decoration: none;
+            color: var(--vp-dark);
+            border: 1px solid transparent; 
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .vp-service-item:hover {
+            transform: translateY(-3px);
+            background-color: var(--vp-primary-light); 
+            border-color: var(--vp-primary-light); 
+            box-shadow: var(--vp-shadow-sm); 
+            color: var(--vp-primary);
+        }
+
+        .vp-service-item .icon-wrapper {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--vp-primary-light), rgba(var(--vp-primary-rgb), 0.1));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.6rem;
+            transition: all var(--vp-transition);
+            position: relative;
+            z-index: 1;
+        }
+        
+        [data-theme="light"] .vp-service-item:hover .icon-wrapper {
+            background: linear-gradient(135deg, var(--vp-primary), var(--vp-primary-dark));
+        }
+        [data-theme="dark"] .vp-service-item:hover .icon-wrapper {
+            background: linear-gradient(135deg, var(--vp-primary), var(--vp-primary-dark));
+        }
+
+        .vp-service-item .icon-wrapper .bi {
+            font-size: 1.5rem;
+            color: var(--vp-primary);
+            transition: color var(--vp-transition);
+        }
+
+        .vp-service-item:hover .icon-wrapper .bi {
+            color: green;
+        }
+
+        .vp-service-item .service-name {
+            font-size: 0.75rem;
+            font-weight: 500;
+            line-height: 1.25;
+            position: relative;
+            z-index: 1;
+        }
+
+        .vp-loading-shimmer {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(90deg, var(--vp-border-color) 25%, rgba(255,255,255,0.5) 50%, var(--vp-border-color) 75%);
+            background-size: 200% 100%;
+            border-radius: var(--vp-radius-sm);
+            display: inline-block;
+        }
+
+        .dropdown-menu {
+            border-radius: var(--vp-radius-md);
+            box-shadow: var(--vp-shadow-lg);
+            border: 1px solid var(--vp-border-color);
+            margin-top: 0.4rem !important;
+            background-color: var(--vp-card-bg);
+            padding: 0.4rem;
+        }
+
+        .dropdown-item {
+            padding: 0.65rem 0.9rem;
+            font-weight: 500;
+            font-family: var(--vp-font-heading);
+            border-radius: var(--vp-radius-sm);
+            margin-bottom: 0.2rem;
+            transition: all var(--vp-transition);
+            color: var(--vp-dark);
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item .bi {
+            margin-right: 0.6rem;
+            color: var(--vp-text-muted);
+            transition: color var(--vp-transition);
+            font-size: 1rem;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item:focus {
+            background-color: var(--vp-primary-light);
+            color: var(--vp-primary) !important;
+        }
+
+        .dropdown-item:hover .bi,
+        .dropdown-item:focus .bi {
+            color: var(--vp-primary) !important;
+        }
+
+        .dropdown-header {
+            color: var(--vp-dark) !important;
+            font-weight: 600;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-divider {
+            border-color: var(--vp-border-color);
+            margin: 0.4rem 0;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 1.5rem;
+            border-top: 1px solid var(--vp-border-color);
+            color: var(--vp-text-muted);
+            font-size: 0.85rem;
+            background-color: var(--vp-card-bg);
+            transition: all var(--vp-transition);
+            margin-left: 8px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            width: calc(100% - 16px);
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            flex-wrap: wrap; 
+        }
+
+        .footer-logo-name {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem; 
+            text-decoration: none;
+            color: var(--vp-dark);
+            transition: color var(--vp-transition);
+        }
+        
+        .footer-logo-name:hover {
+            color: var(--vp-primary);
+        }
+
+        .footer-logo-name-img {
+            height: 36px; 
+            width: auto;
+            border-radius: var(--vp-radius-md); 
+        }
+
+        .footer-logo-name-text {
+            font-family: var(--vp-font-heading);
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            letter-spacing: 0.5px;
+        }
+        
+        [data-theme="dark"] .footer-logo-name-text {
+            color: var(--vp-light);
+        }
+        
+        .footer-description {
+            max-width: 300px; 
+            margin-top: 0.75rem; 
+            margin-bottom: 1rem; 
+            font-size: 0.8rem;
+            color: var(--vp-text-muted);
+            line-height: 1.5;
+            text-align: left; 
+        }
+        .footer-description .bi {
+            margin-right: 0.5rem;
+            color: var(--vp-primary); 
+            font-size: 1rem;
+        }
+
+        .footer-links-section {
+            display: flex;
+            gap: 2rem; 
+            flex-wrap: wrap; 
+        }
+
+        .footer-section-title {
+            font-family: var(--vp-font-heading);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--vp-dark);
+            margin-bottom: 0.75rem;
+            display: block; 
+        }
+        [data-theme="dark"] .footer-section-title {
+            color: var(--vp-light);
+        }
+
+        .footer-links-section ul {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        .nav-item .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.9rem 1.5rem;
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 500;
-            transition: all 0.2s;
-            border-left: 4px solid transparent;
+
+        .footer-links-section li {
+            margin-bottom: 0.5rem;
         }
-        .nav-item .nav-link:hover {
-            color: var(--color-white);
-            background: rgba(255, 255, 255, 0.1);
-            border-left-color: var(--color-white);
+
+        .footer-links-section a {
+            color: var(--vp-text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color var(--vp-transition), transform 0.2s ease;
+            display: inline-block; 
         }
-        .nav-item.logout {
-            margin-top: auto;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+        .footer-links-section a:hover {
+            color: var(--vp-primary);
+            transform: translateX(3px); 
         }
-        .sidebar-toggle-btn {
-            background: none;
+        
+        .footer-social-links a {
+            font-size: 1.3rem; 
+            margin: 0 0.4rem;
+            color: var(--vp-text-muted);
+            transition: color var(--vp-transition);
+        }
+
+        .footer-social-links a:hover {
+            color: var(--vp-primary);
+        }
+.vp-history-section {
+            background-color: var(--vp-card-bg);
+            padding: 1.25rem;
+            border-radius: var(--vp-radius-lg);
+            box-shadow: var(--vp-shadow-sm);
+            margin-bottom: 1rem;
+            border: 1px solid var(--vp-border-color);
+        }
+
+        .vp-history-section .section-title {
+            font-family: var(--vp-font-heading);
+            color: var(--vp-dark);
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .vp-history-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .vp-history-table th,
+        .vp-history-table td {
+            padding: 0.875rem 1rem;
+            vertical-align: middle;
+            text-align: left;
             border: none;
-            font-size: 1.75rem;
-            cursor: pointer;
-            color: var(--color-dark);
-            display: none;
         }
-        .dashboard-grid {
-            display: grid;
-            gap: 1.5rem;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+
+        .vp-history-table thead {
+            background-color: var(--vp-primary-light);
         }
-        .stat-card {
-            background-color: var(--color-white);
-            border: 1px solid #e3e6f0;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border-left: 5px solid;
-            position: relative;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        .stat-card .card-body {
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .stat-card .card-title {
-            font-size: 0.9rem;
-            font-weight: 700;
+
+        .vp-history-table thead th {
+            font-family: var(--vp-font-heading);
+            font-weight: 600;
+            color: var(--vp-primary);
+            font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin: 0 0 0.5rem 0;
+            border-top: 1px solid var(--vp-border-color);
+            border-bottom: 1px solid var(--vp-border-color);
         }
-        .stat-card .card-value {
-            font-size: 1.75rem;
-            font-weight: 700;
+
+        .vp-history-table thead th:first-child {
+            border-left: 1px solid var(--vp-border-color);
+            border-top-left-radius: var(--vp-radius-md);
         }
-        .stat-card .card-icon {
-            font-size: 2.75rem;
-            color: #dddfeb;
+
+        .vp-history-table thead th:last-child {
+            border-right: 1px solid var(--vp-border-color);
+            border-top-right-radius: var(--vp-radius-md);
         }
-        .stat-card.primary { border-left-color: var(--color-primary); } .stat-card.primary .card-title { color: var(--color-primary); }
-        .stat-card.success { border-left-color: var(--color-success); } .stat-card.success .card-title { color: var(--color-success); }
-        .stat-card.warning { border-left-color: var(--color-warning); } .stat-card.warning .card-title { color: var(--color-warning); }
-        .stat-card.info { border-left-color: var(--color-info); } .stat-card.info .card-title { color: var(--color-info); }
-        .stat-card.danger { border-left-color: var(--color-danger); } .stat-card.danger .card-title { color: var(--color-danger); }
-        .stat-card.secondary { border-left-color: var(--color-secondary); } .stat-card.secondary .card-title { color: var(--color-secondary); }
-        .stat-card.dark { border-left-color: var(--color-dark); } .stat-card.dark .card-title { color: var(--color-dark); }
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1029;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+
+        .vp-history-table tbody tr {
+            background-color: var(--vp-card-bg);
+            transition: all var(--vp-transition);
+            border-left: 1px solid var(--vp-border-color);
+            border-right: 1px solid var(--vp-border-color);
+            border-bottom: 1px solid var(--vp-border-color);
         }
-        .modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.95);
-            z-index: 1050;
-            background: var(--color-white);
-            border-radius: var(--border-radius);
-            width: 90%;
-            max-width: 800px;
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+
+        .vp-history-table tbody tr:hover {
+            background-color: var(--vp-primary-light);
+            transform: translateY(-1px);
+            box-shadow: var(--vp-shadow-sm);
         }
-        .modal.active, .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
+
+        .vp-history-table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: var(--vp-radius-md);
         }
-        .modal.active {
-            transform: translate(-50%, -50%) scale(1);
+
+        .vp-history-table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: var(--vp-radius-md);
         }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; }
-        .modal-title { margin: 0; font-size: 1.25rem; }
-        .modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-        .modal-body { padding: 1.5rem; max-height: 70vh; overflow-y: auto; }
-        .modal-table { width: 100%; border-collapse: collapse; }
-        .modal-table th, .modal-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e3e6f0; }
-        .modal-table th { font-weight: 600; }
-        .modal-table tbody tr:hover { background-color: var(--color-light); }
-        .refresh-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: var(--color-secondary);
-            cursor: pointer;
-            font-size: 1rem;
-            transition: color 0.2s;
-        }
-        .refresh-btn:hover {
-            color: var(--color-primary);
-        }
-        .refresh-all-btn {
-            background: var(--color-primary);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            cursor: pointer;
+
+        .vp-history-table td {
+            font-size: 0.875rem;
+            color: var(--vp-dark);
             font-weight: 500;
-            margin-left: auto;
-            transition: background-color 0.2s;
         }
-        .refresh-all-btn:hover {
-            background: #3a5ccc;
-        }
-        .loading-spinner {
+
+        .vp-history-table .status-badge {
             display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid var(--color-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--vp-radius-sm);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: capitalize;
+            white-space: nowrap;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.15);
+            color: var(--vp-warning);
+            border: 1px solid rgba(255, 193, 7, 0.3);
         }
-        .retry-btn {
-            background: var(--color-warning);
+        .status-success {
+            background-color: rgba(25, 135, 84, 0.15);
+            color: var(--vp-success);
+            border: 1px solid rgba(25, 135, 84, 0.3);
+        }
+        .status-cancel, .status-failed, .status-expired {
+            background-color: rgba(220, 53, 69, 0.15);
+            color: var(--vp-danger);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .status-refunded {
+            background-color: rgba(108, 117, 125, 0.15);
+            color: var(--vp-secondary);
+            border: 1px solid rgba(108, 117, 125, 0.3);
+        }
+
+        .vp-history-table .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .vp-history-table .action-buttons .btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: var(--vp-radius-sm);
+            transition: all var(--vp-transition);
+            white-space: nowrap;
+        }
+
+        .vp-history-table .btn-primary {
+            background-color: var(--vp-primary);
+            border-color: var(--vp-primary);
+            color: green;
+        }
+        .vp-history-table .btn-primary:hover {
+            background-color: var(--vp-primary-dark);
+            border-color: var(--vp-primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .vp-history-table .btn-outline-secondary {
+            color: var(--vp-secondary);
+            border-color: var(--vp-secondary);
+            background-color: transparent;
+        }
+        .vp-history-table .btn-outline-secondary:hover {
+            background-color: var(--vp-secondary);
             color: white;
+            transform: translateY(-1px);
+        }
+
+        .modal-content {
+            border-radius: var(--vp-radius-lg);
+            border: 1px solid var(--vp-border-color);
+            background-color: var(--vp-card-bg);
+        }
+        .modal-header {
+            border-bottom: 1px solid var(--vp-border-color);
+            padding: 1rem 1.25rem;
+        }
+        .modal-title {
+            font-family: var(--vp-font-heading);
+            font-weight: 600;
+            color: var(--vp-dark);
+        }
+        [data-theme="dark"] .modal-title {
+            color: var(--vp-light);
+        }
+        .modal-header .btn-close {
+            background-color: transparent;
             border: none;
-            padding: 0.25rem 0.75rem;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
+            font-size: 1.2rem;
         }
-        .retry-btn:hover {
-            background: #e0b236;
+        .modal-body {
+            padding: 1.25rem;
         }
-        @media (max-width: 992px) {
-            .sidebar {
-                transform: translateX(calc(-1 * var(--sidebar-width)));
+        .modal-body .detail-item {
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--vp-text-muted);
+        }
+        .modal-body .detail-item strong {
+            color: var(--vp-dark);
+            display: inline-block;
+            min-width: 120px;
+            font-weight: 500;
+        }
+        [data-theme="dark"] .modal-body .detail-item strong {
+            color: var(--vp-light);
+        }
+        .modal-body .detail-item .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .modal-footer {
+            border-top: 1px solid var(--vp-border-color);
+            padding: 0.75rem 1.25rem;
+            justify-content: flex-end;
+        }
+
+        .history-view-all {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            font-family: var(--vp-font-heading);
+            font-weight: 500;
+            color: var(--vp-primary);
+            text-decoration: none;
+            transition: color var(--vp-transition);
+        }
+        .history-view-all:hover {
+            color: var(--vp-primary-dark);
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
             }
-            .sidebar.active {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .content-loaded {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .vp-service-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: var(--vp-radius-md);
+            transition: all var(--vp-transition);
+        }
+
+        .vp-service-toggle-wrapper:hover {
+            background-color: var(--vp-primary-light);
+            color: var(--vp-primary);
+        }
+        
+        .vp-service-toggle-wrapper:hover .bi {
+            color: var(--vp-primary);
+        }
+
+        .vp-service-toggle-wrapper .bi {
+            font-size: 1.3rem;
+            color: var(--vp-text-muted);
+            transition: color var(--vp-transition);
+        }
+
+        .vp-service-toggle-wrapper .toggle-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            font-family: var(--vp-font-heading);
+        }
+
+        .vp-sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            z-index: 1029;
+            display: none;
+            transition: opacity var(--vp-transition);
+        }
+
+        #mainBannerCarousel .carousel-item img {
+            object-fit: cover;
+            max-height: 220px;
+            border-radius: var(--vp-radius-md);
+        }
+
+        #mainBannerCarousel .carousel-inner {
+             border-radius: var(--vp-radius-md);
+             box-shadow: var(--vp-shadow-sm);
+             overflow: hidden; 
+        }
+        #mainBannerCarousel {
+            margin-bottom: 1rem;
+        }
+
+        @media (min-width: 992px) {
+            .vp-sidebar {
                 transform: translateX(0);
             }
-            .content-wrapper {
-                width: 100%;
-                margin-left: 0;
+            .vp-main-container {
+                padding-left: 260px;
+                width: calc(100% - 260px);
             }
-            .sidebar-toggle-btn {
+            .vp-sidebar-toggler {
+                display: none;
+            }
+            .vp-topbar-brand-link.desktop-hidden {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .vp-content-wrapper {
+                flex-direction: column;
+                padding: 0.75rem;
+            }
+             .vp-main-container {
+                padding-left: 0;
+                width: 100%;
+            }
+            .vp-topbar-brand-link { 
+                display: flex !important;
+            }
+            footer {
+                flex-direction: column; 
+                align-items: flex-start; 
+                text-align: left; 
+            }
+            .footer-logo-name {
+                margin-bottom: 0.75rem; 
+            }
+            .footer-links-section {
+                width: 100%; 
+                justify-content: space-between; 
+            }
+            .vp-notification-dropdown {
+                width: 280px;
+                right: -20px;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .vp-user-summary-item .label {
+                 font-size: 0.7rem;
+            }
+             .vp-user-summary-item .value {
+                 font-size: 1.1rem;
+            }
+            .vp-service-grid {
+                grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+                gap: 0.6rem;
+            }
+            .vp-service-item .icon-wrapper {
+                width: 40px;
+                height: 40px;
+            }
+            .vp-service-item .icon-wrapper .bi {
+                font-size: 1.3rem;
+            }
+            .vp-service-item .service-name {
+                font-size: 0.7rem;
+            }
+            .vp-topbar, footer {
+                margin: 6px;
+                width: calc(100% - 12px);
+                padding: 0.6rem;
+            }
+            .vp-content-wrapper {
+                padding: 0.6rem;
+            }
+            .vp-section {
+                padding: 1rem;
+            }
+            .vp-topbar-brand-text {
+                font-size: 1.1rem;
+            }
+            .vp-topbar-logo {
+                height: 24px;
+            }
+            .footer-logo-name-img {
+                height: 30px;
+            }
+            .footer-logo-name-text {
+                font-size: 1.3rem;
+            }
+            .footer-links-section {
+                flex-direction: column; 
+                gap: 1rem;
+            }
+            .footer-section-title {
+                margin-bottom: 0.5rem;
+            }
+            .footer-description {
+                max-width: 100%; 
+            }
+            #mainBannerCarousel .carousel-item img {
+                max-height: 140px; 
+            }
+            .vp-notification-dropdown {
+                width: 260px;
+                right: -40px;
+            }
+
+            .vp-history-table {
+                border: 1px solid var(--vp-border-color);
+                border-radius: var(--vp-radius-md);
+                overflow: hidden;
+            }
+
+            .vp-history-table thead {
+                display: none;
+            }
+
+            .vp-history-table tbody {
                 display: block;
             }
+
+            .vp-history-table tbody tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid var(--vp-border-color);
+                border-radius: var(--vp-radius-md);
+                padding: 1rem;
+                background-color: var(--vp-card-bg);
+                box-shadow: var(--vp-shadow-sm);
+                position: relative;
+            }
+
+            .vp-history-table tbody tr:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--vp-shadow-md);
+            }
+
+            .vp-history-table tbody tr:last-child {
+                margin-bottom: 0;
+            }
+
+            .vp-history-table tbody td {
+                display: block;
+                text-align: left;
+                padding: 0.5rem 0;
+                border: none;
+                position: relative;
+                padding-left: 0;
+            }
+
+            .vp-history-table tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--vp-text-muted);
+                display: block;
+                margin-bottom: 0.25rem;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .vp-history-table tbody td:last-child {
+                padding-top: 1rem;
+                border-top: 1px solid var(--vp-border-color);
+                margin-top: 0.75rem;
+            }
+
+            .vp-history-table tbody td:last-child::before {
+                content: "Detail";
+            }
+
+            .vp-history-table .action-buttons {
+                justify-content: flex-start;
+                gap: 0.5rem;
+            }
+
+            .vp-history-table .action-buttons .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+                min-width: auto;
+            }
+
+            .vp-history-table .status-badge {
+                font-size: 0.75rem;
+                padding: 0.375rem 0.75rem;
+                display: inline-block;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .vp-notification-dropdown {
+                width: 240px;
+                right: -60px;
+            }
+
+            .vp-history-table tbody tr {
+                padding: 0.875rem;
+            }
+
+            .vp-history-table .action-buttons {
+                flex-direction: column;
+                gap: 0.375rem;
+            }
+
+            .vp-history-table .action-buttons .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        [data-theme="dark"] .vp-loading-shimmer {
+            background: linear-gradient(90deg, #30363d 25%, rgba(139, 148, 158, 0.3) 50%, #30363d 75%);
+        }
+
+        [data-theme="dark"] .dropdown-item.text-danger {
+            color: #green !important;
+        }
+
+        [data-theme="dark"] .dropdown-item.text-danger:hover {
+            color: #green !important;
+        }
+
+        [data-theme="dark"] .vp-notification-header {
+            color: var(--vp-light);
+        }
+
+        [data-theme="dark"] .vp-notification-title {
+            color: var(--vp-light);
         }
     </style>
+
+<style id="comic-override-dashboard">
+/* ===== COMIC STYLE OVERRIDE (Dashboard) ===== */
+:root{
+  --comic-ink:#111827;
+  --comic-shadow: 6px 6px 0 var(--comic-ink);
+  --comic-shadow-sm: 4px 4px 0 var(--comic-ink);
+  --comic-radius: 16px;
+}
+
+/* Background kertas komik */
+body{
+  font-family: "Comic Neue", var(--vp-font-main), system-ui, sans-serif !important;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(17,24,39,.10) 1px, transparent 0) 0 0/18px 18px,
+    linear-gradient(180deg, rgba(240,255,247,1) 0%, var(--vp-body-bg) 60%) !important;
+}
+
+/* Judul & branding pakai font komik */
+.vp-topbar-brand-text,
+.vp-sidebar-brand-text,
+.footer-logo-name-text,
+.section-title,
+.vp-history-section .section-title,
+h1,h2,h3,h4,h5{
+  font-family: "Bangers", "Comic Neue", system-ui, sans-serif !important;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.12);
+}
+
+/* Panel/card: outline tebal + shadow offset */
+.vp-topbar,
+.vp-sidebar,
+.vp-section,
+.vp-history-section,
+.dropdown-menu,
+.modal-content,
+#mainBannerCarousel .carousel-inner,
+footer{
+  border: 3px solid var(--comic-ink) !important;
+  border-radius: var(--comic-radius) !important;
+  box-shadow: var(--comic-shadow) !important;
+}
+
+/* Sidebar link jadi lebih “chunky” */
+.vp-sidebar-menu .nav-link{
+  border: 2px solid transparent;
+}
+.vp-sidebar-menu .nav-link.active,
+.vp-sidebar-menu .nav-link:hover{
+  border-color: rgba(17,24,39,.25) !important;
+}
+
+/* Tombol/icon button: comic chunky tapi tetap rapih */
+.btn,
+.vp-sidebar-toggler,
+.vp-theme-toggle,
+.vp-notification-toggle,
+.vp-service-toggle-wrapper{
+  border: 3px solid var(--comic-ink) !important;
+  box-shadow: var(--comic-shadow-sm) !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+}
+
+.btn:hover,
+.vp-sidebar-toggler:hover,
+.vp-theme-toggle:hover,
+.vp-notification-toggle:hover{
+  transform: translate(-2px,-2px);
+  box-shadow: var(--comic-shadow) !important;
+}
+
+/* Service item: outline saat hover */
+.vp-service-item:hover{
+  border: 2px solid rgba(17,24,39,.35) !important;
+}
+
+/* Table: beri garis komik halus */
+.vp-history-table thead th{
+  border-top: 2px solid rgba(17,24,39,.2) !important;
+  border-bottom: 2px solid rgba(17,24,39,.2) !important;
+}
+.vp-history-table tbody tr{
+  border-left: 2px solid rgba(17,24,39,.2) !important;
+  border-right: 2px solid rgba(17,24,39,.2) !important;
+  border-bottom: 2px solid rgba(17,24,39,.2) !important;
+}
+
+/* Dark mode: tetap kebaca */
+[data-theme="dark"] body{
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,.08) 1px, transparent 0) 0 0/18px 18px,
+    var(--vp-body-bg) !important;
+}
+[data-theme="dark"] .vp-topbar,
+[data-theme="dark"] .vp-sidebar,
+[data-theme="dark"] .vp-section,
+[data-theme="dark"] .vp-history-section,
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] #mainBannerCarousel .carousel-inner,
+[data-theme="dark"] footer{
+  border-color: rgba(255,255,255,.22) !important;
+  box-shadow: 6px 6px 0 rgba(0,0,0,.65) !important;
+}
+</style>
+
+
+<style id="dashboard-history-fix">
+/* ===== DASHBOARD HISTORY FIX ===== */
+footer {
+    display: none !important;
+}
+
+.vp-history-table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+
+.vp-history-table {
+    min-width: 760px;
+    width: max-content;
+}
+
+.vp-history-table tbody tr:hover {
+    transform: none;
+}
+
+.history-view-all {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+    padding: .7rem 1rem;
+    border-radius: 12px;
+}
+
+.history-view-all:hover {
+    background: var(--vp-primary-light);
+}
+
+#allDepositsHistoryHint {
+    display: none;
+    text-align: center;
+    font-size: .78rem;
+    color: var(--vp-text-muted);
+    margin-top: .5rem;
+}
+
+@media (max-width: 991.98px) {
+    .vp-history-table-container {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        touch-action: pan-x;
+    }
+
+    .vp-history-table {
+        display: table !important;
+        min-width: 760px !important;
+        width: max-content !important;
+    }
+
+    .vp-history-table thead {
+        display: table-header-group !important;
+    }
+
+    .vp-history-table tbody {
+        display: table-row-group !important;
+    }
+
+    .vp-history-table tbody tr {
+        display: table-row !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .vp-history-table tbody td {
+        display: table-cell !important;
+        padding: .75rem .9rem !important;
+        text-align: left !important;
+        border: none !important;
+        white-space: nowrap;
+    }
+
+    .vp-history-table tbody td::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    .vp-history-table tbody td:last-child {
+        padding-top: .75rem !important;
+        border-top: none !important;
+        margin-top: 0 !important;
+    }
+
+    .vp-history-table tbody td:last-child::before {
+        content: none !important;
+    }
+
+    .vp-history-table .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+        gap: .5rem !important;
+    }
+
+    .vp-history-table .action-buttons .btn {
+        width: auto !important;
+        min-width: auto !important;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .vp-history-table {
+        min-width: 760px !important;
+    }
+
+    .vp-history-table .action-buttons {
+        flex-direction: row !important;
+    }
+
+    .vp-history-table .action-buttons .btn {
+        width: auto !important;
+    }
+}
+</style>
+
+
+<style id="dashboard-history-final-fix">
+/* History: tabel tetap satu baris dan digeser ke SAMPING di layar kecil */
+.vp-history-table-container {
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+
+.vp-history-table {
+    min-width: 760px !important;
+    width: max-content !important;
+}
+
+.vp-history-table thead {
+    display: table-header-group !important;
+}
+
+.vp-history-table tbody {
+    display: table-row-group !important;
+}
+
+.vp-history-table tbody tr {
+    display: table-row !important;
+    transform: none !important;
+}
+
+.vp-history-table tbody td {
+    display: table-cell !important;
+    padding: .75rem 1rem !important;
+}
+
+.vp-history-table tbody td::before {
+    content: none !important;
+}
+
+.vp-history-table tbody td:last-child {
+    border-top: none !important;
+    margin-top: 0 !important;
+    padding-top: .75rem !important;
+}
+
+.vp-history-table .action-buttons {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+}
+
+.vp-history-table .action-buttons .btn {
+    width: auto !important;
+    white-space: nowrap;
+}
+
+#allDepositsHistoryHint {
+    display: none;
+    text-align: center;
+    margin-top: .5rem;
+    font-size: .78rem;
+    color: var(--vp-text-muted);
+}
+
+/* Detail pembayaran mengikuti struktur deposit.html */
+.deposit-amount-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin: 1rem 0;
+}
+
+.deposit-amount-box {
+    padding: .9rem;
+    border: 1px solid var(--vp-border-color);
+    border-radius: var(--vp-radius-md);
+    background: var(--vp-light);
+}
+
+[data-theme="dark"] .deposit-amount-box {
+    background: var(--vp-body-bg);
+}
+
+.deposit-amount-box .amount-label {
+    display: block;
+    color: var(--vp-text-muted);
+    font-size: .78rem;
+    margin-bottom: .3rem;
+    font-weight: 600;
+}
+
+.deposit-amount-box .amount-value {
+    display: block;
+    color: var(--vp-dark);
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.deposit-amount-box.payment .amount-value {
+    color: var(--vp-primary);
+}
+
+.deposit-amount-box.incoming .amount-value {
+    color: var(--vp-success);
+}
+
+@media (max-width: 575.98px) {
+    .vp-history-table {
+        min-width: 760px !important;
+    }
+
+    .deposit-amount-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: .5rem;
+    }
+
+    .deposit-amount-box {
+        padding: .75rem;
+    }
+
+    .deposit-amount-box .amount-value {
+        font-size: .9rem;
+    }
+}
+</style>
+
+
+<style id="dashboard-scroll-fix">
+html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+body {
+    position: relative !important;
+}
+main, main.container, .container, .vp-dashboard, .vp-main, .dashboard-content {
+    max-height: none !important;
+    height: auto !important;
+    overflow-y: visible !important;
+}
+.vp-history-table-container {
+    max-height: none !important;
+    height: auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+}
+#depositHistoryBody {
+    max-height: none !important;
+    overflow: visible !important;
+}
+</style>
+
+
+<style id="history-working-fix">
+/* History deposit: horizontal di HP, bukan kartu vertikal */
+.vp-history-table-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+}
+
+.vp-history-table {
+    min-width: 850px !important;
+    width: max-content !important;
+}
+
+.vp-history-table thead {
+    display: table-header-group !important;
+}
+
+.vp-history-table tbody {
+    display: table-row-group !important;
+}
+
+.vp-history-table tbody tr {
+    display: table-row !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.vp-history-table tbody td {
+    display: table-cell !important;
+    padding: .75rem 1rem !important;
+    white-space: nowrap !important;
+}
+
+.vp-history-table tbody td::before {
+    content: none !important;
+}
+
+.vp-history-table tbody td:last-child {
+    padding-top: .75rem !important;
+    border-top: none !important;
+    margin-top: 0 !important;
+}
+
+.vp-history-table .action-buttons {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: .5rem !important;
+}
+
+.vp-history-table .action-buttons .btn {
+    width: auto !important;
+    white-space: nowrap !important;
+}
+
+html, body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+main, .vp-main-container, .vp-main-content {
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+</style>
+
 </head>
-<body>
+<body data-theme="light">
+    <div class="vp-wrapper">
+        <nav class="vp-sidebar" id="vpSidebar">
+            <div class="vp-sidebar-header">
+                <img src="/media/logo.png" alt="RyuuXiao Logo" class="vp-sidebar-header-logo">
+                <a class="vp-sidebar-brand-text" href="/dashboard">Xiao-Store</a>
+            </div>
+            <div class="vp-sidebar-menu">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">
+                            <i class="bi bi-house-door-fill"></i>
+                            <span>Home</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/deposit">
+                            <i class="bi bi-wallet2"></i>
+                            <span>Deposit</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/mutation-deposit">
+                            <i class="bi bi-cash-stack"></i>
+                            <span>Mutasi Deposit</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tarik.html">
+                            <i class="bi bi-wallet2"></i>
+                            <span>Tarik Duit</span>
+                        </a>
+                    </li>
+                <div class="vp-sidebar-heading">User Settings</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">
+                            <i class="bi bi-person-fill"></i>
+                            <span>Profil</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api-key-page">
+                            <i class="bi bi-key-fill"></i>
+                            <span>API Key</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs">
+                            <i class="bi bi-code-slash"></i>
+                            <span>Dokumentasi API</span>
+                        </a>
+                    </li>
+                </ul>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="/auth/logout">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
 
-<div class="modal-overlay" id="modalOverlay"></div>
-<div class="page-wrapper">
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            <i class="bi bi-shield-shaded"></i> XiaoStore
-        </div>
-        <ul class="sidebar-nav">
-            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/deposit"><i class="bi bi-wallet2"></i> Global Deposit</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/order"><i class="bi bi-cart-check-fill"></i> Global Order</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-clipboard-data-fill"></i> Rekap Transaksi</a></li>
-            <li class="nav-item logout"><a class="nav-link" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-        </ul>
-    </nav>
-
-    <div class="content-wrapper">
-        <header class="topbar">
-            <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="bi bi-list"></i></button>
-            <h5 style="margin-left: 1rem; margin-bottom: 0;">Admin Panel</h5>
-            <button class="refresh-all-btn" id="refreshAllBtn">
-                <i class="bi bi-arrow-clockwise"></i> Refresh All
-            </button>
-        </header>
-
-        <main class="main-content">
-            <h1 class="h3" style="margin-bottom: 1.5rem;">Dashboard Overview</h1>
-            <div id="alertContainer"></div>
-            
-            <section class="dashboard-grid">
-                <article class="stat-card primary" id="saldoProviderCard">
-                    <button class="refresh-btn" id="refreshProviderBtn" title="Refresh Saldo Provider">
-                        <i class="bi bi-arrow-clockwise"></i>
+        <div class="vp-main-container" id="vpMainContainer">
+            <header class="vp-topbar">
+                <div class="vp-topbar-brand-toggler">
+                    <button class="vp-sidebar-toggler" id="vpSidebarToggler" type="button" aria-label="Toggle sidebar">
+                        <i class="bi bi-list"></i>
                     </button>
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Saldo Provider</div>
-                            <div class="card-value" id="saldoProvider">Loading...</div>
+                    <a href="#" class="nav-link d-none d-md-inline-block" title="Mode Layar Penuh">
+                        <i class="bi bi-arrows-fullscreen fs-5"></i>
+                    </a>
+                    <a href="/dashboard" class="vp-topbar-brand-link" id="topbarBrand">
+                        <img src="/media/logo.png" alt="RyuuXiao Logo" class="vp-topbar-logo">
+                        <span class="vp-topbar-brand-text">RyuuXiao</span>
+                    </a>
+                </div>
+                
+                <div class="vp-topbar-actions">
+                    <button class="vp-theme-toggle" id="themeToggle" title="Toggle Theme">
+                        <i class="bi bi-moon-fill" id="themeIcon"></i>
+                    </button>
+                    <div class="vp-notification-wrapper">
+                        <button class="vp-notification-toggle" id="notificationToggle" title="Notifikasi">
+                            <i class="bi bi-bell-fill fs-5" id="notificationIcon"></i>
+                            <span class="vp-notification-badge" id="notificationBadge" style="display: none;"></span>
+                        </button>
+                        <div class="vp-notification-dropdown" id="notificationDropdown">
+                            <div class="vp-notification-header">Notifikasi</div>
+                            <div class="vp-notification-list" id="notificationList">
+                                <div class="vp-notification-empty">Memuat notifikasi...</div>
+                            </div>
                         </div>
-                        <i class="bi bi-cloud-arrow-down-fill card-icon"></i>
                     </div>
-                </article>
-                <article class="stat-card success" id="totalSaldoUserCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Total Saldo User</div>
-                            <div class="card-value" id="totalSaldoUser">...</div>
-                        </div>
-                        <i class="bi bi-wallet-fill card-icon"></i>
+                    <div class="dropdown vp-profile-dropdown">
+                        <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="https://via.placeholder.com/150/3BB143/FFFFFF?Text=C" alt="User" id="userProfileImageNav">
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                            <li><h6 class="dropdown-header" id="userFullnameNavDropdown">Nama Pengguna</h6></li>
+                            <li><a class="dropdown-item" href="/profile"><i class="bi bi-person-fill"></i>Profil</a></li>
+                            <li><a class="dropdown-item" href="/upgrade.html"><i class="bi bi-person-fill"></i>Upgrade H2H</a></li>
+                            <li><a class="dropdown-item" href="/support"><i class="fas fa-headset"></i> &nbsp;Support</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/auth/logout"><i class="bi bi-box-arrow-right"></i>Logout</a></li>
+                        </ul>
                     </div>
-                </article>
-                <article class="stat-card warning" id="totalCoinUserCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Total Coin User</div>
-                            <div class="card-value" id="totalCoinUser">...</div>
-                        </div>
-                        <i class="bi bi-coin card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card info" id="totalUsersCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Total User</div>
-                            <div class="card-value" id="totalUsers">...</div>
-                        </div>
-                        <i class="bi bi-people-fill card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card success" id="verifiedUsersCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">User Terverifikasi</div>
-                            <div class="card-value" id="verifiedUsers">...</div>
-                        </div>
-                        <i class="bi bi-person-check-fill card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card secondary" id="unverifiedUsersCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Belum Verifikasi</div>
-                            <div class="card-value" id="unverifiedUsers">...</div>
-                        </div>
-                        <i class="bi bi-person-exclamation card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card dark" id="roleUserCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Role: User</div>
-                            <div class="card-value" id="roleUser">...</div>
-                        </div>
-                        <i class="bi bi-person card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card primary" id="roleResellerCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Role: Reseller</div>
-                            <div class="card-value" id="roleReseller">...</div>
-                        </div>
-                        <i class="bi bi-person-video2 card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card primary" id="roleVipCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Role: Vip</div>
-                            <div class="card-value" id="roleVip">...</div>
-                        </div>
-                        <i class="bi bi-person-video2 card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card danger" id="roleAdminCard">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Role: Admin</div>
-                            <div class="card-value" id="roleAdmin">...</div>
-                        </div>
-                        <i class="bi bi-person-gear card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card success">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Total Deposit Sukses</div>
-                            <div class="card-value" id="totalDepositValue">...</div>
-                        </div>
-                        <i class="bi bi-cash-stack card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card success">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Total Order Sukses</div>
-                            <div class="card-value" id="totalOrderValue">...</div>
-                        </div>
-                        <i class="bi bi-graph-up-arrow card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card secondary">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Jml. Semua Deposit</div>
-                            <div class="card-value" id="totalDepositCount">...</div>
-                        </div>
-                        <i class="bi bi-list-ol card-icon"></i>
-                    </div>
-                </article>
-                <article class="stat-card secondary">
-                    <div class="card-body">
-                        <div class="card-info">
-                            <div class="card-title">Jml. Semua Order</div>
-                            <div class="card-value" id="totalOrderCount">...</div>
-                        </div>
-                        <i class="bi bi-bar-chart-steps card-icon"></i>
-                    </div>
-                </article>
-            </section>
-        </main>
-    </div>
-</div>
+                </div>
+            </header>
 
-<div class="modal" id="dataModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="dataModalLabel">Detail Data</h5>
-            <button type="button" class="modal-close-btn" id="modalCloseBtn"><i class="bi bi-x-lg"></i></button>
+            <div class="vp-content-wrapper">
+                <main class="vp-main-content">
+                    <section class="content-loaded" style="animation-delay: 0s;">
+                        <div id="mainBannerCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
+                            <div class="carousel-indicators">
+                                <button type="button" data-bs-target="#mainBannerCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                                <button type="button" data-bs-target="#mainBannerCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                                <button type="button" data-bs-target="#mainBannerCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                            </div>
+                            <div class="carousel-inner">
+                                <div class="carousel-item active">
+                                    <img src="/media/banner1.png" class="d-block w-100" alt="Banner 1">
+                                </div>
+                                <div class="carousel-item">
+                                    <img src="/media/banner2.png" class="d-block w-100" alt="Banner 2">
+                                </div>
+                                <div class="carousel-item">
+                                    <img src="/media/banner3.png" class="d-block w-100" alt="Banner 3">
+                                </div>
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="vp-section vp-user-summary-card content-loaded" style="animation-delay: 0.1s;">
+                        <div class="vp-user-summary-item saldo-item">
+                            <div class="label">
+                                <i class="bi bi-wallet2"></i>
+                                <span>Saldo</span>
+                            </div>
+                            <div class="value" id="userSaldo">
+                                <div class="vp-loading-shimmer" style="width:100px; height:20px;"></div>
+                            </div>
+                        </div>
+                        <div class="vp-user-summary-divider"></div>
+                        <div class="vp-user-summary-item level-item">
+                            <div class="label">
+                                <i class="bi bi-award-fill"></i>
+                                <span>Level</span>
+                            </div>
+                            <div class="value text-primary" id="userRole">
+                                <div class="vp-loading-shimmer" style="width:70px; height:20px;"></div>
+                            </div>
+                        </div>
+                    </section>
+                               
+<section class="vp-section content-loaded d-none" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="vp-service-toggle-wrapper" id="serviceToggleAction" role="button">
+            <i class="bi bi-grid-fill" id="serviceToggleIcon"></i>
+            <span class="toggle-text" id="serviceToggleText"></span>
         </div>
-        <div class="modal-body" id="dataModalBody"></div>
     </div>
+    <div class="vp-service-grid" id="popularServicesGrid"></div>
+</section>
+
+
+<section class="vp-history-section content-loaded" style="animation-delay: 0.3s;">
+    <h4 class="section-title">History Deposit Terbaru</h4>
+    <div class="vp-history-table-container">
+        <table class="vp-history-table">
+            <thead>
+                <tr>
+                    <th>ID Trx</th>
+                    <th>Nominal Masuk</th>
+                    <th>Metode</th>
+                    <th>Status</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody id="latestDepositHistoryBody">
+                <tr>
+                    <td colspan="5" class="text-center">
+                        <div class="vp-loading-shimmer" style="width: 100%; height: 40px;"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <button type="button" id="viewAllDepositsBtn" class="history-view-all" onclick="toggleAllDeposits()">
+        <i class="bi bi-chevron-down"></i> Lihat Semua Deposit
+    </button>
+</section>
+
+<div id="fix-order-container" style="display: none !important; visibility: hidden !important;">
+    <table class="vp-history-table">
+        <tbody id="latestOrderHistoryBody">
+            </tbody>
+    </table>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    let allUsersData = [];
-    let providerBalanceCache = null;
-    let providerBalanceTimestamp = null;
-    const CACHE_DURATION = 60000; // Cache saldo provider selama 1 menit
-    const modal = document.getElementById('dataModal');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    const refreshProviderBtn = document.getElementById('refreshProviderBtn');
-    const refreshAllBtn = document.getElementById('refreshAllBtn');
+                </main>
+            </div>
+</div>
+    </div>
 
-    // --- Utility Functions ---
-    const formatRupiah = (num) => {
-        if (num === null || num === undefined || isNaN(num)) return 'Rp 0';
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
-    };
-    
-    const formatNumber = (num) => {
-        if (num === null || num === undefined || isNaN(num)) return '0';
-        return new Intl.NumberFormat('id-ID').format(num);
-    };
+    <div class="modal fade vp-notification-modal" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notificationDetailModalLabel">
+                        <span id="notificationDetailIcon"></span>
+                        <span id="notificationDetailTitle">Detail Notifikasi</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="notification-detail-message" id="notificationDetailMessage"></div>
+                    <div class="notification-detail-time" id="notificationDetailTime"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <a href="#" class="btn btn-primary" id="notificationDetailLink" style="display: none;" target="_blank">Buka Link</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    const displayAlert = (message, type = 'danger') => {
-        const alertContainer = document.getElementById('alertContainer');
-        const alert = `<div style="padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; background-color: ${type === 'danger' ? '#f8d7da' : type === 'success' ? '#d1edff' : '#fff3cd'}; color: ${type === 'danger' ? '#721c24' : type === 'success' ? '#155724' : '#856404'}; border: 1px solid ${type === 'danger' ? '#f5c6cb' : type === 'success' ? '#b8daff' : '#ffeeba'};">${message}</div>`;
-        alertContainer.innerHTML = alert;
-        
-        // Auto remove alert after 5 seconds
-        setTimeout(() => {
-            alertContainer.innerHTML = '';
-        }, 5000);
-    };
+    <div class="modal fade" id="depositDetailModal" tabindex="-1" aria-labelledby="depositDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="depositDetailModalLabel">Detail Deposit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="depositDetailModalBody">
+                    <div class="vp-loading-shimmer" style="height: 150px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" id="modalDepositDetailCheckStatusBtn">Cek Status (API)</button>
+                    <button type="button" class="btn btn-outline-secondary" id="modalCancelDepositBtn">Batalkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // Fungsi untuk menangani loading/error di semua kartu
-    const updateCardDisplay = (isError = false, errorMessage = 'Error') => {
-        const cardValues = document.querySelectorAll('.card-value'); 
-        cardValues.forEach(el => {
-            if (isError) {
-                el.innerHTML = `<span style="font-size: 1rem; color: var(--color-danger);">${errorMessage}</span>`;
+    <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-labelledby="orderDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderDetailModalLabel">Detail Order</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="orderDetailModalBody">
+                    <div class="vp-loading-shimmer" style="height: 150px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" id="modalOrderDetailCheckStatusBtn">Cek Status (API)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vp-sidebar-overlay" id="sidebarOverlay"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+const vpSidebar = document.getElementById('vpSidebar');
+        const vpSidebarToggler = document.getElementById('vpSidebarToggler');
+        const vpMainContainer = document.getElementById('vpMainContainer');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const body = document.body;
+        const topbarBrand = document.getElementById('topbarBrand');
+
+        const popularServicesGrid = document.getElementById('popularServicesGrid');
+        const serviceItems = popularServicesGrid.querySelectorAll('.vp-service-item');
+        const itemsToShowInitially = 8; 
+        const serviceToggleAction = document.getElementById('serviceToggleAction'); 
+        const serviceToggleIcon = document.getElementById('serviceToggleIcon');
+        const serviceToggleText = document.getElementById('serviceToggleText');
+        let showingAllServices = false;
+
+        const notificationToggle = document.getElementById('notificationToggle');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const notificationIcon = document.getElementById('notificationIcon');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const notificationList = document.getElementById('notificationList');
+        let notificationsData = [];
+
+        function updateServiceDisplay() {
+            serviceItems.forEach((item, index) => {
+                if (showingAllServices) {
+                    item.classList.remove('hidden');
+                } else {
+                    if (index < itemsToShowInitially) {
+                        item.classList.remove('hidden');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                }
+            });
+
+
+            if (showingAllServices) {
+                serviceToggleIcon.className = 'bi bi-grid-fill';
+                serviceToggleText.textContent = 'Sembunyikan';
+                serviceToggleAction.setAttribute('aria-label', 'Hide categories');
             } else {
-                el.innerHTML = '<span class="loading-spinner"></span>'; 
+                serviceToggleIcon.className = 'bi bi-grid-fill';
+                serviceToggleText.textContent = 'Lihat Semua';
+                serviceToggleAction.setAttribute('aria-label', 'Show all categories');
             }
-        });
-    };
-
-    // --- API Fetch Handler ---
-    const fetchAPI = async (url, options = {}) => {
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                throw new Error(`[HTTP Status ${response.status}] Gagal mengambil data dari ${url}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.error(`Error fetching ${url}:`, error);
-            throw error;
         }
-    };
-
-// Fungsi untuk mengambil saldo langsung dari API Payinaja
-const fetchProviderBalance = async (forceRefresh = false) => {
-    // Gunakan cache jika masih berlaku
-    if (!forceRefresh && providerBalanceCache && providerBalanceTimestamp) {
-        const now = Date.now();
-        if (now - providerBalanceTimestamp < CACHE_DURATION) {
-            console.log('✅ Menggunakan cache saldo Payinaja');
-            return providerBalanceCache;
-        }
-    }
-
-    try {
-        const saldoElement = document.getElementById('saldoProvider');
-        if (saldoElement) {
-            saldoElement.innerHTML = `
-                <span style="color: var(--color-info);">
-                    <span class="loading-spinner"></span> Loading...
-                </span>
-            `;
-        }
-
-        console.log('🔄 Mengambil saldo dari Payinaja...');
-
-        const response = await fetch('https://payinaja.com/api/v1/profile', {
-            method: 'GET',
-            headers: {
-                'x-api-key': 'PAYINAJA-8RKAGUF3-L3VNHNGU-6LW06M3R' // Ganti dengan API Key milikmu
-            }
+        serviceToggleAction.addEventListener('click', () => {
+            showingAllServices = !showingAllServices;
+            updateServiceDisplay();
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
+        updateServiceDisplay();
 
-        const result = await response.json();
-        console.log('📦 Response:', result);
+        const savedTheme = localStorage.getItem('vp-theme') || 'light';
+        body.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
 
-        // Ambil balance saja
-        if (result.success && result.data?.balance !== undefined) {
-            const balance = Number(result.data.balance);
-
-            providerBalanceCache = balance;
-            providerBalanceTimestamp = Date.now();
-
-            return balance;
-        }
-
-        throw new Error('Balance tidak ditemukan pada response API.');
-
-    } catch (error) {
-        console.error('❌ Gagal mengambil saldo:', error);
-
-        // Gunakan cache terakhir jika ada
-        if (providerBalanceCache !== null) {
-            console.log('⚠️ Menggunakan saldo cache.');
-            return providerBalanceCache;
-        }
-
-        throw error;
-    }
-};
-
-
-    // Fungsi untuk mengambil data user REAL-TIME dari database
-    const fetchUsersData = async () => {
-        try {
-            console.log('🔄 Mengambil data user real-time...');
-            
-            const response = await fetch('/data/users');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: Gagal mengambil data user`);
+        function updateThemeIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.className = 'bi bi-sun-fill';
+            } else {
+                themeIcon.className = 'bi bi-moon-fill';
             }
+        }
+
+        function toggleTheme() {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             
-            const usersData = await response.json();
-            console.log('✅ Data user berhasil diambil:', usersData.length, 'users');
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('vp-theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        function updateTopbarBrandVisibility(isSidebarActive) {
+            if (window.innerWidth >= 992) { 
+                if (isSidebarActive) {
+                    topbarBrand.classList.add('desktop-hidden');
+                } else {
+                    topbarBrand.classList.remove('desktop-hidden');
+                }
+            } else { 
+                topbarBrand.classList.remove('desktop-hidden');
+            }
+        }
+
+        function toggleSidebar() {
+            vpSidebar.classList.toggle('active');
+            const isActive = vpSidebar.classList.contains('active');
+            updateTopbarBrandVisibility(isActive);
             
-            return usersData;
-        } catch (error) {
-            console.error('❌ Error fetching users data:', error);
-            throw new Error(`Tidak dapat mengambil data user: ${error.message}`);
+            if (window.innerWidth < 992) {
+                sidebarOverlay.style.display = isActive ? 'block' : 'none';
+                setTimeout(() => {
+                    sidebarOverlay.style.opacity = isActive ? '1' : '0';
+                }, 10);
+            }
         }
-    };
-
-    // Fungsi untuk memperbarui saldo provider
-    const updateProviderBalance = async (forceRefresh = false) => {
-        try {
-            const providerBalance = await fetchProviderBalance(forceRefresh);
-            document.getElementById('saldoProvider').textContent = formatRupiah(providerBalance);
-            return true;
-        } catch (error) {
-            console.error('Error updating provider balance:', error);
-            document.getElementById('saldoProvider').innerHTML = 
-                `<div style="display: flex; flex-direction: column; align-items: flex-start;">
-                    <span style="color: var(--color-danger);">Gagal Load</span>
-                    <button class="retry-btn" onclick="updateProviderBalance(true)">Coba Lagi</button>
-                </div>`;
-            displayAlert(`Gagal memuat saldo provider: ${error.message}`, 'danger');
-            return false;
-        }
-    };
-
-    // Fungsi untuk memperbarui data user dan statistik
-    const updateUsersData = async () => {
-        try {
-            const usersData = await fetchUsersData();
-            allUsersData = usersData;
-
-            // Proses Statistik User (Reducer) - REAL-TIME
-            const stats = allUsersData.reduce((acc, user) => {
-                acc.totalSaldoUser += user.saldo || 0;
-                acc.totalCoinUser += user.coin || 0;
-                
-                // Pengecekan isVerified yang lebih aman
-                if (user.isVerified === true || user.isVerified === 'true') acc.verifiedUsers++; 
-                
-                acc.roles[user.role] = (acc.roles[user.role] || 0) + 1;
-
-                // Deposit Calculation (Filter status 'success' case insensitive)
-                if (Array.isArray(user.historyDeposit)) {
-                    acc.totalDepositCount += user.historyDeposit.length;
-                    acc.totalDepositValue += user.historyDeposit
-                        .filter(d => d.status && d.status.toLowerCase() === 'success')
-                        .reduce((sum, d) => sum + (d.get_balance || 0), 0);
-                }
-                
-                // Order Calculation (Filter status 'success' case insensitive)
-                if (Array.isArray(user.historyOrder)) {
-                    acc.totalOrderCount += user.historyOrder.length;
-                    acc.totalOrderValue += user.historyOrder
-                        .filter(o => o.status && o.status.toLowerCase() === 'success')
-                        .reduce((sum, o) => sum + (parseFloat(o.price) || 0), 0);
-                }
-                return acc;
-            }, {
-                totalSaldoUser: 0, 
-                totalCoinUser: 0, 
-                verifiedUsers: 0, 
-                totalDepositValue: 0,
-                totalDepositCount: 0, 
-                totalOrderValue: 0, 
-                totalOrderCount: 0,
-                roles: { user: 0, reseller: 0, vip: 0, admin: 0 }
-            });
-
-            // Update Tampilan Data - REAL-TIME
-            document.getElementById('totalSaldoUser').textContent = formatRupiah(stats.totalSaldoUser);
-            document.getElementById('totalCoinUser').textContent = formatNumber(stats.totalCoinUser);
-            document.getElementById('totalUsers').textContent = formatNumber(allUsersData.length);
-            document.getElementById('verifiedUsers').textContent = formatNumber(stats.verifiedUsers);
-            document.getElementById('unverifiedUsers').textContent = formatNumber(allUsersData.length - stats.verifiedUsers);
-            document.getElementById('roleUser').textContent = formatNumber(stats.roles.user);
-            document.getElementById('roleReseller').textContent = formatNumber(stats.roles.reseller);
-            document.getElementById('roleVip').textContent = formatNumber(stats.roles.Vip);
-            document.getElementById('roleAdmin').textContent = formatNumber(stats.roles.admin);
-            document.getElementById('totalDepositValue').textContent = formatRupiah(stats.totalDepositValue);
-            document.getElementById('totalOrderValue').textContent = formatRupiah(stats.totalOrderValue);
-            document.getElementById('totalDepositCount').textContent = `${formatNumber(stats.totalDepositCount)} Tx`;
-            document.getElementById('totalOrderCount').textContent = `${formatNumber(stats.totalOrderCount)} Tx`;
-
-            return true;
-        } catch (error) {
-            console.error('Error updating users data:', error);
-            updateCardDisplay(true, 'Gagal Load Data');
-            displayAlert(`Gagal memuat data user: ${error.message}`, 'danger');
-            return false;
-        }
-    };
-
-    // --- Dashboard Core Logic ---
-    const loadDashboard = async () => {
-        // 1. Tampilkan Loading State
-        updateCardDisplay(false);
         
-        try {
-            // Menggunakan Promise.all untuk mengambil data secara paralel - REAL-TIME
-            const [providerSuccess, usersSuccess] = await Promise.all([
-                updateProviderBalance(),
-                updateUsersData()
-            ]);
+        function closeSidebar() {
+            vpSidebar.classList.remove('active');
+            updateTopbarBrandVisibility(false);
+            sidebarOverlay.style.opacity = '0';
+            setTimeout(() => {
+                sidebarOverlay.style.display = 'none';
+            }, 300);
+        }
 
-            if (providerSuccess && usersSuccess) {
-                displayAlert('Dashboard berhasil diperbarui dengan data real-time', 'success');
+        vpSidebarToggler.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        function updateLayoutForSidebar() {
+            const isDesktop = window.innerWidth >= 992;
+            if (isDesktop) {
+                vpSidebar.classList.add('active'); 
+                vpMainContainer.style.paddingLeft = '260px';
+                vpMainContainer.style.width = 'calc(100% - 260px)';
+                sidebarOverlay.style.display = 'none';
+            } else {
+                vpSidebar.classList.remove('active'); 
+                vpMainContainer.style.paddingLeft = '0';
+                vpMainContainer.style.width = '100%';
+            }
+            updateTopbarBrandVisibility(vpSidebar.classList.contains('active'));
+        }
+
+        window.addEventListener('resize', updateLayoutForSidebar);
+
+        function setActiveSidebarLink() {
+            const currentPath = window.location.pathname;
+            const currentSearch = window.location.search;
+            const currentFullPath = currentPath + currentSearch;
+
+            document.querySelectorAll('.vp-sidebar-menu .nav-link').forEach(link => {
+                link.classList.remove('active');
+                const linkHref = link.getAttribute('href');
+                if (linkHref === currentPath || linkHref === currentFullPath || (currentPath === '/' && linkHref === '/dashboard')) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        function getTimeAgo(dateString) {
+            const now = new Date();
+            const notificationDate = new Date(dateString);
+            const diffInSeconds = Math.floor((now - notificationDate) / 1000);
+
+            if (diffInSeconds < 60) {
+                return 'Baru saja';
+            } else if (diffInSeconds < 3600) {
+                const minutes = Math.floor(diffInSeconds / 60);
+                return `${minutes} menit yang lalu`;
+            } else if (diffInSeconds < 86400) {
+                const hours = Math.floor(diffInSeconds / 3600);
+                return `${hours} jam yang lalu`;
+            } else {
+                const days = Math.floor(diffInSeconds / 86400);
+                return `${days} hari yang lalu`;
+            }
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'info':
+                    return '<i class="bi bi-info-circle-fill"></i>';
+                case 'promo':
+                    return '<i class="bi bi-gift-fill"></i>';
+                case 'maintenance':
+                    return '<i class="bi bi-tools"></i>';
+                case 'success':
+                    return '<i class="bi bi-check-circle-fill"></i>';
+                default:
+                    return '<i class="bi bi-bell-fill"></i>';
+            }
+        }
+
+        function fetchNotifications() {
+            fetch('/api/notif')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data && data.data.success && data.data.data) {
+                        notificationsData = data.data.data;
+                        renderNotifications();
+                        updateNotificationBadge();
+                    } else {
+                        renderEmptyNotifications();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching notifications:', error);
+                    renderEmptyNotifications();
+                });
+        }
+
+        function renderNotifications() {
+            if (notificationsData.length === 0) {
+                renderEmptyNotifications();
+                return;
             }
 
-        } catch (error) {
-            console.error('Error loading dashboard:', error);
-            displayAlert(`Gagal memuat dashboard: ${error.message}`, 'danger');
+            const notificationItems = notificationsData.map(notification => {
+                const timeAgo = getTimeAgo(notification.created_at);
+                const iconClass = notification.tipe || 'info';
+                
+                return `
+                    <div class="vp-notification-item" onclick="showNotificationDetail(${notification.id})">
+                        <div class="vp-notification-icon ${iconClass}">
+                            ${getNotificationIcon(notification.tipe)}
+                        </div>
+                        <div class="vp-notification-content">
+                            <div class="vp-notification-title">${notification.judul}</div>
+                            <div class="vp-notification-message">${notification.pesan}</div>
+                            <div class="vp-notification-time">${timeAgo}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            notificationList.innerHTML = notificationItems;
         }
-    };
 
-    // Fungsi refresh semua data
-    const refreshAllData = async () => {
-        console.log('🔄 Memperbarui semua data...');
-        await loadDashboard();
-    };
-
-    // --- Sidebar & Modal Handlers ---
-    const toggleSidebar = () => {
-        sidebar.classList.toggle('active');
-        modalOverlay.classList.toggle('active');
-    };
-    sidebarToggleBtn.addEventListener('click', toggleSidebar);
-    
-    sidebar.addEventListener('click', (event) => {
-        event.stopPropagation();
-    });
-
-    const closeModal = () => {
-        modal.classList.remove('active');
-        if (!sidebar.classList.contains('active')) {
-            modalOverlay.classList.remove('active');
+        function renderEmptyNotifications() {
+            notificationList.innerHTML = '<div class="vp-notification-empty">Tidak ada notifikasi</div>';
         }
-    };
 
-    modalOverlay.addEventListener('click', () => {
-        if (sidebar.classList.contains('active') && !modal.classList.contains('active')) {
-             toggleSidebar();
-        } else if (modal.classList.contains('active')) {
-             closeModal();
+        function updateNotificationBadge() {
+            if (notificationsData.length > 0) {
+                notificationBadge.style.display = 'block';
+                notificationIcon.classList.add('vp-notification-shake');
+            } else {
+                notificationBadge.style.display = 'none';
+                notificationIcon.classList.remove('vp-notification-shake');
+            }
         }
-    });
-    modalCloseBtn.addEventListener('click', closeModal);
 
-    // Refresh button handlers
-    refreshProviderBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        updateProviderBalance(true); // Force refresh
-    });
+        function showNotificationDetail(notificationId) {
+            const notification = notificationsData.find(n => n.id === notificationId);
+            if (!notification) return;
 
-    refreshAllBtn.addEventListener('click', () => {
-        refreshAllData();
-    });
+            const modal = document.getElementById('notificationDetailModal');
+            const modalTitle = document.getElementById('notificationDetailTitle');
+            const modalIcon = document.getElementById('notificationDetailIcon');
+            const modalMessage = document.getElementById('notificationDetailMessage');
+            const modalTime = document.getElementById('notificationDetailTime');
+            const modalLink = document.getElementById('notificationDetailLink');
 
-    const showModalWithData = (title, data, columns) => {
-        document.getElementById('dataModalLabel').textContent = title;
-        const body = document.getElementById('dataModalBody');
-        if (!data || data.length === 0) {
-            body.innerHTML = `<p style="text-align:center; color: var(--color-secondary); padding: 3rem 0;">Tidak ada data untuk ditampilkan.</p>`;
-        } else {
-            let table = `<table class="modal-table"><thead><tr>`;
-            columns.forEach(c => table += `<th>${c.label}</th>`);
-            table += `</tr></thead><tbody>`;
-            data.forEach(item => {
-                table += `<tr>`;
-                columns.forEach(c => {
-                    const value = item[c.key] || 0;
-                    table += `<td>${c.formatter ? c.formatter(value) : value}</td>`;
+            modalTitle.textContent = notification.judul;
+            modalIcon.innerHTML = getNotificationIcon(notification.tipe);
+            modalIcon.className = `vp-notification-icon ${notification.tipe}`;
+            modalMessage.textContent = notification.pesan;
+            modalTime.textContent = `Dikirim pada: ${new Date(notification.created_at).toLocaleString('id-ID')}`;
+
+            if (notification.url && notification.url !== '#' && notification.url.trim() !== '') {
+                modalLink.href = notification.url;
+                modalLink.style.display = 'inline-block';
+            } else {
+                modalLink.style.display = 'none';
+            }
+
+            notificationDropdown.classList.remove('show');
+
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        }
+
+        notificationToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notificationToggle.contains(e.target) && !notificationDropdown.contains(e.target)) {
+                notificationDropdown.classList.remove('show');
+            }
+        });
+
+        function fetchDashboardData() {
+            fetch('/profile/users')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success && data.user) {
+                        displayUserData(data.user);
+                        renderHistory(data.user);
+                    } else {
+                        console.error('Failed to fetch user data or user data is invalid:', data);
+                        if (data.message && data.message.toLowerCase().includes("user not found")) {
+                            window.location.href = '/auth/login';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching dashboard data:', error);
+                    if (error.message.includes('HTTP error!')) {
+                        window.location.href = '/auth/login';
+                    }
                 });
-                table += `</tr>`;
-            });
-            table += `</tbody></table>`;
-            body.innerHTML = table;
         }
-        modal.classList.add('active');
-        modalOverlay.classList.add('active');
-    };
 
-    // --- Card Click Handlers ---
-    const commonCols = [{ key: 'fullname', label: 'Nama Lengkap' }, { key: 'username', label: 'Username' }];
-    document.getElementById('totalSaldoUserCard').addEventListener('click', () => showModalWithData('Pengguna dengan Saldo', allUsersData.filter(u => (u.saldo || 0) > 0), [...commonCols, { key: 'saldo', label: 'Saldo', formatter: formatRupiah }]));
-    document.getElementById('totalCoinUserCard').addEventListener('click', () => showModalWithData('Pengguna dengan Coin', allUsersData.filter(u => (u.coin || 0) > 0), [...commonCols, { key: 'coin', label: 'Coin', formatter: formatNumber }]));
-    document.getElementById('totalUsersCard').addEventListener('click', () => showModalWithData('Semua User Terdaftar', allUsersData, commonCols));
-    document.getElementById('verifiedUsersCard').addEventListener('click', () => showModalWithData('User Terverifikasi', allUsersData.filter(u => u.isVerified === true || u.isVerified === 'true'), commonCols));
-    document.getElementById('unverifiedUsersCard').addEventListener('click', () => showModalWithData('User Belum Verifikasi', allUsersData.filter(u => u.isVerified === false || u.isVerified === 'false' || !u.isVerified), commonCols));
-    document.getElementById('roleUserCard').addEventListener('click', () => showModalWithData('User Role: "User"', allUsersData.filter(u => u.role === 'user'), commonCols));
-    document.getElementById('roleResellerCard').addEventListener('click', () => showModalWithData('User Role: "Reseller"', allUsersData.filter(u => u.role === 'reseller'), commonCols));
-    document.getElementById('roleVipCard').addEventListener('click', () => showModalWithData('User Role: "Vip"', allUsersData.filter(u => u.role === 'Vip'), commonCols));
-    document.getElementById('roleAdminCard').addEventListener('click', () => showModalWithData('User Role: "Admin"', allUsersData.filter(u => u.role === 'admin'), commonCols));
-    
-    // --- Initial Load ---
-    loadDashboard();
+        function displayUserData(user) {
+            document.getElementById('userSaldo').textContent = `Rp ${user.saldo.toLocaleString('id-ID')}`;
+            document.getElementById('userRole').textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+            
+            const profileImgNav = document.getElementById('userProfileImageNav');
+            const userFullnameNavDropdown = document.getElementById('userFullnameNavDropdown');
+            
+            userFullnameNavDropdown.textContent = user.fullname || 'Pengguna';
+            
+            if (user.profileUrl && user.profileUrl.startsWith('http')) {
+                profileImgNav.src = user.profileUrl;
+            } else {
+                profileImgNav.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname || 'C T')}&background=3BB143&color=fff&size=36&font-size=0.5&bold=true&rounded=true`;
+            }
+            
+            profileImgNav.onerror = function() {
+                this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname || 'C T')}&background=3BB143&color=fff&size=36&font-size=0.5&bold=true&rounded=true`;
+            };
+        }
 
-    // Auto-refresh data setiap 1 menit (real-time)
-    setInterval(refreshAllData, 60000);
-});
-</script>
+        let dashboardDepositHistory = [];
+        let showingAllDeposits = false;
+
+        function renderDepositRows(deposits) {
+            const depositTbody = document.getElementById('latestDepositHistoryBody');
+            if (!depositTbody) return;
+
+            depositTbody.innerHTML = '';
+
+            if (!Array.isArray(deposits) || deposits.length === 0) {
+                depositTbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">Belum ada data deposit.</td>
+                    </tr>`;
+                return;
+            }
+
+            const normalizeDepositStatus = (rawStatus) => {
+                const status = String(rawStatus || 'pending').trim().toLowerCase();
+
+                if (['success', 'sukses', 'paid', 'completed', 'complete'].includes(status)) {
+                    return {
+                        label: 'Sukses',
+                        className: 'status-success'
+                    };
+                }
+
+                if (['cancel', 'cancelled', 'canceled', 'batal', 'failed', 'gagal', 'expired'].includes(status)) {
+                    return {
+                        label: 'Batal',
+                        className: 'status-cancel'
+                    };
+                }
+
+                return {
+                    label: 'Pending',
+                    className: 'status-pending'
+                };
+            };
+
+            deposits.forEach(deposit => {
+                const row = document.createElement('tr');
+
+                const nominalMasuk = Number(deposit.get_balance ?? deposit.nominal ?? 0);
+                const id = deposit.id ?? '-';
+                const metode = deposit.metode ?? deposit.method ?? '-';
+                const safeId = String(id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const statusInfo = normalizeDepositStatus(deposit.status);
+
+                row.innerHTML = `
+                    <td data-label="ID Trx">${id}</td>
+                    <td data-label="Nominal Masuk">Rp ${nominalMasuk.toLocaleString('id-ID')}</td>
+                    <td data-label="Metode">${metode}</td>
+                    <td data-label="Status">
+                        <span class="status-badge ${statusInfo.className}">
+                            ${statusInfo.label}
+                        </span>
+                    </td>
+                    <td data-label="Detail">
+                        <div class="action-buttons">
+                            <button type="button"
+                                class="btn btn-primary btn-sm"
+                                onclick="showDepositDetail('${safeId}')">
+                                <i class="bi bi-eye-fill"></i> Detail
+                            </button>
+                            ${String(deposit.status || '').toLowerCase() === 'pending' ? `
+                            <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                onclick="cancelDeposit('${safeId}')">
+                                <i class="bi bi-x-circle-fill"></i> Cancel
+                            </button>` : ''}
+                        </div>
+                    </td>
+                `;
+
+                depositTbody.appendChild(row);
+            });
+        }
+
+        function updateViewAllDepositsButton() {
+            const button = document.getElementById('viewAllDepositsBtn');
+            if (!button) return;
+
+            if (showingAllDeposits) {
+                button.innerHTML = '<i class="bi bi-chevron-up"></i> Tampilkan Deposit Terbaru';
+            } else {
+                button.innerHTML = '<i class="bi bi-chevron-down"></i> Lihat Semua Deposit';
+            }
+        }
+
+        function sortDepositsNewestFirst(deposits) {
+            return [...(Array.isArray(deposits) ? deposits : [])].sort((a, b) => {
+                const ta = new Date(a.created_at || 0).getTime();
+                const tb = new Date(b.created_at || 0).getTime();
+
+                if (!Number.isNaN(tb) && !Number.isNaN(ta) && tb !== ta) {
+                    return tb - ta;
+                }
+
+                // Fallback jika created_at tidak tersedia.
+                const ia = Number(a.id);
+                const ib = Number(b.id);
+                if (!Number.isNaN(ib) && !Number.isNaN(ia)) return ib - ia;
+
+                return 0;
+            });
+        }
+
+        function updateViewAllDepositsButton() {
+            const button = document.getElementById('viewAllDepositsBtn');
+            if (!button) return;
+
+            button.innerHTML = showingAllDeposits
+                ? '<i class="bi bi-chevron-up"></i> Tampilkan Deposit Terbaru'
+                : '<i class="bi bi-chevron-down"></i> Lihat Semua Deposit';
+        }
+
+        function toggleAllDeposits() {
+            showingAllDeposits = !showingAllDeposits;
+
+            // Jangan kunci scroll halaman.
+            document.documentElement.style.overflowY = 'auto';
+            document.body.style.overflowY = 'auto';
+
+            const sortedDeposits = sortDepositsNewestFirst(dashboardDepositHistory);
+            const depositsToShow = showingAllDeposits
+                ? sortedDeposits
+                : sortedDeposits.slice(0, 3);
+
+            renderDepositRows(depositsToShow);
+            updateViewAllDepositsButton();
+
+            if (showingAllDeposits) {
+                setTimeout(() => {
+                    const historySection = document.querySelector('.vp-history-section');
+                    if (historySection) {
+                        historySection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }, 50);
+            }
+        }
+
+        function renderHistory(userData) {
+            dashboardDepositHistory = Array.isArray(userData.historyDeposit)
+                ? userData.historyDeposit
+                : [];
+            showingAllDeposits = false;
+
+            const sortedDeposits = sortDepositsNewestFirst(dashboardDepositHistory);
+            renderDepositRows(sortedDeposits.slice(0, 3));
+            updateViewAllDepositsButton();
+
+            const orderTbody = document.getElementById('latestOrderHistoryBody');
+            if (!orderTbody) return;
+
+            const latestOrders = Array.isArray(userData.historyOrder)
+                ? [...userData.historyOrder].sort((a, b) => {
+                    return new Date(b.created_at || 0).getTime() -
+                           new Date(a.created_at || 0).getTime();
+                }).slice(0, 3)
+                : [];
+
+            orderTbody.innerHTML = '';
+
+            if (latestOrders.length === 0) {
+                orderTbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada data order.</td></tr>';
+                return;
+            }
+
+            latestOrders.forEach(order => {
+                const row = document.createElement('tr');
+
+                let statusClass = '';
+                if (order.status === 'pending') {
+                    statusClass = 'status-pending';
+                } else if (order.status === 'success') {
+                    statusClass = 'status-success';
+                } else if (['failed', 'cancel', 'failed_refunded'].includes(order.status)) {
+                    statusClass = 'status-failed';
+                }
+
+                const statusBadge =
+                    `<span class="status-badge ${statusClass}">${order.status || '-'}</span>`;
+
+                const safeOrderId = String(order.id || '')
+                    .replace(/\\/g, '\\\\')
+                    .replace(/'/g, "\\'");
+
+                row.innerHTML = `
+                    <td data-label="ID Transaksi">${order.id || '-'}</td>
+                    <td data-label="Layanan">${order.layanan || '-'}</td>
+                    <td data-label="Target">${order.target || '-'}</td>
+                    <td data-label="Status">${statusBadge}</td>
+                    <td data-label="Aksi">
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-primary btn-sm"
+                                onclick="showOrderDetail('${safeOrderId}')">
+                                <i class="bi bi-eye-fill"></i> Detail
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                orderTbody.appendChild(row);
+            });
+        }
+
+
+        function showDepositDetail(id) {
+            const modalBody = document.getElementById('depositDetailModalBody');
+            const modalCheckDepositStatusBtn = document.getElementById('modalDepositDetailCheckStatusBtn');
+            const modalCancelDepositBtn = document.getElementById('modalCancelDepositBtn');
+            const modalElement = document.getElementById('depositDetailModal');
+
+            modalBody.innerHTML = `
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memuat detail deposit...</p>
+                </div>`;
+
+            if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
+            if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
+
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+
+            fetch('/api/history/deposit')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const history = Array.isArray(data.historyDeposit)
+                        ? data.historyDeposit
+                        : Array.isArray(data.data)
+                            ? data.data
+                            : [];
+
+                    const deposit = history.find(item =>
+                        String(item.id ?? item.reff_id ?? '') === String(id)
+                    );
+
+                    if (!deposit) {
+                        modalBody.innerHTML = `
+                            <p class="text-danger text-center">
+                                Detail deposit tidak ditemukan.
+                            </p>`;
+                        return;
+                    }
+
+                    const paymentAmount = Number(deposit.nominal ?? 0);
+                    const incomingAmount = Number(deposit.get_balance ?? deposit.nominal ?? 0);
+                    const fee = Number(deposit.fee ?? 0);
+                    const currentStatus = String(deposit.status || 'pending').toLowerCase();
+
+                    let statusLabel = 'Pending';
+                    let statusClass = 'status-pending';
+
+                    if (['success', 'sukses', 'paid', 'completed', 'complete'].includes(currentStatus)) {
+                        statusLabel = 'Sukses';
+                        statusClass = 'status-success';
+                    } else if (['cancel', 'cancelled', 'canceled', 'batal', 'failed', 'gagal', 'expired'].includes(currentStatus)) {
+                        statusLabel = 'Batal';
+                        statusClass = 'status-cancel';
+                    }
+
+                    const formatDate = value => {
+                        if (!value) return '-';
+                        const date = new Date(value);
+                        return Number.isNaN(date.getTime())
+                            ? value
+                            : date.toLocaleString('id-ID');
+                    };
+
+                    let qrCodeHtml = '';
+                    if (currentStatus === 'pending' && deposit.qr_image) {
+                        qrCodeHtml = `
+                            <div class="qr-code-container" style="text-align:center;margin-top:15px;">
+                                <p class="mb-2 fw-bold">Silakan scan QR Code di bawah ini:</p>
+                                <img src="${deposit.qr_image}" alt="QR Code Pembayaran"
+                                    style="max-width:200px;border-radius:10px;border:1px solid #ddd;padding:5px;background:#fff;">
+                                <p class="mt-2 text-muted" style="font-size:11px;">Status: Menunggu Pembayaran</p>
+                            </div>`;
+                    }
+
+                    modalBody.innerHTML = `
+                        <div class="payment-details-card" style="margin-top:0;">
+                            <div class="payment-detail-item">
+                                <span class="label">ID Transaksi:</span>
+                                <span class="value">${deposit.id || deposit.reff_id || '-'}</span>
+                            </div>
+                            <div class="payment-detail-item">
+                                <span class="label">Reff ID:</span>
+                                <span class="value">${deposit.reff_id || '-'}</span>
+                            </div>
+                            <div class="deposit-amount-grid">
+                                <div class="deposit-amount-box payment">
+                                    <span class="amount-label">Total Pembayaran</span>
+                                    <span class="amount-value">Rp ${paymentAmount.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div class="deposit-amount-box incoming">
+                                    <span class="amount-label">Saldo Diterima</span>
+                                    <span class="amount-value">Rp ${incomingAmount.toLocaleString('id-ID')}</span>
+                                </div>
+                            </div>
+                            <div class="payment-detail-item">
+                                <span class="label">Biaya Admin:</span>
+                                <span class="value">Rp ${fee.toLocaleString('id-ID')}</span>
+                            </div>
+                            <div class="payment-detail-item">
+                                <span class="label">Metode:</span>
+                                <span class="value">${deposit.metode || deposit.method || '-'}</span>
+                            </div>
+                            ${deposit.tujuan ? `
+                            <div class="payment-detail-item">
+                                <span class="label">Nomor Tujuan/VA:</span>
+                                <span class="value">${deposit.tujuan}</span>
+                            </div>` : ''}
+                            ${deposit.atas_nama ? `
+                            <div class="payment-detail-item">
+                                <span class="label">Atas Nama:</span>
+                                <span class="value">${deposit.atas_nama}</span>
+                            </div>` : ''}
+                            <div class="payment-detail-item">
+                                <span class="label">Status:</span>
+                                <span class="value">
+                                    <span class="status-badge ${statusClass}">${statusLabel}</span>
+                                </span>
+                            </div>
+                            <div class="payment-detail-item">
+                                <span class="label">Tanggal Dibuat:</span>
+                                <span class="value">${formatDate(deposit.created_at)}</span>
+                            </div>
+                            ${deposit.expired_at && currentStatus === 'pending' ? `
+                            <div class="payment-detail-item text-danger">
+                                <span class="label">Bayar Sebelum:</span>
+                                <span class="value">${formatDate(deposit.expired_at)}</span>
+                            </div>` : ''}
+                            ${qrCodeHtml}
+                        </div>`;
+
+                    if (modalCheckDepositStatusBtn) {
+                        const canCheck = ['pending', 'processing'].includes(currentStatus);
+                        modalCheckDepositStatusBtn.style.display = canCheck ? '' : 'none';
+                        modalCheckDepositStatusBtn.disabled = false;
+                        modalCheckDepositStatusBtn.innerHTML = 'Cek Status (API)';
+                        modalCheckDepositStatusBtn.onclick = () => {
+                            modalCheckDepositStatusBtn.disabled = true;
+                            modalCheckDepositStatusBtn.innerHTML = 'Checking...';
+                            checkDepositStatus(deposit.id || id, true);
+                        };
+                    }
+
+                    if (modalCancelDepositBtn) {
+                        modalCancelDepositBtn.style.display = currentStatus === 'pending' ? '' : 'none';
+                        modalCancelDepositBtn.disabled = false;
+                        modalCancelDepositBtn.innerHTML = 'Batalkan';
+                        modalCancelDepositBtn.onclick = () => cancelDeposit(deposit.id || id);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching deposit detail:', error);
+                    modalBody.innerHTML = `
+                        <p class="text-danger text-center">
+                            Terjadi kesalahan saat memuat detail deposit.
+                        </p>`;
+                    if (modalCheckDepositStatusBtn) modalCheckDepositStatusBtn.style.display = 'none';
+                    if (modalCancelDepositBtn) modalCancelDepositBtn.style.display = 'none';
+                });
+        }
+
+        function showOrderDetail(id) {
+            const modalBody = document.getElementById('orderDetailModalBody');
+            modalBody.innerHTML = '<div class="vp-loading-shimmer" style="height: 150px;"></div>';
+
+            const modalCheckOrderStatusBtn = document.getElementById('modalOrderDetailCheckStatusBtn');
+            modalCheckOrderStatusBtn.onclick = null;
+            modalCheckOrderStatusBtn.onclick = () => {
+                modalCheckOrderStatusBtn.disabled = true;
+                modalCheckOrderStatusBtn.innerHTML = 'Checking...';
+                checkOrderStatus(id, true);
+            };
+
+            fetch(`/api/webtrx/order/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status && data.data) {
+                    const order = data.data;
+                    let orderStatusBadge = '';
+                    let statusClass = '';
+                    if (order.status === 'pending') {
+                        statusClass = 'status-pending';
+                    } else if (order.status === 'success') {
+                        statusClass = 'status-success';
+                    } else if (['failed', 'cancel', 'failed_refunded'].includes(order.status)) {
+                        statusClass = 'status-failed';
+                    }
+                    orderStatusBadge = `<span class="status-badge ${statusClass}">${order.status}</span>`;
+
+                    modalBody.innerHTML = `
+                        <div class="detail-item">
+                            <strong>ID Transaksi:</strong> ${order.id || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Ref ID:</strong> ${order.reff_id || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Layanan:</strong> ${order.layanan || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Target:</strong> ${order.target || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Harga:</strong> Rp ${parseInt(order.price).toLocaleString('id-ID')}
+                        </div>
+                        <div class="detail-item">
+                            <strong>SN/Resi:</strong> ${order.sn ? order.sn : '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Status:</strong> ${orderStatusBadge}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Tanggal:</strong> ${new Date(order.created_at).toLocaleString('id-ID')}
+                        </div>
+                    `;
+
+                    if (modalCheckOrderStatusBtn) {
+                        modalCheckOrderStatusBtn.disabled = false;
+                        modalCheckOrderStatusBtn.innerHTML = 'Cek Status (API)';
+                        if (['success', 'failed', 'cancel'].includes(order.status)) {
+                           modalCheckOrderStatusBtn.style.display = 'none';
+                        } else {
+                           modalCheckOrderStatusBtn.style.display = '';
+                        }
+                    }
+
+                    const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+                    modal.show();
+
+                } else {
+                    modalBody.innerHTML = `<p class="text-danger text-center">${data.message || 'Gagal memuat detail order.'}</p>`;
+                    if (modalCheckOrderStatusBtn) modalCheckOrderStatusBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching order detail:', error);
+                modalBody.innerHTML = `<p class="text-danger text-center">Terjadi kesalahan saat memuat detail order.</p>`;
+                if (modalCheckOrderStatusBtn) modalCheckOrderStatusBtn.style.display = 'none';
+            });
+        }
+
+        function checkDepositStatus(id, calledFromModal = false) {
+            const checkDepositStatusBtn = document.getElementById('modalDepositDetailCheckStatusBtn');
+            const modalBody = document.getElementById('depositDetailModalBody');
+            
+            if (checkDepositStatusBtn) {
+                checkDepositStatusBtn.disabled = true;
+                checkDepositStatusBtn.innerHTML = 'Checking...';
+            }
+
+            fetch(`/api/webtrx/deposit/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const deposit = data.data;
+                    let depositStatusBadge = '';
+                    let statusClass = '';
+                    if (deposit.status === 'pending') {
+                        statusClass = 'status-pending';
+                    } else if (deposit.status === 'success') {
+                        statusClass = 'status-success';
+                    } else if (['failed', 'expired', 'cancel'].includes(deposit.status)) {
+                        statusClass = 'status-failed';
+                    }
+                    depositStatusBadge = `<span class="status-badge ${statusClass}">${deposit.status}</span>`;
+
+                    let qrCodeHtml = '';
+                    if (deposit.status === 'pending' && deposit.qr_image) {
+                        qrCodeHtml = `<div class="detail-item text-center"><strong>QR Code:</strong> <br><img src="${deposit.qr_image}" alt="QR Code" style="max-width: 150px; height: auto; margin-top: 10px;"></div>`;
+                    }
+
+                    if (modalBody) {
+                        modalBody.innerHTML = `
+                            <div class="detail-item"><strong>ID Transaksi:</strong> ${deposit.id || '-'}</div>
+                            <div class="detail-item"><strong>Ref ID:</strong> ${deposit.reff_id || '-'}</div>
+                            <div class="detail-item"><strong>Nominal:</strong> Rp ${deposit.nominal.toLocaleString('id-ID')}</div>
+                            <div class="detail-item"><strong>Fee:</strong> Rp ${deposit.fee.toLocaleString('id-ID')}</div>
+                            <div class="detail-item"><strong>Diterima:</strong> Rp ${deposit.get_balance.toLocaleString('id-ID')}</div>
+                            <div class="detail-item"><strong>Metode:</strong> ${deposit.metode || '-'}</div>
+                            ${deposit.tujuan ? `<div class="detail-item"><strong>Tujuan:</strong> ${deposit.tujuan}</div>` : ''}
+                            ${deposit.atas_nama ? `<div class="detail-item"><strong>Atas Nama:</strong> ${deposit.atas_nama}</div>` : ''}
+                            <div class="detail-item"><strong>Status:</strong> ${depositStatusBadge}</div>
+                            <div class="detail-item"><strong>Tanggal:</strong> ${new Date(deposit.created_at).toLocaleString('id-ID')}</div>
+                            ${qrCodeHtml}
+                        `;
+                    }
+
+                    if (checkDepositStatusBtn) {
+                        checkDepositStatusBtn.disabled = false;
+                        checkDepositStatusBtn.innerHTML = 'Cek Status (API)';
+                        if (['success', 'failed', 'expired', 'cancel'].includes(deposit.status)) {
+                            checkDepositStatusBtn.style.display = 'none';
+                            document.getElementById('modalCancelDepositBtn').style.display = 'none';
+                            if (deposit.status === 'success') {
+                                setTimeout(() => location.reload(), 2000);
+                            }
+                        } else {
+                            checkDepositStatusBtn.style.display = '';
+                        }
+                    }
+                } else {
+                    const errorMessage = data.message || 'Gagal memperbarui status.';
+                    if (modalBody) modalBody.innerHTML = `<p class="text-danger text-center">${errorMessage}</p>`;
+                    if (checkDepositStatusBtn) {
+                        checkDepositStatusBtn.disabled = false;
+                        checkDepositStatusBtn.innerHTML = 'Cek Status (API)';
+                        checkDepositStatusBtn.style.display = 'none';
+                        document.getElementById('modalCancelDepositBtn').style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking deposit status:', error);
+                const errorMessage = 'Error checking status.';
+                if (modalBody) modalBody.innerHTML = `<p class="text-danger text-center">${errorMessage}</p>`;
+                if (checkDepositStatusBtn) {
+                    checkDepositStatusBtn.disabled = false;
+                    checkDepositStatusBtn.innerHTML = 'Cek Status (API)';
+                    checkDepositStatusBtn.style.display = 'none';
+                    document.getElementById('modalCancelDepositBtn').style.display = 'none';
+                }
+            });
+        }
+
+        function checkOrderStatus(id, calledFromModal = false) {
+            const modalCheckOrderStatusBtn = document.getElementById('modalOrderDetailCheckStatusBtn');
+            const modalBody = document.getElementById('orderDetailModalBody');
+
+            if(calledFromModal && modalCheckOrderStatusBtn) {
+                modalCheckOrderStatusBtn.disabled = true;
+                modalCheckOrderStatusBtn.innerHTML = 'Checking...';
+            }
+
+            fetch(`/api/webtrx/order/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status && data.data) {
+                    const order = data.data;
+                    let orderStatusBadge = '';
+                    let statusClass = '';
+                    if (order.status === 'pending') {
+                        statusClass = 'status-pending';
+                    } else if (order.status === 'success') {
+                        statusClass = 'status-success';
+                    } else if (['failed', 'cancel', 'failed_refunded'].includes(order.status)) {
+                        statusClass = 'status-failed';
+                    }
+                    orderStatusBadge = `<span class="status-badge ${statusClass}">${order.status}</span>`;
+
+                    modalBody.innerHTML = `
+                        <div class="detail-item">
+                            <strong>ID Transaksi:</strong> ${order.id || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Ref ID:</strong> ${order.reff_id || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Layanan:</strong> ${order.layanan || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Target:</strong> ${order.target || '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Harga:</strong> Rp ${parseInt(order.price).toLocaleString('id-ID')}
+                        </div>
+                        <div class="detail-item">
+                            <strong>SN/Resi:</strong> ${order.sn ? order.sn : '-'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Status:</strong> ${orderStatusBadge}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Tanggal:</strong> ${new Date(order.created_at).toLocaleString('id-ID')}
+                        </div>
+                    `;
+
+                    if (modalCheckOrderStatusBtn) {
+                        modalCheckOrderStatusBtn.disabled = false;
+                        modalCheckOrderStatusBtn.innerHTML = 'Cek Status (API)';
+                        if (['success', 'failed', 'cancel'].includes(order.status)) {
+                           modalCheckOrderStatusBtn.style.display = 'none';
+                        } else {
+                           modalCheckOrderStatusBtn.style.display = '';
+                        }
+                    }
+
+                    const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+                    modal.show();
+
+                } else {
+                    modalBody.innerHTML = `<p class="text-danger text-center">${data.message || 'Gagal memuat detail order.'}</p>`;
+                    if (modalCheckOrderStatusBtn) modalCheckOrderStatusBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching order detail:', error);
+                modalBody.innerHTML = `<p class="text-danger text-center">Terjadi kesalahan saat memuat detail order.</p>`;
+                if (modalCheckOrderStatusBtn) modalCheckOrderStatusBtn.style.display = 'none';
+            });
+        }
+
+        function cancelDeposit(id) {
+            if (!confirm("Anda yakin ingin membatalkan deposit ini? Aksi ini tidak dapat diurungkan.")) {
+                return;
+            }
+
+            const detailBtn = document.querySelector(`#depositDetailModal .btn[onclick*="'${id}'"][onclick*="showDepositDetail"]`);
+            const cancelBtn = document.getElementById('modalCancelDepositBtn');
+            const checkBtn = document.getElementById('modalDepositDetailCheckStatusBtn');
+
+            if (detailBtn) detailBtn.style.pointerEvents = 'none';
+            if (cancelBtn) {
+                cancelBtn.style.pointerEvents = 'none';
+                cancelBtn.innerHTML = 'Cancelling...';
+            }
+            if (checkBtn) checkBtn.style.pointerEvents = 'none';
+
+            fetch(`/api/webtrx/deposit/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    alert('Deposit berhasil dibatalkan!');
+                    location.reload();
+                } else {
+                    alert(`Gagal membatalkan deposit: ${data.message || 'Terjadi kesalahan.'}`);
+                    if (detailBtn) detailBtn.style.pointerEvents = 'auto';
+                    if (cancelBtn) {
+                        cancelBtn.style.pointerEvents = 'auto';
+                        cancelBtn.innerHTML = 'Batal';
+                    }
+                    if (checkBtn) checkBtn.style.pointerEvents = 'auto';
+                }
+            })
+            .catch(error => {
+                console.error('Error cancelling deposit:', error);
+                alert('Terjadi kesalahan saat membatalkan deposit.');
+                if (detailBtn) detailBtn.style.pointerEvents = 'auto';
+                if (cancelBtn) {
+                    cancelBtn.style.pointerEvents = 'auto';
+                    cancelBtn.innerHTML = 'Batal';
+                }
+                if (checkBtn) checkBtn.style.pointerEvents = 'auto';
+            }); 
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLayoutForSidebar();
+            setActiveSidebarLink();
+            fetchDashboardData();
+            fetchNotifications();
+        });
+    </script>
+<style>footer{display:none !important;}</style>
 </body>
 </html>
+
+<!-- TODO modified placeholder -->
