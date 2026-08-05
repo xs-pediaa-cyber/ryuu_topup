@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gmail Access - Xiao Store</title>
+  <title>Gmail Access - Limit Harian</title>
   <style>
     :root{
       --bg1:#f7f4ff;
@@ -101,11 +101,7 @@
       box-shadow: var(--shadow2);
       font-size:13px;
     }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-    }
+    .grid{display:grid; grid-template-columns: 1fr; gap:14px;}
     .card{
       background: rgba(255,255,255,.86);
       backdrop-filter: blur(10px);
@@ -141,10 +137,9 @@
       box-shadow: 0 0 0 5px rgba(124,77,255,.12);
       flex: 0 0 auto;
     }
-    .muted{color:var(--muted)}
     .status-row{
       display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap:12px;
       position:relative;
       z-index:1;
@@ -173,8 +168,8 @@
     .value.good{color:var(--accent2)}
     .value.warn{color:#cc8500}
     .value.danger{color:var(--danger)}
-    .lockbox{
-      display:none;
+    .value.neutral{color:#4b5565}
+    .info-box{
       position:relative;
       z-index:1;
       border-radius: 20px;
@@ -182,24 +177,17 @@
       border: 1px solid rgba(124,77,255,.16);
       background: linear-gradient(135deg, rgba(124,77,255,.06), rgba(0,184,148,.05));
     }
-    .lockbox.show{display:block; animation: fadeUp .28s ease both;}
-    .lock-title{
+    .info-title{
       margin:0 0 8px;
       font-size:18px;
       font-weight:900;
     }
-    .lock-copy{
+    .info-copy{
       margin:0 0 12px;
       color:var(--muted);
       line-height:1.5;
     }
-    .price-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      margin-top:10px;
-    }
+    .info-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
     .price-chip{
       padding:10px 12px;
       border-radius:999px;
@@ -207,6 +195,9 @@
       border:1px solid var(--line);
       font-weight:800;
       box-shadow: var(--shadow2);
+      font-size:13px;
+      max-width:100%;
+      word-break:break-word;
     }
     .field{
       display:flex;
@@ -296,19 +287,9 @@
       flex:0 0 auto;
     }
     .loading-copy{font-size:15px}
-    .stage{
-      display:none;
-      position:relative;
-      z-index:1;
-      animation: fadeUp .28s ease both;
-    }
+    .stage{display:none; position:relative; z-index:1; animation: fadeUp .28s ease both;}
     .stage.show{display:block}
-    .chip-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
+    .chip-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;}
     .chip{
       padding:10px 12px;
       border-radius:999px;
@@ -321,8 +302,6 @@
       word-break:break-word;
     }
     .chip.good{color:var(--accent2)}
-    .chip.warn{color:#b87900}
-    .chip.bad{color:var(--danger)}
     .status-box{
       margin-top:14px;
       padding: 14px 16px;
@@ -345,10 +324,8 @@
       border:1px solid rgba(0,184,148,.18);
       font-size:20px;
     }
-
     .done-layer{
-      position:fixed;
-      inset:0;
+      position:fixed; inset:0;
       background: rgba(9, 12, 24, .35);
       backdrop-filter: blur(7px);
       display:none;
@@ -392,24 +369,8 @@
       animation: pulse 1.15s ease-in-out infinite;
       position:relative;
     }
-    .done-title{
-      margin: 0 0 6px;
-      font-size: 22px;
-      font-weight: 900;
-    }
-    .done-text{
-      margin: 0;
-      color: var(--muted);
-      line-height:1.5;
-    }
-    .footer-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-      position:relative;
-      z-index:1;
-    }
+    .done-title{margin: 0 0 6px; font-size: 22px; font-weight: 900;}
+    .done-text{margin: 0; color: var(--muted); line-height:1.5;}
     .note{
       margin-top:10px;
       color:var(--muted);
@@ -418,7 +379,6 @@
       position:relative;
       z-index:1;
     }
-
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pop{from{opacity:0; transform: scale(.85) translateY(12px)} to{opacity:1; transform: scale(1) translateY(0)}}
     @keyframes pulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.05)}}
@@ -426,10 +386,7 @@
     @keyframes fadeUp{from{opacity:0; transform: translateY(10px)} to{opacity:1; transform: translateY(0)}}
     @keyframes rise{from{opacity:0; transform: translateY(18px)} to{opacity:1; transform: translateY(0)}}
     @keyframes drop{from{opacity:0; transform: translateY(-10px)} to{opacity:1; transform: translateY(0)}}
-
-    @media (max-width:860px){
-      .status-row{grid-template-columns: repeat(2, minmax(0, 1fr));}
-    }
+    @media (max-width:920px){ .status-row{grid-template-columns: repeat(2, minmax(0, 1fr));} }
     @media (max-width:640px){
       .wrap{width:calc(100% - 10px); margin-top:8px}
       .card{padding:16px}
@@ -461,49 +418,30 @@
         <div class="badge">✦</div>
         <div>
           <h1>Gmail Web</h1>
-          <p class="sub">Step 1 kirim Gmail, step 2 verifikasi link. Akses mengikuti role & saldo dari sistem yang sudah ada.</p>
+          <p class="sub">Role VIP unlimited. Role user dan reseller punya limit harian yang tampil langsung di halaman.</p>
         </div>
       </div>
-      <div class="ribbon">Comic UI • smooth loader • cek role otomatis</div>
+      <div class="ribbon">Comic UI • smooth loader • limit reset harian</div>
     </div>
 
     <div class="grid">
       <div class="card">
         <div class="section-head"><span class="section-dot"></span> Status Akun</div>
-
         <div class="status-row">
-          <div class="mini-card">
-            <div class="label">Role</div>
-            <div class="value" id="roleValue">-</div>
-          </div>
-          <div class="mini-card">
-            <div class="label">Akses</div>
-            <div class="value" id="accessValue">-</div>
-          </div>
-          <div class="mini-card">
-            <div class="label">Limit Hari Ini</div>
-            <div class="value" id="limitValue">-</div>
-            <div class="muted" id="resetText" style="font-size:12px;margin-top:4px">Reset: -</div>
-          </div>
-          <div class="mini-card">
-            <div class="label">Email Aktif</div>
-            <div class="value" id="emailValue">-</div>
-          </div>
+          <div class="mini-card"><div class="label">Role</div><div class="value" id="roleValue">-</div></div>
+          <div class="mini-card"><div class="label">Status</div><div class="value" id="accessValue">-</div></div>
+          <div class="mini-card"><div class="label">Limit Harian</div><div class="value" id="limitValue">-</div></div>
+          <div class="mini-card"><div class="label">Sisa Hari Ini</div><div class="value" id="remainingValue">-</div></div>
+          <div class="mini-card"><div class="label">Email Aktif</div><div class="value" id="emailValue">-</div></div>
         </div>
-
-        <div class="lockbox" id="lockBox">
-          <h3 class="lock-title" id="lockTitle">Akses terkunci</h3>
-          <p class="lock-copy" id="lockCopy">Role ini belum bisa membuka fitur Gmail.</p>
-          <div class="price-row">
-            <div class="price-chip" id="priceChip">Harga: Rp0</div>
-            <div class="price-chip" id="remainChip">Saldo minimal belum terpenuhi</div>
+        <div class="info-box">
+          <h3 class="info-title">Aturan akses</h3>
+          <p class="info-copy" id="infoCopy">Memuat aturan akses...</p>
+          <div class="info-row">
+            <div class="price-chip" id="quotaChip">Limit: -</div>
+            <div class="price-chip" id="usedChip">Terpakai: -</div>
+            <div class="price-chip" id="resetChip">Reset: -</div>
           </div>
-          <div class="footer-actions">
-            <button class="btn secondary" id="unlockBtn" onclick="unlockAccess()">Buka Akses</button>
-            <button class="btn ghost" id="refreshBtn" onclick="refreshProfile()">Refresh Sesi</button>
-            <button class="btn danger" onclick="location.href='/deposit'">Isi Saldo</button>
-          </div>
-          <div class="note">Untuk role VIP, akses langsung aktif. Untuk role user/reseller, halaman akan terkunci sampai saldo mencukupi.</div>
         </div>
       </div>
 
@@ -541,43 +479,33 @@
             <div class="status-icon">✓</div>
             <div id="verifyStatusText">Link berhasil diverifikasi.</div>
           </div>
-          <p class="note">Link akan diproses bersama email yang sudah tersimpan di langkah 1.</p>
+          <p class="note">Limit harian dihitung dari permintaan kirim Gmail yang berhasil. Saat tanggal berganti, limit akan reset otomatis.</p>
         </div>
       </div>
     </div>
   </div>
 
-  
   <script>
     const PROFILE_ENDPOINT = "/profile/users";
     const SEND_ENDPOINT = "https://restapidhan.vercel.app/api/am";
-    const NOTIFY_ENDPOINT = "/api/telegram/gmail-notify"; // backend yang akan kirim ke Telegram via env
     const APIKEY = "freeapikeydhan26";
+    const TIMEZONE = "Asia/Jakarta";
 
     let currentUser = null;
     let savedEmail = "";
-    let accessUnlocked = false;
-    let accessFee = 0;
-    let dailyLimit = Infinity;
-    let dailyCount = 0;
-    let remainingLimit = Infinity;
-    let usageKey = "";
-    let usageDateKey = "";
+    let quotaInfo = { limit: Infinity, used: 0, remaining: Infinity, resetAt: "" };
 
     const els = {
       sessionPill: document.getElementById("sessionPill"),
       roleValue: document.getElementById("roleValue"),
-      saldoValue: document.getElementById("saldoValue"),
       accessValue: document.getElementById("accessValue"),
       limitValue: document.getElementById("limitValue"),
-      resetText: document.getElementById("resetText"),
+      remainingValue: document.getElementById("remainingValue"),
       emailValue: document.getElementById("emailValue"),
-      lockBox: document.getElementById("lockBox"),
-      lockTitle: document.getElementById("lockTitle"),
-      lockCopy: document.getElementById("lockCopy"),
-      priceChip: document.getElementById("priceChip"),
-      remainChip: document.getElementById("remainChip"),
-      unlockBtn: document.getElementById("unlockBtn"),
+      infoCopy: document.getElementById("infoCopy"),
+      quotaChip: document.getElementById("quotaChip"),
+      usedChip: document.getElementById("usedChip"),
+      resetChip: document.getElementById("resetChip"),
       step1: document.getElementById("step1"),
       step2Card: document.getElementById("step2Card"),
       step2: document.getElementById("step2"),
@@ -597,114 +525,18 @@
       doneLayer: document.getElementById("doneLayer"),
       doneTitle: document.getElementById("doneTitle"),
       doneText: document.getElementById("doneText"),
-      refreshBtn: document.getElementById("refreshBtn"),
+      step1Note: document.getElementById("step1Note"),
     };
 
-    function rupiah(n){
-      const num = Number(n) || 0;
-      return "Rp" + num.toLocaleString("id-ID");
-    }
-
     function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-
-    function todayKey(){
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    }
-
-    function tomorrowAtMidnightText(){
-      const d = new Date();
-      const n = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0);
-      return n.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
-    }
-
-    function getUserId(){
-      return String(currentUser?.username || currentUser?.email || currentUser?.id || "guest").toLowerCase().replace(/[^a-z0-9_.-]/g, "_");
-    }
-
-    function getDailyLimitForRole(role){
-      if (role === "vip") return Infinity;
-      if (role === "reseller") return 10;
-      return 5; // user
-    }
-
-    function getUsageState(){
-      if (!currentUser) return { date: todayKey(), count: 0 };
-      usageKey = `gmail_usage_${getUserId()}`;
-      usageDateKey = `gmail_usage_date_${getUserId()}`;
-      const savedDate = localStorage.getItem(usageDateKey);
-      const currentDate = todayKey();
-
-      if (savedDate !== currentDate) {
-        localStorage.setItem(usageDateKey, currentDate);
-        localStorage.setItem(usageKey, JSON.stringify({ date: currentDate, count: 0 }));
-        return { date: currentDate, count: 0 };
-      }
-
-      try{
-        const raw = localStorage.getItem(usageKey);
-        const parsed = raw ? JSON.parse(raw) : { date: currentDate, count: 0 };
-        const count = Number(parsed.count) || 0;
-        return { date: currentDate, count };
-      }catch{
-        return { date: currentDate, count: 0 };
-      }
-    }
-
-    function saveUsageState(count){
-      const payload = { date: todayKey(), count: Number(count) || 0 };
-      localStorage.setItem(usageDateKey, payload.date);
-      localStorage.setItem(usageKey, JSON.stringify(payload));
-    }
-
-    function updateLimitUI(role){
-      dailyLimit = getDailyLimitForRole(role);
-      const state = getUsageState();
-      dailyCount = state.count;
-      remainingLimit = dailyLimit === Infinity ? Infinity : Math.max(dailyLimit - dailyCount, 0);
-
-      if (dailyLimit === Infinity) {
-        els.limitValue.textContent = "∞";
-        els.resetText.textContent = "Reset: tidak perlu";
-        return;
-      }
-
-      els.limitValue.textContent = `${remainingLimit}/${dailyLimit}`;
-      els.resetText.textContent = `Reset: ${tomorrowAtMidnightText()}`;
-    }
-
-    function setLimitText(role){
-      if (role === "vip") {
-        els.priceChip.textContent = "Harga: Gratis";
-        els.remainChip.textContent = "Limit: Unlimited";
-      } else if (role === "reseller") {
-        els.priceChip.textContent = "Limit: 10 / hari";
-        els.remainChip.textContent = `Sisa ${remainingLimit} kali`;
-      } else {
-        els.priceChip.textContent = "Limit: 5 / hari";
-        els.remainChip.textContent = `Sisa ${remainingLimit} kali`;
-      }
-    }
-
-    function setLoading(btn, loader, on){
-      btn.disabled = on;
-      loader.classList.toggle("show", on);
-    }
-
+    function setLoading(btn, loader, on){ btn.disabled = on; loader.classList.toggle("show", on); }
     function showDone(title, text){
       els.doneTitle.textContent = title || "Berhasil";
       els.doneText.textContent = text || "Proses selesai.";
       els.doneLayer.classList.add("show");
       els.doneLayer.setAttribute("aria-hidden","false");
-      setTimeout(() => {
-        els.doneLayer.classList.remove("show");
-        els.doneLayer.setAttribute("aria-hidden","true");
-      }, 1700);
+      setTimeout(() => { els.doneLayer.classList.remove("show"); els.doneLayer.setAttribute("aria-hidden","true"); }, 1700);
     }
-
     function showStep2(){
       els.step2Card.style.display = "block";
       els.step2.classList.add("show");
@@ -713,55 +545,67 @@
       els.savedEmailText.textContent = savedEmail;
       els.step2Card.scrollIntoView({behavior:"smooth", block:"start"});
     }
-
-    function setUnlockedUI(role){
-      accessUnlocked = true;
-      els.lockBox.classList.remove("show");
-      els.accessValue.textContent = "Terbuka";
-      els.accessValue.className = "value good";
-      els.step1.classList.add("show");
-      els.step1.style.display = "block";
-      updateLimitUI(role);
-      setLimitText(role);
-    }
-
-    function setLockedUI(role, saldo){
-      accessUnlocked = false;
-      els.lockBox.classList.add("show");
-      els.accessValue.textContent = "Terkunci";
-      els.accessValue.className = "value danger";
-      els.step1.style.display = "none";
-      els.step2Card.style.display = "none";
-      els.step2.classList.remove("show");
-
-      const roleLabel = role === "vip" ? "VIP" : role === "reseller" ? "Reseller" : "User";
-      const roleFee = role === "reseller" ? 500 : 550;
-      accessFee = role === "vip" ? 0 : roleFee;
-
-      els.lockTitle.textContent = `Akses terkunci untuk ${roleLabel}`;
-      els.lockCopy.textContent = role === "vip"
-        ? "Role VIP langsung dapat memakai fitur ini."
-        : `Role ${roleLabel} sekarang pakai limit harian, bukan potong saldo.`;
-      els.priceChip.textContent = role === "vip" ? "Harga: Gratis" : `Limit akses: ${role === "reseller" ? "10 / hari" : "5 / hari"}`;
-      els.remainChip.textContent = role === "vip"
-        ? "Limit: Unlimited"
-        : `Sisa ${remainingLimit} kali`;
-      els.unlockBtn.textContent = "Buka Akses";
-      els.unlockBtn.disabled = false;
-      updateLimitUI(role);
-      setLimitText(role);
-    }
-
-    async function refreshProfile(){
-      els.refreshBtn.disabled = true;
+    function todayKey(){
       try{
-        await loadProfile();
-      } finally {
-        els.refreshBtn.disabled = false;
+        return new Intl.DateTimeFormat("sv-SE", { timeZone: TIMEZONE }).format(new Date());
+      }catch(e){
+        return new Date().toISOString().slice(0,10);
       }
     }
-
-    async function loadProfile(){
+    function storageKey(username, role){ return `gmail_limit_${String(role||"user").toLowerCase()}_${String(username||"guest").toLowerCase()}_${todayKey()}`; }
+    function nextResetText(){
+      try{
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return new Intl.DateTimeFormat("id-ID", { timeZone: TIMEZONE, dateStyle: "full", timeStyle: "short" }).format(d);
+      }catch(e){
+        return "Besok otomatis";
+      }
+    }
+    function getDefaultQuota(role){
+      const r = String(role||"user").toLowerCase();
+      return r === "reseller" ? 10 : 5;
+    }
+    function loadQuota(username, role){
+      const key = storageKey(username, role);
+      const raw = localStorage.getItem(key);
+      let quota = { limit: getDefaultQuota(role), used: 0, remaining: getDefaultQuota(role), resetAt: nextResetText(), _key: key };
+      if (raw) {
+        try{
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            quota.used = Number(parsed.used) || 0;
+            quota.limit = Number(parsed.limit) || getDefaultQuota(role);
+            quota.remaining = Math.max(0, quota.limit - quota.used);
+            quota.resetAt = parsed.resetAt || nextResetText();
+          }
+        }catch(e){}
+      }
+      return quota;
+    }
+    function saveQuota(quota){
+      if (!quota || !quota._key) return;
+      const { _key, ...data } = quota;
+      localStorage.setItem(_key, JSON.stringify(data));
+    }
+    function paintQuota(role, quota){
+      const isVip = role === "vip";
+      els.roleValue.textContent = role.toUpperCase();
+      els.limitValue.textContent = isVip ? "Unlimited" : String(quota.limit);
+      els.remainingValue.textContent = isVip ? "∞" : String(quota.remaining);
+      els.accessValue.textContent = isVip ? "VIP" : "Aktif";
+      els.accessValue.className = "value good";
+      els.quotaChip.textContent = isVip ? "Limit: unlimited" : `Limit: ${quota.limit} / hari`;
+      els.usedChip.textContent = isVip ? "Terpakai: unlimited" : `Terpakai: ${quota.used}`;
+      els.resetChip.textContent = isVip ? "Reset: tidak perlu" : `Reset: ${quota.resetAt}`;
+      els.infoCopy.textContent = isVip
+        ? "Role VIP bisa memakai fitur ini tanpa batas jumlah kirim Gmail."
+        : `Role ${role} bisa kirim maksimal ${quota.limit} Gmail per hari. Sisa hari ini: ${quota.remaining}.`;
+      els.step1Note.textContent = isVip
+        ? "Role VIP tidak dibatasi. Isi Gmail satu kali saja, lalu lanjut verifikasi."
+        : `Limit harian aktif untuk role ${role}. Saat habis, tunggu reset otomatis besok.`;
+    }
+    async function refreshProfile(){
       try{
         els.sessionPill.textContent = "Memuat sesi...";
         const res = await fetch(PROFILE_ENDPOINT, { credentials: "include" });
@@ -771,125 +615,97 @@
         if (!data.success || !data.user) {
           els.sessionPill.textContent = "Sesi tidak valid";
           els.roleValue.textContent = "-";
-          els.saldoValue.textContent = "-";
-          els.emailValue.textContent = "-";
           els.limitValue.textContent = "-";
-          els.resetText.textContent = "Reset: -";
-          setLockedUI("user", 0);
+          els.remainingValue.textContent = "-";
+          els.emailValue.textContent = "-";
+          els.accessValue.textContent = "-";
+          els.accessValue.className = "value neutral";
+          els.infoCopy.textContent = "Sesi belum dikenali.";
+          els.step1.style.display = "none";
+          els.step2Card.style.display = "none";
           return;
         }
 
         currentUser = data.user;
         const rawRole = String(data.user.role || "user").trim();
         const role = rawRole.toLowerCase();
-        const saldo = Number(data.user.saldo) || 0;
         const email = data.user.email || "-";
+        const username = data.user.username || data.user.name || "guest";
 
-        els.sessionPill.textContent = `${data.user.username || "User"} • ${rawRole}`;
-        els.roleValue.textContent = rawRole;
-        els.saldoValue.textContent = rupiah(saldo);
+        els.sessionPill.textContent = `${username} • ${rawRole}`;
         els.emailValue.textContent = email;
 
-        updateLimitUI(role);
-
         if (role === "vip") {
-          els.accessValue.textContent = "VIP";
-          els.accessValue.className = "value good";
-          els.lockBox.classList.remove("show");
-          els.step1.classList.add("show");
+          quotaInfo = { limit: Infinity, used: 0, remaining: Infinity, resetAt: "Tidak perlu", _key: "" };
+          paintQuota(role, quotaInfo);
           els.step1.style.display = "block";
-          accessUnlocked = true;
-          setLimitText(role);
-          showDone("VIP aktif", "Akses Gmail terbuka tanpa limit.");
           return;
         }
 
-        setLockedUI(role, saldo);
-        const hasAccess = sessionStorage.getItem("gmail_access_unlocked") === "1";
+        quotaInfo = loadQuota(username, role);
+        quotaInfo.limit = getDefaultQuota(role);
+        quotaInfo.used = Number(quotaInfo.used) || 0;
+        quotaInfo.remaining = Math.max(0, quotaInfo.limit - quotaInfo.used);
+        quotaInfo.resetAt = quotaInfo.resetAt || nextResetText();
+        quotaInfo._key = storageKey(username, role);
+        saveQuota(quotaInfo);
+
+        paintQuota(role, quotaInfo);
+        els.step1.style.display = "block";
+
         const storedEmail = sessionStorage.getItem("gmail_saved_email") || "";
-        if (hasAccess && storedEmail) {
+        if (storedEmail) {
           savedEmail = storedEmail;
-          setUnlockedUI(role);
           els.emailInput.value = storedEmail;
-          showStep2();
         }
       } catch (err){
         els.sessionPill.textContent = "Gagal memuat sesi";
         els.roleValue.textContent = "-";
-        els.saldoValue.textContent = "-";
-        els.emailValue.textContent = "-";
         els.limitValue.textContent = "-";
-        els.resetText.textContent = "Reset: -";
-        setLockedUI("user", 0);
+        els.remainingValue.textContent = "-";
+        els.emailValue.textContent = "-";
+        els.accessValue.textContent = "-";
+        els.accessValue.className = "value neutral";
+        els.infoCopy.textContent = "Tidak bisa mengambil sesi pengguna.";
+        els.step1.style.display = "none";
+        els.step2Card.style.display = "none";
       }
     }
-
-    async function unlockAccess(){
-      const role = String(currentUser?.role || "user").trim().toLowerCase();
-      const state = getUsageState();
-
-      if (role === "vip") {
-        sessionStorage.setItem("gmail_access_unlocked", "1");
-        setUnlockedUI(role);
-        showDone("Akses aktif", "VIP bisa langsung lanjut.");
-        return;
-      }
-
-      if (state.count >= dailyLimit) {
-        showDone("Limit habis", "Limit harian sudah penuh. Reset otomatis besok.");
-        return;
-      }
-
-      sessionStorage.setItem("gmail_access_unlocked", "1");
-      setUnlockedUI(role);
-      showDone("Akses aktif", "Limit harian siap dipakai.");
-    }
-
-    async function notifyTelegram(payload){
-      try{
-        await fetch(NOTIFY_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload)
-        });
-      }catch(_err){
-        // silent
-      }
-    }
-
-    function consumeLimitIfNeeded(role){
+    function consumeQuota(role){
       if (role === "vip") return true;
-      const state = getUsageState();
-      if (state.count >= dailyLimit) {
-        updateLimitUI(role);
+      const username = currentUser?.username || currentUser?.name || "guest";
+      const currentRole = String(currentUser?.role || "user").toLowerCase();
+      const q = loadQuota(username, currentRole);
+      q.limit = getDefaultQuota(currentRole);
+      q.used = Number(q.used) || 0;
+      q.remaining = Math.max(0, q.limit - q.used);
+
+      if (q.remaining <= 0) {
+        quotaInfo = q;
+        quotaInfo._key = storageKey(username, currentRole);
+        saveQuota(quotaInfo);
+        paintQuota(currentRole, quotaInfo);
+        showDone("Limit habis", "Limit harian sudah penuh. Tunggu reset besok.");
         return false;
       }
-      const nextCount = state.count + 1;
-      saveUsageState(nextCount);
-      dailyCount = nextCount;
-      remainingLimit = Math.max(dailyLimit - dailyCount, 0);
-      updateLimitUI(role);
+
+      q.used += 1;
+      q.remaining = Math.max(0, q.limit - q.used);
+      q.resetAt = q.resetAt || nextResetText();
+      q._key = storageKey(username, currentRole);
+      quotaInfo = q;
+      saveQuota(quotaInfo);
+      paintQuota(currentRole, quotaInfo);
       return true;
     }
-
     async function sendEmail(){
-      if (!accessUnlocked) {
-        showDone("Akses terkunci", "Buka akses dulu sebelum mengirim Gmail.");
+      const role = String(currentUser?.role || "user").toLowerCase();
+      if (role !== "vip" && quotaInfo.remaining <= 0) {
+        showDone("Limit habis", "Kirim Gmail tidak bisa karena limit harian sudah penuh.");
         return;
       }
-
       const email = els.emailInput.value.trim();
-      if (!email) {
-        els.emailInput.focus();
-        return;
-      }
-
-      const role = String(currentUser?.role || "user").trim().toLowerCase();
-      if (role !== "vip" && dailyCount >= dailyLimit) {
-        showDone("Limit habis", "Sisa limit kamu sudah 0 untuk hari ini.");
-        return;
-      }
+      if (!email) { els.emailInput.focus(); return; }
 
       setLoading(els.sendBtn, els.sendLoader, true);
       els.sendStatus.classList.remove("show");
@@ -900,63 +716,34 @@
         const json = await res.json();
 
         if (json && json.status === true) {
-          if (!consumeLimitIfNeeded(role)) {
-            // rollback if somehow limit changed between checks
-            throw new Error("LIMIT_HABIS");
-          }
+          if (!consumeQuota(role)) return;
 
           savedEmail = email;
           sessionStorage.setItem("gmail_saved_email", savedEmail);
+
           els.sendStatusText.textContent = "Gmail berhasil dikirim.";
           els.sendStatus.classList.add("show");
           els.savedEmailChip.style.display = "inline-flex";
           els.savedEmailText.textContent = savedEmail;
-
-          await notifyTelegram({
-            event: "gmail_send",
-            username: String(currentUser?.username || "-"),
-            role: String(currentUser?.role || "-"),
-            gmail: email,
-            remaining_limit: role === "vip" ? "unlimited" : remainingLimit,
-            date: todayKey()
-          });
-
-          await sleep(650);
+          await sleep(700);
           showStep2();
-          showDone("Terkirim", "Link Gmail berhasil dikirim ke email kamu.");
+          showDone("Terkirim", "Gmail berhasil dikirim.");
         } else {
           const msg = (json && (json.message || json.error)) ? (json.message || json.error) : "Gagal mengirim Gmail.";
           els.sendStatusText.textContent = msg;
           els.sendStatus.classList.add("show");
         }
       } catch (err){
-        if (String(err?.message || "") === "LIMIT_HABIS") {
-          els.sendStatusText.textContent = "Limit harian habis.";
-          els.sendStatus.classList.add("show");
-        } else {
-          els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
-          els.sendStatus.classList.add("show");
-        }
+        els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+        els.sendStatus.classList.add("show");
       } finally {
         setLoading(els.sendBtn, els.sendLoader, false);
       }
     }
-
     async function verifyLink(){
-      if (!accessUnlocked) {
-        showDone("Akses terkunci", "Buka akses dulu sebelum verifikasi.");
-        return;
-      }
-
       const link = els.linkInput.value.trim();
-      if (!savedEmail) {
-        showDone("Email belum ada", "Kirim Gmail dulu di langkah 1.");
-        return;
-      }
-      if (!link) {
-        els.linkInput.focus();
-        return;
-      }
+      if (!savedEmail) { showDone("Email belum ada", "Kirim Gmail dulu di langkah 1."); return; }
+      if (!link) { els.linkInput.focus(); return; }
 
       setLoading(els.verifyBtn, els.verifyLoader, true);
       els.verifyStatus.classList.remove("show");
@@ -970,21 +757,10 @@
           els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
           els.verifyStatus.classList.add("show");
           showDone("Sukses", "Verifikasi berhasil.");
-          const verifyEmail = savedEmail;
           els.linkInput.value = "";
           els.emailInput.value = "";
           savedEmail = "";
           sessionStorage.removeItem("gmail_saved_email");
-          sessionStorage.removeItem("gmail_access_unlocked");
-
-          await notifyTelegram({
-            event: "gmail_verify",
-            username: String(currentUser?.username || "-"),
-            role: String(currentUser?.role || "-"),
-            gmail: verifyEmail || "-",
-            date: todayKey()
-          });
-
           els.savedEmailChip.style.display = "none";
           await sleep(250);
           await refreshProfile();
@@ -1000,11 +776,7 @@
         setLoading(els.verifyBtn, els.verifyLoader, false);
       }
     }
-
-    window.addEventListener("load", async () => {
-      await loadProfile();
-    });
+    window.addEventListener("load", refreshProfile);
   </script>
-
 </body>
 </html>
