@@ -477,12 +477,13 @@
             <div class="value" id="roleValue">-</div>
           </div>
           <div class="mini-card">
-            <div class="label">Saldo</div>
-            <div class="value" id="saldoValue">-</div>
-          </div>
-          <div class="mini-card">
             <div class="label">Akses</div>
             <div class="value" id="accessValue">-</div>
+          </div>
+          <div class="mini-card">
+            <div class="label">Limit Hari Ini</div>
+            <div class="value" id="limitValue">-</div>
+            <div class="muted" id="resetText" style="font-size:12px;margin-top:4px">Reset: -</div>
           </div>
           <div class="mini-card">
             <div class="label">Email Aktif</div>
@@ -546,21 +547,30 @@
     </div>
   </div>
 
+  
   <script>
     const PROFILE_ENDPOINT = "/profile/users";
     const SEND_ENDPOINT = "https://restapidhan.vercel.app/api/am";
+    const NOTIFY_ENDPOINT = "/api/telegram/gmail-notify"; // backend yang akan kirim ke Telegram via env
     const APIKEY = "freeapikeydhan26";
 
     let currentUser = null;
     let savedEmail = "";
     let accessUnlocked = false;
     let accessFee = 0;
+    let dailyLimit = Infinity;
+    let dailyCount = 0;
+    let remainingLimit = Infinity;
+    let usageKey = "";
+    let usageDateKey = "";
 
     const els = {
       sessionPill: document.getElementById("sessionPill"),
       roleValue: document.getElementById("roleValue"),
       saldoValue: document.getElementById("saldoValue"),
       accessValue: document.getElementById("accessValue"),
+      limitValue: document.getElementById("limitValue"),
+      resetText: document.getElementById("resetText"),
       emailValue: document.getElementById("emailValue"),
       lockBox: document.getElementById("lockBox"),
       lockTitle: document.getElementById("lockTitle"),
@@ -597,6 +607,88 @@
 
     function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
+    function todayKey(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function tomorrowAtMidnightText(){
+      const d = new Date();
+      const n = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0);
+      return n.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    function getUserId(){
+      return String(currentUser?.username || currentUser?.email || currentUser?.id || "guest").toLowerCase().replace(/[^a-z0-9_.-]/g, "_");
+    }
+
+    function getDailyLimitForRole(role){
+      if (role === "vip") return Infinity;
+      if (role === "reseller") return 10;
+      return 5; // user
+    }
+
+    function getUsageState(){
+      if (!currentUser) return { date: todayKey(), count: 0 };
+      usageKey = `gmail_usage_${getUserId()}`;
+      usageDateKey = `gmail_usage_date_${getUserId()}`;
+      const savedDate = localStorage.getItem(usageDateKey);
+      const currentDate = todayKey();
+
+      if (savedDate !== currentDate) {
+        localStorage.setItem(usageDateKey, currentDate);
+        localStorage.setItem(usageKey, JSON.stringify({ date: currentDate, count: 0 }));
+        return { date: currentDate, count: 0 };
+      }
+
+      try{
+        const raw = localStorage.getItem(usageKey);
+        const parsed = raw ? JSON.parse(raw) : { date: currentDate, count: 0 };
+        const count = Number(parsed.count) || 0;
+        return { date: currentDate, count };
+      }catch{
+        return { date: currentDate, count: 0 };
+      }
+    }
+
+    function saveUsageState(count){
+      const payload = { date: todayKey(), count: Number(count) || 0 };
+      localStorage.setItem(usageDateKey, payload.date);
+      localStorage.setItem(usageKey, JSON.stringify(payload));
+    }
+
+    function updateLimitUI(role){
+      dailyLimit = getDailyLimitForRole(role);
+      const state = getUsageState();
+      dailyCount = state.count;
+      remainingLimit = dailyLimit === Infinity ? Infinity : Math.max(dailyLimit - dailyCount, 0);
+
+      if (dailyLimit === Infinity) {
+        els.limitValue.textContent = "∞";
+        els.resetText.textContent = "Reset: tidak perlu";
+        return;
+      }
+
+      els.limitValue.textContent = `${remainingLimit}/${dailyLimit}`;
+      els.resetText.textContent = `Reset: ${tomorrowAtMidnightText()}`;
+    }
+
+    function setLimitText(role){
+      if (role === "vip") {
+        els.priceChip.textContent = "Harga: Gratis";
+        els.remainChip.textContent = "Limit: Unlimited";
+      } else if (role === "reseller") {
+        els.priceChip.textContent = "Limit: 10 / hari";
+        els.remainChip.textContent = `Sisa ${remainingLimit} kali`;
+      } else {
+        els.priceChip.textContent = "Limit: 5 / hari";
+        els.remainChip.textContent = `Sisa ${remainingLimit} kali`;
+      }
+    }
+
     function setLoading(btn, loader, on){
       btn.disabled = on;
       loader.classList.toggle("show", on);
@@ -622,14 +714,15 @@
       els.step2Card.scrollIntoView({behavior:"smooth", block:"start"});
     }
 
-    function setUnlockedUI(){
+    function setUnlockedUI(role){
       accessUnlocked = true;
       els.lockBox.classList.remove("show");
       els.accessValue.textContent = "Terbuka";
       els.accessValue.className = "value good";
       els.step1.classList.add("show");
       els.step1.style.display = "block";
-      showDone("Akses aktif", "Sekarang kamu bisa lanjut kirim Gmail.");
+      updateLimitUI(role);
+      setLimitText(role);
     }
 
     function setLockedUI(role, saldo){
@@ -648,15 +741,15 @@
       els.lockTitle.textContent = `Akses terkunci untuk ${roleLabel}`;
       els.lockCopy.textContent = role === "vip"
         ? "Role VIP langsung dapat memakai fitur ini."
-        : `Role ${roleLabel} wajib punya saldo cukup untuk membuka halaman ini.`;
-      els.priceChip.textContent = role === "vip" ? "Harga: Gratis" : `Harga akses: ${rupiah(accessFee)}`;
+        : `Role ${roleLabel} sekarang pakai limit harian, bukan potong saldo.`;
+      els.priceChip.textContent = role === "vip" ? "Harga: Gratis" : `Limit akses: ${role === "reseller" ? "10 / hari" : "5 / hari"}`;
       els.remainChip.textContent = role === "vip"
-        ? "Saldo tidak dipotong"
-        : saldo >= accessFee
-          ? "Saldo cukup untuk membuka"
-          : `Kurang ${rupiah(accessFee - saldo)}`;
-      els.unlockBtn.textContent = role === "vip" ? "Buka Akses" : "Cek / Buka Akses";
-      els.unlockBtn.disabled = role === "vip" ? false : saldo < accessFee;
+        ? "Limit: Unlimited"
+        : `Sisa ${remainingLimit} kali`;
+      els.unlockBtn.textContent = "Buka Akses";
+      els.unlockBtn.disabled = false;
+      updateLimitUI(role);
+      setLimitText(role);
     }
 
     async function refreshProfile(){
@@ -680,6 +773,8 @@
           els.roleValue.textContent = "-";
           els.saldoValue.textContent = "-";
           els.emailValue.textContent = "-";
+          els.limitValue.textContent = "-";
+          els.resetText.textContent = "Reset: -";
           setLockedUI("user", 0);
           return;
         }
@@ -695,6 +790,8 @@
         els.saldoValue.textContent = rupiah(saldo);
         els.emailValue.textContent = email;
 
+        updateLimitUI(role);
+
         if (role === "vip") {
           els.accessValue.textContent = "VIP";
           els.accessValue.className = "value good";
@@ -702,16 +799,17 @@
           els.step1.classList.add("show");
           els.step1.style.display = "block";
           accessUnlocked = true;
-          showDone("VIP aktif", "Akses Gmail terbuka tanpa potong saldo.");
+          setLimitText(role);
+          showDone("VIP aktif", "Akses Gmail terbuka tanpa limit.");
           return;
         }
 
         setLockedUI(role, saldo);
         const hasAccess = sessionStorage.getItem("gmail_access_unlocked") === "1";
         const storedEmail = sessionStorage.getItem("gmail_saved_email") || "";
-        if (hasAccess && storedEmail && saldo >= accessFee) {
+        if (hasAccess && storedEmail) {
           savedEmail = storedEmail;
-          setUnlockedUI();
+          setUnlockedUI(role);
           els.emailInput.value = storedEmail;
           showStep2();
         }
@@ -720,26 +818,59 @@
         els.roleValue.textContent = "-";
         els.saldoValue.textContent = "-";
         els.emailValue.textContent = "-";
+        els.limitValue.textContent = "-";
+        els.resetText.textContent = "Reset: -";
         setLockedUI("user", 0);
       }
     }
 
     async function unlockAccess(){
       const role = String(currentUser?.role || "user").trim().toLowerCase();
-      const saldo = Number(currentUser?.saldo) || 0;
+      const state = getUsageState();
+
       if (role === "vip") {
         sessionStorage.setItem("gmail_access_unlocked", "1");
-        setUnlockedUI();
+        setUnlockedUI(role);
+        showDone("Akses aktif", "VIP bisa langsung lanjut.");
         return;
       }
 
-      if (saldo < accessFee) {
-        showDone("Saldo kurang", "Silakan isi saldo dulu dari menu deposit.");
+      if (state.count >= dailyLimit) {
+        showDone("Limit habis", "Limit harian sudah penuh. Reset otomatis besok.");
         return;
       }
 
       sessionStorage.setItem("gmail_access_unlocked", "1");
-      setUnlockedUI();
+      setUnlockedUI(role);
+      showDone("Akses aktif", "Limit harian siap dipakai.");
+    }
+
+    async function notifyTelegram(payload){
+      try{
+        await fetch(NOTIFY_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload)
+        });
+      }catch(_err){
+        // silent
+      }
+    }
+
+    function consumeLimitIfNeeded(role){
+      if (role === "vip") return true;
+      const state = getUsageState();
+      if (state.count >= dailyLimit) {
+        updateLimitUI(role);
+        return false;
+      }
+      const nextCount = state.count + 1;
+      saveUsageState(nextCount);
+      dailyCount = nextCount;
+      remainingLimit = Math.max(dailyLimit - dailyCount, 0);
+      updateLimitUI(role);
+      return true;
     }
 
     async function sendEmail(){
@@ -754,8 +885,11 @@
         return;
       }
 
-      savedEmail = email;
-      sessionStorage.setItem("gmail_saved_email", savedEmail);
+      const role = String(currentUser?.role || "user").trim().toLowerCase();
+      if (role !== "vip" && dailyCount >= dailyLimit) {
+        showDone("Limit habis", "Sisa limit kamu sudah 0 untuk hari ini.");
+        return;
+      }
 
       setLoading(els.sendBtn, els.sendLoader, true);
       els.sendStatus.classList.remove("show");
@@ -766,11 +900,28 @@
         const json = await res.json();
 
         if (json && json.status === true) {
+          if (!consumeLimitIfNeeded(role)) {
+            // rollback if somehow limit changed between checks
+            throw new Error("LIMIT_HABIS");
+          }
+
+          savedEmail = email;
+          sessionStorage.setItem("gmail_saved_email", savedEmail);
           els.sendStatusText.textContent = "Gmail berhasil dikirim.";
           els.sendStatus.classList.add("show");
           els.savedEmailChip.style.display = "inline-flex";
           els.savedEmailText.textContent = savedEmail;
-          await sleep(700);
+
+          await notifyTelegram({
+            event: "gmail_send",
+            username: String(currentUser?.username || "-"),
+            role: String(currentUser?.role || "-"),
+            gmail: email,
+            remaining_limit: role === "vip" ? "unlimited" : remainingLimit,
+            date: todayKey()
+          });
+
+          await sleep(650);
           showStep2();
           showDone("Terkirim", "Link Gmail berhasil dikirim ke email kamu.");
         } else {
@@ -779,8 +930,13 @@
           els.sendStatus.classList.add("show");
         }
       } catch (err){
-        els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
-        els.sendStatus.classList.add("show");
+        if (String(err?.message || "") === "LIMIT_HABIS") {
+          els.sendStatusText.textContent = "Limit harian habis.";
+          els.sendStatus.classList.add("show");
+        } else {
+          els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+          els.sendStatus.classList.add("show");
+        }
       } finally {
         setLoading(els.sendBtn, els.sendLoader, false);
       }
@@ -814,11 +970,21 @@
           els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
           els.verifyStatus.classList.add("show");
           showDone("Sukses", "Verifikasi berhasil.");
+          const verifyEmail = savedEmail;
           els.linkInput.value = "";
           els.emailInput.value = "";
           savedEmail = "";
           sessionStorage.removeItem("gmail_saved_email");
           sessionStorage.removeItem("gmail_access_unlocked");
+
+          await notifyTelegram({
+            event: "gmail_verify",
+            username: String(currentUser?.username || "-"),
+            role: String(currentUser?.role || "-"),
+            gmail: verifyEmail || "-",
+            date: todayKey()
+          });
+
           els.savedEmailChip.style.display = "none";
           await sleep(250);
           await refreshProfile();
@@ -839,5 +1005,6 @@
       await loadProfile();
     });
   </script>
+
 </body>
 </html>
