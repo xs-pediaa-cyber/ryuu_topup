@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Admin Dashboard - FelixTopUp</title>
+    <title>Ultimate Admin Dashboard - XiaoStore</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         :root {
@@ -275,7 +275,7 @@
 <div class="page-wrapper">
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-brand">
-            <i class="bi bi-shield-shaded"></i> FelixTopUp
+            <i class="bi bi-shield-shaded"></i> XiaoStore
         </div>
         <ul class="sidebar-nav">
             <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
@@ -372,6 +372,14 @@
                         <div class="card-info">
                             <div class="card-title">Role: Reseller</div>
                             <div class="card-value" id="roleReseller">...</div>
+                        </div>
+                        <i class="bi bi-person-video2 card-icon"></i>
+                    </div>
+                <article class="stat-card primary" id="roleVipCard">
+                    <div class="card-body">
+                        <div class="card-info">
+                            <div class="card-title">Role: Vip</div>
+                            <div class="card-value" id="roleVip">...</div>
                         </div>
                         <i class="bi bi-person-video2 card-icon"></i>
                     </div>
@@ -518,11 +526,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('🔄 Mengambil saldo langsung dari Payinaja API...');
             
             // Langsung tembak ke domain Payinaja
-            const response = await fetch('https://payinaja.web.id/api/v1/profile', {
+            const response = await fetch('https://payinaja.com/api/v1/profile', {
                 method: 'GET',
                 headers: {
                     // Pastikan variabel apiKeyPayinaja sudah kamu definisikan sebelumnya
-                    'x-api-key': 'sk_live_2836538684238b278abf7089a495a521' // Sesuaikan dengan header API Payinaja
+                    'x-api-key': 'PAYINAJA-8RKAGUF3-L3VNHNGU-6LW06M3R' // Sesuaikan dengan header API Payinaja
                 }
             });
             
@@ -642,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalDepositCount: 0, 
                 totalOrderValue: 0, 
                 totalOrderCount: 0,
-                roles: { user: 0, reseller: 0, admin: 0 }
+                roles: { user: 0, reseller: 0, vip: 0, admin: 0 }
             });
 
             // Update Tampilan Data - REAL-TIME
@@ -653,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('unverifiedUsers').textContent = formatNumber(allUsersData.length - stats.verifiedUsers);
             document.getElementById('roleUser').textContent = formatNumber(stats.roles.user);
             document.getElementById('roleReseller').textContent = formatNumber(stats.roles.reseller);
+            document.getElementById('roleVip').textContent = formatNumber(stats.roles.Vip);
             document.getElementById('roleAdmin').textContent = formatNumber(stats.roles.admin);
             document.getElementById('totalDepositValue').textContent = formatRupiah(stats.totalDepositValue);
             document.getElementById('totalOrderValue').textContent = formatRupiah(stats.totalOrderValue);
@@ -766,6 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('unverifiedUsersCard').addEventListener('click', () => showModalWithData('User Belum Verifikasi', allUsersData.filter(u => u.isVerified === false || u.isVerified === 'false' || !u.isVerified), commonCols));
     document.getElementById('roleUserCard').addEventListener('click', () => showModalWithData('User Role: "User"', allUsersData.filter(u => u.role === 'user'), commonCols));
     document.getElementById('roleResellerCard').addEventListener('click', () => showModalWithData('User Role: "Reseller"', allUsersData.filter(u => u.role === 'reseller'), commonCols));
+    document.getElementById('roleVipCard').addEventListener('click', () => showModalWithData('User Role: "Vip"', allUsersData.filter(u => u.role === 'Vip'), commonCols));
     document.getElementById('roleAdminCard').addEventListener('click', () => showModalWithData('User Role: "Admin"', allUsersData.filter(u => u.role === 'admin'), commonCols));
     
     // --- Initial Load ---
