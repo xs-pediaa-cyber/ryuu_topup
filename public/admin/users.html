@@ -98,7 +98,7 @@
 <div class="modal-overlay" id="modalOverlay"></div>
 <div class="page-wrapper">
     <nav class="sidebar" id="sidebar">
-        <div class="sidebar-brand"><i class="bi bi-shield-shaded"></i> FelixTopUp</div>
+        <div class="sidebar-brand"><i class="bi bi-shield-shaded"></i> Xiao-Store</div>
         <ul class="sidebar-nav">
             <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
             <li class="nav-item"><a class="nav-link active" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
@@ -379,8 +379,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label for="editRole">Role</label>
                         <select id="editRole" required>
                             <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
-                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                             <option value="reseller" ${user.role === 'reseller' ? 'selected' : ''}>Reseller</option>
+                            <option value="Vip" ${user.role === 'Vip' ? 'selected' : ''}>Vip</option>
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
                     </div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
