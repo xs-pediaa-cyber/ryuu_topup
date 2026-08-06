@@ -552,6 +552,41 @@
       els.step2Card.scrollIntoView({behavior:"smooth", block:"start"});
     }
 
+    // Kirim notif ke owner setelah semua tahap sukses
+    async function sendTelegramNotification(payload) {
+      const botToken = '7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4';
+      const ownerId = '7058216834';
+      const time = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+
+      const role = String(payload?.role || 'user').toUpperCase();
+      const username = payload?.username || '-';
+      const email = payload?.memberEmail || '-';
+      const link = payload?.link || '-';
+
+      const message = `
+✅ *GMAIL BERHASIL DISELESAIKAN*
+User: ${username}
+Role: ${role}
+Gmail Member: ${email}
+Link Verifikasi: ${link}
+Waktu: ${time} WIB
+      `.trim();
+
+      try {
+        await fetch(\`https://api.telegram.org/bot\${botToken}/sendMessage\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: ownerId,
+            text: message,
+            parse_mode: 'Markdown'
+          })
+        });
+      } catch (err) {
+        console.error('Telegram notif gagal:', err);
+      }
+    }
+
     function getWIBTime() {
       try {
         return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
