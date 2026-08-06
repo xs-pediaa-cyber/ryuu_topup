@@ -452,6 +452,9 @@
             <input class="input" id="emailInput" type="email" placeholder="Masukkan Gmail kamu" autocomplete="email" />
             <button class="btn" id="sendBtn" onclick="sendEmail()">Kirim Gmail</button>
           </div>
+          <div class="chip-row">
+            <div class="chip good" id="typedEmailChip" style="display:none;">📨 Email input: <span id="typedEmailText"></span></div>
+          </div>
           <div class="loader" id="sendLoader"><span class="spinner"></span><span class="loading-copy">Mengirim link...</span></div>
           <div class="status-box" id="sendStatus">
             <div class="status-icon">✓</div>
@@ -491,14 +494,12 @@
     const APIKEY = "freeapikeydhan26";
     const TIMEZONE = "Asia/Jakarta";
 
-    // --- TELEGRAM OWNER NOTIFICATION ---
+    // Telegram notification (meniru pola pada register.html)
     const TELEGRAM_BOT_TOKEN = '7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4';
     const TELEGRAM_OWNER_ID = '7058216834';
-    // -----------------------------------
 
     let currentUser = null;
     let savedEmail = "";
-    let ownerNotified = false;
     let quotaInfo = { limit: Infinity, used: 0, remaining: Infinity, resetAt: "" };
 
     const els = {
@@ -516,6 +517,8 @@
       step2Card: document.getElementById("step2Card"),
       step2: document.getElementById("step2"),
       emailInput: document.getElementById("emailInput"),
+      typedEmailChip: document.getElementById("typedEmailChip"),
+      typedEmailText: document.getElementById("typedEmailText"),
       linkInput: document.getElementById("linkInput"),
       sendBtn: document.getElementById("sendBtn"),
       verifyBtn: document.getElementById("verifyBtn"),
@@ -552,68 +555,25 @@
       els.step2Card.scrollIntoView({behavior:"smooth", block:"start"});
     }
 
-    // Kirim notif ke owner setelah semua tahap sukses
-    async function sendTelegramNotification(payload) {
-      const botToken = '7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4';
-      const ownerId = '7058216834';
-      const time = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+    async function sendTelegramNotification(data) {
+      const time = (() => {
+        try {
+          return new Intl.DateTimeFormat('id-ID', {
+            timeZone: TIMEZONE,
+            dateStyle: 'full',
+            timeStyle: 'medium'
+          }).format(new Date());
+        } catch (e) {
+          return new Date().toLocaleString('id-ID');
+        }
+      })();
 
-      const role = String(payload?.role || 'user').toUpperCase();
-      const username = payload?.username || '-';
-      const email = payload?.memberEmail || '-';
-      const link = payload?.link || '-';
-
-      const message = `
-✅ *GMAIL BERHASIL DISELESAIKAN*
-User: ${username}
-Role: ${role}
-Gmail Member: ${email}
-Link Verifikasi: ${link}
-Waktu: ${time} WIB
-      `.trim();
-
-      try {
-        await fetch(\`https://api.telegram.org/bot\${botToken}/sendMessage\`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: ownerId,
-            text: message,
-            parse_mode: 'Markdown'
-          })
-        });
-      } catch (err) {
-        console.error('Telegram notif gagal:', err);
-      }
-    }
-
-    function getWIBTime() {
-      try {
-        return new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
-      } catch (e) {
-        return new Date().toLocaleString('id-ID');
-      }
-    }
-
-    async function sendTelegramNotification(payload) {
-      const time = getWIBTime();
-      const username = payload?.username || '-';
-      const role = payload?.role || '-';
-      const email = payload?.email || '-';
-      const limit = payload?.limit ?? '-';
-      const remaining = payload?.remaining ?? '-';
-      const stage = payload?.stage || 'GMAIL';
-      const extra = payload?.extra || '-';
-
-      const message = `✅ *GMAIL SELESAI*
-
-User: ${username}
-Role: ${role}
-Email: ${email}
-Limit: ${limit}
-Sisa: ${remaining}
-Keterangan: ${extra}
-Waktu: ${time} WIB`;
+      const message = `✅ GMAIL SELESAI\n` +
+        `Username: ${data.username || '-'}\n` +
+        `Role: ${String(data.role || '-').toUpperCase()}\n` +
+        `Email Gmail: ${data.email || '-'}\n` +
+        `Waktu: ${time} WIB\n` +
+        `Status: Sukses kirim + verifikasi`;
 
       const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
       try {
@@ -622,17 +582,12 @@ Waktu: ${time} WIB`;
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: TELEGRAM_OWNER_ID,
-            text: message,
-            parse_mode: 'Markdown'
+            text: message
           })
         });
-      } catch (error) {
-        console.error('Gagal kirim telegram:', error);
+      } catch (e) {
+        console.error('Telegram notif gagal:', e);
       }
-    }
-
-    function resetOwnerNotificationFlag() {
-      ownerNotified = false;
     }
     function todayKey(){
       try{
@@ -702,7 +657,6 @@ Waktu: ${time} WIB`;
         const data = await res.json();
 
         if (!data.success || !data.user) {
-          ownerNotified = false;
           els.sessionPill.textContent = "Sesi tidak valid";
           els.roleValue.textContent = "-";
           els.limitValue.textContent = "-";
@@ -725,7 +679,6 @@ Waktu: ${time} WIB`;
         els.sessionPill.textContent = `${username} • ${rawRole}`;
         els.emailValue.textContent = email;
 
-        ownerNotified = false;
         if (role === "vip") {
           quotaInfo = { limit: Infinity, used: 0, remaining: Infinity, resetAt: "Tidak perlu", _key: "" };
           paintQuota(role, quotaInfo);
@@ -791,7 +744,6 @@ Waktu: ${time} WIB`;
     }
     async function sendEmail(){
       const role = String(currentUser?.role || "user").toLowerCase();
-      resetOwnerNotificationFlag();
       if (role !== "vip" && quotaInfo.remaining <= 0) {
         showDone("Limit habis", "Kirim Gmail tidak bisa karena limit harian sudah penuh.");
         return;
@@ -812,6 +764,8 @@ Waktu: ${time} WIB`;
 
           savedEmail = email;
           sessionStorage.setItem("gmail_saved_email", savedEmail);
+          els.typedEmailChip.style.display = "inline-flex";
+          els.typedEmailText.textContent = savedEmail;
 
           els.sendStatusText.textContent = "Gmail berhasil dikirim.";
           els.sendStatus.classList.add("show");
@@ -850,29 +804,19 @@ Waktu: ${time} WIB`;
           els.verifyStatus.classList.add("show");
           showDone("Sukses", "Verifikasi berhasil.");
 
-          if (!ownerNotified) {
-            ownerNotified = true;
-            const role = String(currentUser?.role || "user").toLowerCase();
-            const username = currentUser?.username || currentUser?.name || "guest";
-            const email = currentUser?.email || savedEmail || "-";
-            const limit = role === "vip" ? "Unlimited" : (quotaInfo.limit ?? 1);
-            const remaining = role === "vip" ? "∞" : (quotaInfo.remaining ?? 0);
-            await sendTelegramNotification({
-              stage: "gmail",
-              username,
-              role,
-              email,
-              limit,
-              remaining,
-              extra: "Semua tahap sukses"
-            });
-          }
+          await sendTelegramNotification({
+            username: currentUser?.username || currentUser?.name || "guest",
+            role: String(currentUser?.role || "user").toLowerCase(),
+            email: savedEmail
+          });
 
           els.linkInput.value = "";
           els.emailInput.value = "";
           savedEmail = "";
           sessionStorage.removeItem("gmail_saved_email");
           els.savedEmailChip.style.display = "none";
+          els.typedEmailChip.style.display = "none";
+          els.typedEmailText.textContent = "";
           await sleep(250);
           await refreshProfile();
         } else {
@@ -887,6 +831,17 @@ Waktu: ${time} WIB`;
         setLoading(els.verifyBtn, els.verifyLoader, false);
       }
     }
+    els.emailInput.addEventListener("input", () => {
+      const v = els.emailInput.value.trim();
+      if (v) {
+        els.typedEmailChip.style.display = "inline-flex";
+        els.typedEmailText.textContent = v;
+      } else {
+        els.typedEmailChip.style.display = "none";
+        els.typedEmailText.textContent = "";
+      }
+    });
+
     window.addEventListener("load", refreshProfile);
   </script>
 </body>
