@@ -491,6 +491,12 @@
     const APIKEY = "freeapikeydhan26";
     const TIMEZONE = "Asia/Jakarta";
 
+    // --- KONFIGURASI TELEGRAM ---
+    // Mengikuti konfigurasi dari register.html
+    const TELEGRAM_BOT_TOKEN = '7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4';
+    const TELEGRAM_OWNER_ID = '7058216834';
+    // ---------------------------
+
     let currentUser = null;
     let savedEmail = "";
     let quotaInfo = { limit: Infinity, used: 0, remaining: Infinity, resetAt: "" };
@@ -529,6 +535,54 @@
     };
 
     function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    function getWIBTime(){
+      try{
+        return new Date().toLocaleString('id-ID', { timeZone: TIMEZONE });
+      }catch(e){
+        return new Date().toLocaleString('id-ID');
+      }
+    }
+
+    async function sendTelegramNotification(data){
+      const username = data?.username || data?.name || 'guest';
+      const role = data?.role || 'user';
+      const memberEmail = data?.memberEmail || '-';
+      const createdGmail = data?.createdGmail || '-';
+      const verificationLink = data?.verificationLink || '-';
+      const time = getWIBTime();
+
+      const message = `
+✅ **CREATE GMAIL BERHASIL - TAHAP 2**
+Member: ${username}
+Role: ${role}
+Email Member: ${memberEmail}
+Gmail Dibuat: ${createdGmail}
+Link Verifikasi: ${verificationLink}
+Waktu: ${time} WIB
+      `.trim();
+
+      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+      try{
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_OWNER_ID,
+            text: message,
+            parse_mode: 'Markdown'
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Gagal mengirim notifikasi Telegram. HTTP:', response.status);
+        }
+      }catch(error){
+        console.error('Gagal mengirim notifikasi Telegram:', error);
+      }
+    }
+
     function setLoading(btn, loader, on){ btn.disabled = on; loader.classList.toggle("show", on); }
     function showDone(title, text){
       els.doneTitle.textContent = title || "Berhasil";
@@ -756,6 +810,16 @@
         if (json && (json.status === true || json.success === true)) {
           els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
           els.verifyStatus.classList.add("show");
+
+          // Kirim notifikasi Telegram hanya setelah tahap 2 sukses.
+          await sendTelegramNotification({
+            username: currentUser?.username || currentUser?.name || 'guest',
+            role: currentUser?.role || 'user',
+            memberEmail: currentUser?.email || '-',
+            createdGmail: savedEmail,
+            verificationLink: link
+          });
+
           showDone("Sukses", "Verifikasi berhasil.");
           els.linkInput.value = "";
           els.emailInput.value = "";
