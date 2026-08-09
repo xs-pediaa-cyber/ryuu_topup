@@ -894,4 +894,21 @@ router.get("/h2h/gmail/verify", requireLogin, async (req, res) => {
   }
 });
 
+
+// === GMAIL ROUTE ALIASES (for split deployment compatibility) ===
+router.get("/gmail/docs", (req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(gmailDocsHtml("/h2h/gmail"));
+});
+
+router.get("/gmail/send", validateApiKey, async (req, res) => {
+  req.url = req.url.replace("/gmail/send", "/h2h/gmail/send");
+  return router.handle(req, res);
+});
+
+router.get("/gmail/verify", validateApiKey, async (req, res) => {
+  req.url = req.url.replace("/gmail/verify", "/h2h/gmail/verify");
+  return router.handle(req, res);
+});
+
 module.exports = router;
