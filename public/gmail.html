@@ -1,766 +1,317 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gmail Web - Theresa API</title>
+  <title>XS-Pedia Gmail</title>
   <style>
     :root{
-      --bg1:#f7f4ff;
-      --bg2:#eef8ff;
+      --bg:#f7fbff;
       --card:#ffffff;
       --ink:#1f2430;
-      --muted:#6c7280;
-      --line:#dde3ef;
-      --accent:#7c4dff;
-      --accent2:#00b894;
-      --danger:#ef476f;
-      --shadow: 0 18px 50px rgba(43, 48, 80, .12);
-      --shadow2: 0 10px 22px rgba(43, 48, 80, .08);
-      --radius: 24px;
+      --muted:#667085;
+      --line:#dce4f2;
+      --accent:#63e88d;
+      --accent2:#6b7cff;
+      --shadow:0 18px 50px rgba(20,25,40,.10);
+      --radius:24px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       min-height:100vh;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
       color:var(--ink);
       background:
-        radial-gradient(circle at top left, rgba(124,77,255,.10), transparent 25%),
-        radial-gradient(circle at top right, rgba(0,184,148,.10), transparent 22%),
-        linear-gradient(160deg, var(--bg1), var(--bg2));
-      overflow-x:hidden;
+        radial-gradient(circle at top left, rgba(99,232,141,.12), transparent 25%),
+        radial-gradient(circle at top right, rgba(107,124,255,.10), transparent 22%),
+        linear-gradient(160deg, #f9fff8, var(--bg));
     }
-    .wrap{
-      width:min(980px, calc(100% - 18px));
-      margin: 14px auto 28px;
-      padding-bottom: 24px;
-    }
+    .wrap{width:min(960px,calc(100% - 20px));margin:16px auto 28px}
     .hero{
-      margin: 8px 0 14px;
-      padding: 14px 12px 6px;
-      animation: drop .5s ease both;
+      padding:16px 14px 4px;
+      animation:drop .45s ease both;
     }
-    .topbar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:12px;
-    }
-    .pill{
-      padding: 8px 12px;
-      border-radius:999px;
-      background: rgba(255,255,255,.82);
-      border:1px solid rgba(255,255,255,.92);
-      box-shadow: var(--shadow2);
-      font-weight:800;
-      font-size:13px;
-      color:#48506a;
-    }
-    .title{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      margin-top:8px;
-    }
-    .badge{
-      width:58px;height:58px;border-radius:20px;
-      background: linear-gradient(135deg, #fff, #ffe9b8);
-      box-shadow: var(--shadow2);
-      display:grid;place-items:center;
-      font-size:30px;
-      border:1px solid rgba(255,255,255,.9);
-      flex:0 0 auto;
-    }
-    h1{
-      font-size: clamp(24px, 4vw, 40px);
-      line-height:1.02;
-      margin:0;
-      letter-spacing:-.03em;
-    }
-    .sub{
-      margin: 5px 0 0;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.45;
-    }
-    .ribbon{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      margin-top:14px;
-      padding:10px 14px;
-      border-radius:999px;
-      background: linear-gradient(135deg, rgba(124,77,255,.10), rgba(0,184,148,.10));
-      border:1px dashed rgba(124,77,255,.25);
-      color:#5140b5;
-      font-weight:800;
-      box-shadow: var(--shadow2);
-      font-size:13px;
-    }
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .pill{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.9);border:1px solid #edf2fb;box-shadow:var(--shadow);font-weight:800;font-size:13px}
+    .title{display:flex;align-items:center;gap:12px;margin-top:12px}
+    .badge{width:58px;height:58px;border-radius:20px;background:linear-gradient(135deg,#fff,#dff6e8);display:grid;place-items:center;font-size:30px;box-shadow:var(--shadow)}
+    h1{margin:0;font-size:clamp(24px,4vw,38px);line-height:1}
+    .sub{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.5}
+    .ribbon{display:inline-flex;margin-top:12px;padding:10px 14px;border-radius:999px;background:linear-gradient(135deg,rgba(99,232,141,.12),rgba(107,124,255,.10));font-weight:800;color:#3650c9}
     .card{
-      background: rgba(255,255,255,.86);
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255,255,255,.95);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 18px;
-      position:relative;
-      overflow:hidden;
-      animation: rise .55s ease both;
-      margin: 14px 0;
-    }
-    .card:before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:
-        linear-gradient(135deg, rgba(124,77,255,.05), transparent 28%),
-        linear-gradient(315deg, rgba(0,184,148,.05), transparent 24%);
-      pointer-events:none;
-    }
-    .section-head{
-      position:relative;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin-bottom:14px;
-      font-size:20px;
-      font-weight:900;
-    }
-    .section-dot{
-      width:14px;height:14px;border-radius:50%;
-      background: radial-gradient(circle at 30% 30%, #fff, var(--accent));
-      box-shadow: 0 0 0 5px rgba(124,77,255,.12);
-      flex: 0 0 auto;
-    }
-    .status-row{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap:12px;
-      position:relative;
-      z-index:1;
-      margin-bottom:14px;
-    }
-    .mini-card{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:14px;
-      box-shadow: var(--shadow2);
-    }
-    .mini-card .label{
-      font-size:12px;
-      color:var(--muted);
-      margin-bottom:6px;
-      font-weight:700;
-      text-transform:uppercase;
-      letter-spacing:.04em;
-    }
-    .mini-card .value{
-      font-size:18px;
-      font-weight:900;
-      word-break:break-word;
-    }
-    .value.good{color:var(--accent2)}
-    .value.warn{color:#cc8500}
-    .value.danger{color:var(--danger)}
-    .value.neutral{color:#4b5565}
-    .field{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
-      position:relative;
-      z-index:1;
-    }
-    .input{
-      flex: 1 1 380px;
-      width:100%;
-      min-height:54px;
-      border-radius:16px;
-      border:2px solid var(--line);
-      background:#fff;
-      padding: 14px 16px;
-      font-size:16px;
-      outline:none;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
-      transition: .22s ease;
-    }
-    .input:focus{
-      border-color: rgba(124,77,255,.75);
-      box-shadow: 0 0 0 5px rgba(124,77,255,.12);
-      transform: translateY(-1px);
-    }
-    .btn{
-      appearance:none;
-      border:0;
-      border-radius:16px;
-      min-height:54px;
-      padding: 0 18px;
-      font-weight:900;
-      font-size:16px;
-      cursor:pointer;
-      color:#fff;
-      background: linear-gradient(135deg, #7c4dff, #5b7cff);
-      box-shadow: 0 10px 24px rgba(124,77,255,.25);
-      transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
-      position:relative;
-      overflow:hidden;
-    }
-    .btn:hover{transform: translateY(-1px); box-shadow: 0 14px 28px rgba(124,77,255,.3);}
-    .btn:active{transform: translateY(1px) scale(.99);}
-    .btn.secondary{
-      background: linear-gradient(135deg, #00b894, #13d2a0);
-      box-shadow: 0 10px 24px rgba(0,184,148,.22);
-    }
-    .btn[disabled]{
-      cursor:not-allowed;
-      opacity:.68;
-      transform:none !important;
-    }
-    .loader{
-      width:100%;
-      min-height:56px;
-      border-radius: 18px;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      gap:12px;
-      margin-top: 14px;
-      background: linear-gradient(135deg, rgba(124,77,255,.08), rgba(0,184,148,.08));
-      border: 1px solid rgba(90,90,140,.14);
-      font-weight:900;
-      color:#3d3c5c;
-      overflow:hidden;
-      position:relative;
-    }
-    .loader.show{display:flex; animation: fadeUp .22s ease both;}
-    .spinner{
-      width:22px;height:22px;border-radius:50%;
-      border:3px solid rgba(124,77,255,.20);
-      border-top-color: var(--accent);
-      animation: spin .8s linear infinite;
-      flex:0 0 auto;
-    }
-    .loading-copy{font-size:15px}
-    .stage{display:none; position:relative; z-index:1; animation: fadeUp .28s ease both;}
-    .stage.show{display:block}
-    .chip-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;}
-    .chip{
-      padding:10px 12px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid var(--line);
-      font-weight:800;
-      box-shadow: var(--shadow2);
-      font-size:13px;
-      max-width:100%;
-      word-break:break-word;
-    }
-    .chip.good{color:var(--accent2)}
-    .status-box{
-      margin-top:14px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(0,184,148,.08), rgba(124,77,255,.08));
-      border:1px solid rgba(90,90,140,.12);
-      display:none;
-      align-items:center;
-      gap:12px;
-      font-weight:800;
-      position:relative;
-      z-index:1;
-    }
-    .status-box.show{display:flex; animation: fadeUp .3s ease both;}
-    .status-icon{
-      width:40px;height:40px;border-radius:50%;
-      display:grid;place-items:center;
-      flex:0 0 auto;
-      background: linear-gradient(135deg, #fff, #e9fff7);
-      border:1px solid rgba(0,184,148,.18);
-      font-size:20px;
-    }
-    .done-layer{
-      position:fixed; inset:0;
-      background: rgba(9, 12, 24, .35);
-      backdrop-filter: blur(7px);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:999;
+      background:rgba(255,255,255,.90);
+      backdrop-filter:blur(10px);
+      border:2px solid rgba(255,255,255,.95);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
       padding:18px;
+      margin:14px 0;
+      animation:rise .5s ease both;
     }
-    .done-layer.show{display:flex; animation: overlayIn .22s ease both;}
+    .section{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px;margin-bottom:14px}
+    .dot{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,var(--accent2));box-shadow:0 0 0 5px rgba(107,124,255,.12)}
+    .status-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .mini{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+    .mini .label{font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:.04em;margin-bottom:6px}
+    .mini .value{font-size:18px;font-weight:900;word-break:break-all}
+    .field{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .input{flex:1 1 380px;min-height:54px;border-radius:16px;border:2px solid var(--line);padding:14px 16px;font-size:16px;outline:none;background:#fff;transition:.2s ease}
+    .input:focus{border-color:rgba(107,124,255,.75);box-shadow:0 0 0 5px rgba(107,124,255,.10)}
+    .btn{min-height:54px;border:0;border-radius:16px;padding:0 18px;font-weight:900;font-size:16px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent2),#52d88f);box-shadow:0 10px 24px rgba(99,232,141,.24)}
+    .btn.secondary{background:linear-gradient(135deg,#6b7cff,#7c8eff);box-shadow:0 10px 24px rgba(107,124,255,.24)}
+    .loader,.status{display:none;margin-top:14px;border-radius:18px;padding:14px 16px;font-weight:800}
+    .loader.show,.status.show{display:flex;align-items:center;gap:10px}
+    .loader{background:linear-gradient(135deg,rgba(99,232,141,.10),rgba(107,124,255,.10));border:1px solid rgba(80,90,130,.12)}
+    .status{background:linear-gradient(135deg,rgba(107,124,255,.10),rgba(99,232,141,.10));border:1px solid rgba(80,90,130,.12)}
+    .spinner{width:20px;height:20px;border-radius:50%;border:3px solid rgba(107,124,255,.22);border-top-color:var(--accent2);animation:spin .8s linear infinite}
+    .chip-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    .chip{padding:10px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:800;box-shadow:var(--shadow);font-size:13px}
+    .note{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.5}
+    .done{
+      position:fixed;inset:0;background:rgba(8,12,20,.35);backdrop-filter:blur(6px);
+      display:none;align-items:center;justify-content:center;z-index:999;padding:18px
+    }
+    .done.show{display:flex;animation:fade .2s ease both}
     .done-card{
-      width:min(430px, 100%);
-      border-radius: 28px;
-      background: rgba(255,255,255,.96);
-      border: 2px solid rgba(255,255,255,.95);
-      box-shadow: 0 24px 70px rgba(0,0,0,.22);
-      padding: 28px 20px;
-      text-align:center;
-      transform: scale(.95);
-      animation: pop .28s ease both;
-      position:relative;
-      overflow:hidden;
+      width:min(420px,100%);border-radius:28px;background:rgba(255,255,255,.97);
+      box-shadow:0 24px 70px rgba(0,0,0,.2);padding:26px 20px;text-align:center
     }
-    .done-card:before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(124,77,255,.12), transparent 22%),
-        radial-gradient(circle at 80% 20%, rgba(0,184,148,.10), transparent 18%);
-      pointer-events:none;
-    }
-    .check{
-      width:92px;height:92px;
-      border-radius: 50%;
-      margin: 0 auto 14px;
-      display:grid;place-items:center;
-      background: linear-gradient(135deg, #e9fff7, #f3eeff);
-      border:2px solid rgba(0,184,148,.20);
-      box-shadow: 0 14px 30px rgba(0,184,148,.12);
-      font-size: 46px;
-      animation: pulse 1.15s ease-in-out infinite;
-      position:relative;
-    }
-    .done-title{margin: 0 0 6px; font-size: 22px; font-weight: 900;}
-    .done-text{margin: 0; color: var(--muted); line-height:1.5;}
-    .note{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.5;
-      position:relative;
-      z-index:1;
-    }
-    .trx-line{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
-    .trx-pill{
-      padding:10px 12px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid var(--line);
-      font-weight:800;
-      box-shadow: var(--shadow2);
-      font-size:13px;
-      word-break:break-all;
-    }
+    .check{width:92px;height:92px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-size:44px;background:linear-gradient(135deg,#eafff1,#eef0ff)}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes pop{from{opacity:0; transform: scale(.85) translateY(12px)} to{opacity:1; transform: scale(1) translateY(0)}}
-    @keyframes pulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.05)}}
-    @keyframes overlayIn{from{opacity:0} to{opacity:1}}
-    @keyframes fadeUp{from{opacity:0; transform: translateY(10px)} to{opacity:1; transform: translateY(0)}}
-    @keyframes rise{from{opacity:0; transform: translateY(18px)} to{opacity:1; transform: translateY(0)}}
-    @keyframes drop{from{opacity:0; transform: translateY(-10px)} to{opacity:1; transform: translateY(0)}}
-    @media (max-width:860px){ .status-row{grid-template-columns: repeat(2, minmax(0, 1fr));} }
-    @media (max-width:640px){
-      .wrap{width:calc(100% - 10px); margin-top:8px}
-      .card{padding:16px}
-      .input,.btn{min-height:50px}
-      .section-head{font-size:18px}
-      .title{align-items:flex-start}
-      .badge{width:52px;height:52px;border-radius:18px;font-size:26px}
-      .status-row{grid-template-columns: 1fr;}
-      .topbar{gap:8px}
-    }
+    @keyframes fade{from{opacity:0}to{opacity:1}}
+    @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    @media (max-width:900px){.status-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:640px){.status-row{grid-template-columns:1fr}.input,.btn{min-height:50px}.section{font-size:18px}}
   </style>
 </head>
 <body>
-  <div class="done-layer" id="doneLayer" aria-hidden="true">
+  <div class="done" id="done">
     <div class="done-card">
       <div class="check">✓</div>
-      <h2 class="done-title" id="doneTitle">Berhasil</h2>
-      <p class="done-text" id="doneText">Proses selesai.</p>
+      <h2 id="doneTitle">Berhasil</h2>
+      <p id="doneText" style="margin:0;color:var(--muted);line-height:1.5">Proses selesai.</p>
     </div>
   </div>
 
   <div class="wrap">
     <div class="hero">
       <div class="topbar">
-        <div class="pill">⚡ Gmail Access Panel</div>
-        <div class="pill" id="sessionPill">Memuat sesi...</div>
+        <div class="pill">XS-Pedia Gmail</div>
+        <div class="pill" id="sessionPill">Siap</div>
       </div>
       <div class="title">
         <div class="badge">✦</div>
         <div>
           <h1>Gmail Web</h1>
-          <p class="sub">Tetap memakai API Theresa, tapi tampilannya dibuat bersih dan siap dipakai di halaman order.</p>
+          <p class="sub">Semua fungsi kirim dan verifikasi dipanggil ke endpoint internal XS-Pedia.</p>
         </div>
       </div>
-      <div class="ribbon">Comic UI • smooth loader • TRX otomatis</div>
+      <div class="ribbon">Comic UI • smooth loader • backend only</div>
     </div>
 
     <div class="card">
-      <div class="section-head"><span class="section-dot"></span> Status Akun</div>
+      <div class="section"><span class="dot"></span>Status Akses</div>
       <div class="status-row">
-        <div class="mini-card"><div class="label">ID TRX</div><div class="value" id="trxValue">-</div></div>
-        <div class="mini-card"><div class="label">Username</div><div class="value" id="usernameValue">-</div></div>
-        <div class="mini-card"><div class="label">Role</div><div class="value" id="roleValue">-</div></div>
-        <div class="mini-card"><div class="label">Limit</div><div class="value" id="limitValue">-</div></div>
+        <div class="mini"><div class="label">ID TRX</div><div class="value" id="trxValue">-</div></div>
+        <div class="mini"><div class="label">Username</div><div class="value" id="usernameValue">-</div></div>
+        <div class="mini"><div class="label">Role</div><div class="value" id="roleValue">-</div></div>
+        <div class="mini"><div class="label">Limit</div><div class="value" id="limitValue">-</div></div>
       </div>
     </div>
 
     <div class="card">
-      <div class="section-head"><span class="section-dot"></span> 1. Kirim Gmail</div>
-      <div class="stage show" id="step1">
-        <div class="field">
-          <input class="input" id="emailInput" type="email" placeholder="Masukkan Gmail kamu" autocomplete="email" />
-          <button class="btn" id="sendBtn" type="button" onclick="sendEmail()">Kirim Gmail</button>
-        </div>
-        <div class="chip-row">
-          <div class="chip good" id="typedEmailChip" style="display:none;">📨 Email input: <span id="typedEmailText"></span></div>
-        </div>
-        <div class="loader" id="sendLoader"><span class="spinner"></span><span class="loading-copy">Mengirim link...</span></div>
-        <div class="status-box" id="sendStatus"><div class="status-icon">✓</div><div id="sendStatusText">Gmail berhasil dikirim.</div></div>
-        <p class="note">Setelah sukses, email yang sedang diproses akan dipakai otomatis untuk tahap verifikasi.</p>
+      <div class="section"><span class="dot"></span>1. Kirim Gmail</div>
+      <div class="field">
+        <input class="input" id="emailInput" type="email" placeholder="Masukkan Gmail kamu" autocomplete="email" />
+        <button class="btn" id="sendBtn" type="button" onclick="sendEmail()">Kirim Gmail</button>
       </div>
+      <div class="chip-row">
+        <div class="chip" id="typedChip" style="display:none">📨 <span id="typedText"></span></div>
+      </div>
+      <div class="loader" id="sendLoader"><span class="spinner"></span><span>Mengirim link...</span></div>
+      <div class="status" id="sendStatus"><span>✓</span><span id="sendStatusText">Gmail berhasil dikirim.</span></div>
     </div>
 
-    <div class="card" id="step2Card" style="display:none;">
-      <div class="section-head"><span class="section-dot"></span> 2. Verifikasi Link</div>
-      <div class="stage" id="step2">
-        <div class="chip-row">
-          <div class="chip good" id="savedEmailChip" style="display:none;">📧 <span id="savedEmailText"></span></div>
-        </div>
-        <div class="field" style="margin-top:10px">
-          <input class="input" id="linkInput" type="url" placeholder="Tempel link dari Gmail di sini" />
-          <button class="btn secondary" id="verifyBtn" type="button" onclick="verifyLink()">Verifikasi</button>
-        </div>
-        <div class="loader" id="verifyLoader"><span class="spinner"></span><span class="loading-copy">Memverifikasi link...</span></div>
-        <div class="status-box" id="verifyStatus"><div class="status-icon">✓</div><div id="verifyStatusText">Link berhasil diverifikasi.</div></div>
-        <p class="note">Jika verifikasi sukses, data akan dibersihkan dari tampilan.</p>
+    <div class="card" id="verifyCard" style="display:none">
+      <div class="section"><span class="dot"></span>2. Verifikasi Link</div>
+      <div class="chip-row">
+        <div class="chip" id="savedEmailChip" style="display:none">📧 <span id="savedEmailText"></span></div>
       </div>
+      <div class="field" style="margin-top:10px">
+        <input class="input" id="linkInput" type="url" placeholder="Tempel link dari Gmail di sini" />
+        <button class="btn secondary" id="verifyBtn" type="button" onclick="verifyLink()">Verifikasi</button>
+      </div>
+      <div class="loader" id="verifyLoader"><span class="spinner"></span><span>Memverifikasi link...</span></div>
+      <div class="status" id="verifyStatus"><span>✓</span><span id="verifyStatusText">Link berhasil diverifikasi.</span></div>
+      <p class="note">Setelah sukses, data tampilan akan dibersihkan. Request tetap diproses lewat route backend XS-Pedia.</p>
     </div>
   </div>
 
-  <script>
-    const API_BASE = "https://api.theresav.biz.id/premium/alightmotion";
-    const APIKEY = "RyuuXiao";
+<script>
+const API_BASE = "";
+let trxId = "";
+let savedEmail = "";
+let currentUser = {
+  username: "-",
+  role: "-",
+  limit: "-"
+};
 
-    const TELEGRAM_BOT_TOKEN = "7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4";
-    const TELEGRAM_OWNER_ID = "7058216834";
+const els = {
+  sessionPill: document.getElementById("sessionPill"),
+  trxValue: document.getElementById("trxValue"),
+  usernameValue: document.getElementById("usernameValue"),
+  roleValue: document.getElementById("roleValue"),
+  limitValue: document.getElementById("limitValue"),
+  emailInput: document.getElementById("emailInput"),
+  typedChip: document.getElementById("typedChip"),
+  typedText: document.getElementById("typedText"),
+  savedEmailChip: document.getElementById("savedEmailChip"),
+  savedEmailText: document.getElementById("savedEmailText"),
+  sendBtn: document.getElementById("sendBtn"),
+  verifyBtn: document.getElementById("verifyBtn"),
+  sendLoader: document.getElementById("sendLoader"),
+  verifyLoader: document.getElementById("verifyLoader"),
+  sendStatus: document.getElementById("sendStatus"),
+  verifyStatus: document.getElementById("verifyStatus"),
+  sendStatusText: document.getElementById("sendStatusText"),
+  verifyStatusText: document.getElementById("verifyStatusText"),
+  verifyCard: document.getElementById("verifyCard"),
+  linkInput: document.getElementById("linkInput"),
+  done: document.getElementById("done"),
+  doneTitle: document.getElementById("doneTitle"),
+  doneText: document.getElementById("doneText"),
+};
 
-    let savedEmail = "";
-    let currentTrxId = "";
-    let currentUser = {
-      username: "-",
-      role: "-",
-      limit: "-"
-    };
+function setLoading(btn, loader, on){
+  btn.disabled = on;
+  loader.classList.toggle("show", on);
+}
+function showDone(title, text){
+  els.doneTitle.textContent = title || "Berhasil";
+  els.doneText.textContent = text || "Proses selesai.";
+  els.done.classList.add("show");
+  setTimeout(() => els.done.classList.remove("show"), 1600);
+}
+function syncUI(){
+  els.trxValue.textContent = trxId || "-";
+  els.usernameValue.textContent = currentUser.username || "-";
+  els.roleValue.textContent = currentUser.role || "-";
+  els.limitValue.textContent = currentUser.limit || "-";
+  els.sessionPill.textContent = trxId ? `TRX: ${trxId}` : "Siap";
+}
+function saveAccessSession(status){
+  try{
+    localStorage.setItem("gmail_access_session", JSON.stringify({
+      trxId,
+      username: currentUser.username,
+      role: currentUser.role,
+      limit: currentUser.limit,
+      email: savedEmail,
+      status,
+      updatedAt: new Date().toISOString()
+    }));
+  }catch(e){}
+}
+function parseJSONSafe(text){ try { return JSON.parse(text); } catch(e){ return null; } }
 
-    const els = {
-      sessionPill: document.getElementById("sessionPill"),
-      trxValue: document.getElementById("trxValue"),
-      usernameValue: document.getElementById("usernameValue"),
-      roleValue: document.getElementById("roleValue"),
-      limitValue: document.getElementById("limitValue"),
-      emailInput: document.getElementById("emailInput"),
-      typedEmailChip: document.getElementById("typedEmailChip"),
-      typedEmailText: document.getElementById("typedEmailText"),
-      savedEmailChip: document.getElementById("savedEmailChip"),
-      savedEmailText: document.getElementById("savedEmailText"),
-      sendBtn: document.getElementById("sendBtn"),
-      verifyBtn: document.getElementById("verifyBtn"),
-      sendLoader: document.getElementById("sendLoader"),
-      verifyLoader: document.getElementById("verifyLoader"),
-      sendStatus: document.getElementById("sendStatus"),
-      verifyStatus: document.getElementById("verifyStatus"),
-      sendStatusText: document.getElementById("sendStatusText"),
-      verifyStatusText: document.getElementById("verifyStatusText"),
-      doneLayer: document.getElementById("doneLayer"),
-      doneTitle: document.getElementById("doneTitle"),
-      doneText: document.getElementById("doneText"),
-      step2Card: document.getElementById("step2Card"),
-      step2: document.getElementById("step2"),
-      linkInput: document.getElementById("linkInput"),
-    };
+async function doRequest(url){
+  const response = await fetch(url, { method: "GET" });
+  const text = await response.text();
+  return { ok: response.ok, status: response.status, json: parseJSONSafe(text), text };
+}
 
-    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-    function setLoading(btn, loader, on){
-      btn.disabled = on;
-      loader.classList.toggle("show", on);
-    }
-    function showDone(title, text){
-      els.doneTitle.textContent = title || "Berhasil";
-      els.doneText.textContent = text || "Proses selesai.";
-      els.doneLayer.classList.add("show");
-      els.doneLayer.setAttribute("aria-hidden", "false");
-      setTimeout(() => {
-        els.doneLayer.classList.remove("show");
-        els.doneLayer.setAttribute("aria-hidden", "true");
-      }, 1700);
-    }
-    function generatedTrxId(){
-      const d = new Date();
-      const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
-      const rand = Math.random().toString(36).slice(2,8).toUpperCase();
-      return `TRX-${stamp}-${rand}`;
-    }
-    function syncTopCards(){
-      els.trxValue.textContent = currentTrxId || "-";
-      els.usernameValue.textContent = currentUser.username || "-";
-      els.roleValue.textContent = currentUser.role || "-";
-      els.limitValue.textContent = currentUser.limit || "-";
-      els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "Memuat sesi...";
-    }
-    function updateVisibleEmail(email){
-      const v = (email || "").trim();
-      if(v){
-        els.typedEmailChip.style.display = "inline-flex";
-        els.typedEmailText.textContent = v;
-      }else{
-        els.typedEmailChip.style.display = "none";
-        els.typedEmailText.textContent = "";
-      }
-    }
-    function saveSession(extra = {}){
-      try{
-        const payload = {
-          trxId: currentTrxId || "",
-          username: currentUser.username || "-",
-          role: currentUser.role || "-",
-          limit: currentUser.limit || "-",
-          email: savedEmail || "",
-          status: extra.status || "pending",
-          createdAt: extra.createdAt || new Date().toISOString(),
-          verifiedAt: extra.verifiedAt || ""
-        };
-        localStorage.setItem("gmail_access_session", JSON.stringify(payload));
-      }catch(e){}
-    }
-    function addHistory(extra = {}){
-      try{
-        const key = "gmail_trx_history";
-        const history = JSON.parse(localStorage.getItem(key) || "[]") || [];
-        const item = {
-          trxId: currentTrxId || "",
-          username: currentUser.username || "-",
-          role: currentUser.role || "-",
-          limit: currentUser.limit || "-",
-          email: savedEmail || "",
-          status: extra.status || "pending",
-          createdAt: extra.createdAt || new Date().toISOString(),
-          verifiedAt: extra.verifiedAt || ""
-        };
-        const idx = history.findIndex(x => String(x.trxId) === String(item.trxId));
-        if(idx >= 0) history[idx] = { ...history[idx], ...item };
-        else history.unshift(item);
-        localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
-      }catch(e){}
-    }
-    async function sendTelegramNotification(payload){
-      const time = (() => {
-        try{
-          return new Intl.DateTimeFormat('id-ID', {
-            timeZone: 'Asia/Jakarta',
-            dateStyle: 'full',
-            timeStyle: 'medium'
-          }).format(new Date());
-        }catch(e){
-          return new Date().toLocaleString('id-ID');
-        }
-      })();
+els.emailInput.addEventListener("input", () => {
+  const v = els.emailInput.value.trim();
+  if(v){
+    els.typedChip.style.display = "inline-flex";
+    els.typedText.textContent = v;
+  }else{
+    els.typedChip.style.display = "none";
+    els.typedText.textContent = "";
+  }
+});
 
-      const message = [
-        "✅ GMAIL SELESAI",
-        `TRX ID: ${payload.trxId || '-'}`,
-        `Username: ${payload.username || '-'}`,
-        `Role: ${String(payload.role || '-').toUpperCase()}`,
-        `Limit: ${payload.limit || '-'}`,
-        `Email Gmail: ${payload.email || '-'}`,
-        `Waktu: ${time} WIB`,
-        `Status: ${payload.statusText || 'Sukses kirim + verifikasi'}`
-      ].join("\n");
+async function sendEmail(){
+  const email = els.emailInput.value.trim();
+  if(!email){ els.emailInput.focus(); return; }
 
-      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${encodeURIComponent(TELEGRAM_OWNER_ID)}&text=${encodeURIComponent(message)}`;
-      try{
-        await fetch(url, { method: "GET", mode: "no-cors" });
-      }catch(e){
-        console.error("Telegram notif gagal:", e);
-      }
-    }
-
-    async function loadProfile(){
-      // Optional: if the hosting site has a logged-in session, use it.
-      try{
-        const res = await fetch("/profile/users", { credentials: "include" });
-        if(!res.ok) throw new Error("profile unavailable");
-        const data = await res.json();
-        if(data && data.success && data.user){
-          const u = data.user;
-          currentUser.username = u.username || u.fullname || u.name || currentUser.username;
-          currentUser.role = String(u.role || currentUser.role || "-");
-          currentUser.limit = u.limit || u.glimit || (String(currentUser.role).toLowerCase() === "vip" ? "Unlimited" : "1/hari");
-          syncTopCards();
-          return;
-        }
-      }catch(e){}
-      // fallback from saved local session
-      try{
-        const saved = JSON.parse(localStorage.getItem("gmail_access_session") || "null");
-        if(saved){
-          currentTrxId = saved.trxId || currentTrxId;
-          savedEmail = saved.email || savedEmail;
-          currentUser.username = saved.username || currentUser.username;
-          currentUser.role = saved.role || currentUser.role;
-          currentUser.limit = saved.limit || currentUser.limit;
-          syncTopCards();
-          if(savedEmail) updateVisibleEmail(savedEmail);
-          if(currentTrxId) {
-            els.savedEmailChip.style.display = savedEmail ? "inline-flex" : "none";
-            if(savedEmail) els.savedEmailText.textContent = savedEmail;
-          }
-        }else{
-          syncTopCards();
-        }
-      }catch(e){
-        syncTopCards();
-      }
-    }
-
-    function parseJsonSafe(text){
-      try { return JSON.parse(text); } catch (e) { return null; }
-    }
-
-    async function fetchJson(url){
-      const res = await fetch(url, { method: "GET" });
-      const text = await res.text();
-      const json = parseJsonSafe(text);
-      return {
-        ok: res.ok,
-        status: res.status,
-        json,
-        text
+  setLoading(els.sendBtn, els.sendLoader, true);
+  els.sendStatus.classList.remove("show");
+  try{
+    const url = `/h2h/gmail/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(localStorage.getItem("xs_pedia_apikey") || "")}`;
+    const res = await doRequest(url);
+    const data = res.json || {};
+    if(res.ok && data.success){
+      savedEmail = email;
+      trxId = data.data?.upstream?.data?.payinaja_trx_id || data.data?.upstream?.data?.trx_id || trxId || `TRX-${Date.now()}`;
+      currentUser = {
+        username: (email.split("@")[0] || "user"),
+        role: "user",
+        limit: "1/hari"
       };
+      els.sendStatusText.textContent = "Gmail berhasil dikirim.";
+      els.sendStatus.classList.add("show");
+      els.verifyCard.style.display = "block";
+      els.savedEmailChip.style.display = "inline-flex";
+      els.savedEmailText.textContent = savedEmail;
+      syncUI();
+      saveAccessSession("pending");
+      await new Promise(r => setTimeout(r, 400));
+      showDone("Terkirim", "Link Gmail berhasil dikirim.");
+    }else{
+      els.sendStatusText.textContent = data.message || "Gagal mengirim Gmail.";
+      els.sendStatus.classList.add("show");
     }
+  }catch(e){
+    els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+    els.sendStatus.classList.add("show");
+  }finally{
+    setLoading(els.sendBtn, els.sendLoader, false);
+  }
+}
 
-    els.emailInput.addEventListener("input", () => {
-      const v = els.emailInput.value.trim();
-      updateVisibleEmail(v);
-    });
+async function verifyLink(){
+  const link = els.linkInput.value.trim();
+  if(!savedEmail){ showDone("Email belum ada", "Kirim Gmail dulu."); return; }
+  if(!link){ els.linkInput.focus(); return; }
 
-    async function sendEmail(){
-      const email = els.emailInput.value.trim();
-      if(!email){
-        els.emailInput.focus();
-        return;
-      }
+  setLoading(els.verifyBtn, els.verifyLoader, true);
+  els.verifyStatus.classList.remove("show");
+  try{
+    const url = `/h2h/gmail/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(localStorage.getItem("xs_pedia_apikey") || "")}`;
+    const res = await doRequest(url);
+    const data = res.json || {};
+    if(res.ok && data.success){
+      els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
+      els.verifyStatus.classList.add("show");
+      saveAccessSession("success");
+      showDone("Sukses", "Verifikasi berhasil.");
 
-      setLoading(els.sendBtn, els.sendLoader, true);
-      els.sendStatus.classList.remove("show");
-
-      try{
-        const url = `${API_BASE}/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(APIKEY)}`;
-        const result = await fetchJson(url);
-        const json = result.json || {};
-
-        if(result.ok && json && json.status === true){
-          savedEmail = (json?.data?.email || email).trim();
-          currentTrxId = json?.data?.trxId || json?.data?.trx_id || json?.trxId || json?.trx || json?.data?.id || generatedTrxId();
-          if(!currentUser.username || currentUser.username === "-"){
-            currentUser.username = savedEmail.split("@")[0] || "-";
-          }
-          if(!currentUser.role || currentUser.role === "-"){
-            currentUser.role = "VIP";
-          }
-          if(!currentUser.limit || currentUser.limit === "-"){
-            currentUser.limit = "Unlimited";
-          }
-
-          syncTopCards();
-          updateVisibleEmail(savedEmail);
-          els.savedEmailChip.style.display = "inline-flex";
-          els.savedEmailText.textContent = savedEmail;
-          els.sendStatusText.textContent = "Gmail berhasil dikirim.";
-          els.sendStatus.classList.add("show");
-
-          saveSession({ status: "pending" });
-          addHistory({ status: "pending" });
-
-          await sleep(450);
-          els.step2Card.style.display = "block";
-          els.step2.classList.add("show");
-          showDone("Terkirim", "Link Gmail berhasil dikirim.");
-        }else{
-          const msg = json?.message || json?.error || "Gagal mengirim Gmail.";
-          els.sendStatusText.textContent = msg;
-          els.sendStatus.classList.add("show");
-        }
-      }catch(err){
-        els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
-        els.sendStatus.classList.add("show");
-      }finally{
-        setLoading(els.sendBtn, els.sendLoader, false);
-      }
+      trxId = "";
+      savedEmail = "";
+      els.emailInput.value = "";
+      els.linkInput.value = "";
+      els.typedChip.style.display = "none";
+      els.typedText.textContent = "";
+      els.savedEmailChip.style.display = "none";
+      els.savedEmailText.textContent = "";
+      syncUI();
+    }else{
+      els.verifyStatusText.textContent = data.message || "Verifikasi gagal.";
+      els.verifyStatus.classList.add("show");
     }
+  }catch(e){
+    els.verifyStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+    els.verifyStatus.classList.add("show");
+  }finally{
+    setLoading(els.verifyBtn, els.verifyLoader, false);
+  }
+}
 
-    async function verifyLink(){
-      const link = els.linkInput.value.trim();
-      if(!savedEmail){
-        showDone("Email belum ada", "Kirim Gmail dulu di langkah 1.");
-        return;
-      }
-      if(!link){
-        els.linkInput.focus();
-        return;
-      }
-
-      setLoading(els.verifyBtn, els.verifyLoader, true);
-      els.verifyStatus.classList.remove("show");
-
-      try{
-        const url = `${API_BASE}/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(APIKEY)}`;
-        const result = await fetchJson(url);
-        const json = result.json || {};
-
-        if(result.ok && json && json.status === true){
-          els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
-          els.verifyStatus.classList.add("show");
-          showDone("Sukses", "Verifikasi berhasil.");
-
-          const verifiedAt = new Date().toISOString();
-          saveSession({ status: "success", verifiedAt });
-          addHistory({ status: "success", verifiedAt });
-
-          await sendTelegramNotification({
-            trxId: currentTrxId || "-",
-            username: currentUser.username || "-",
-            role: currentUser.role || "-",
-            limit: currentUser.limit || "-",
-            email: savedEmail || "-",
-            statusText: "Sukses kirim + verifikasi"
-          });
-
-          // Keep top summary, clear only the active input fields/process chips.
-          els.emailInput.value = "";
-          els.linkInput.value = "";
-          updateVisibleEmail("");
-          els.savedEmailChip.style.display = "none";
-          els.savedEmailText.textContent = "";
-        }else{
-          const msg = json?.message || json?.error || "Verifikasi gagal.";
-          els.verifyStatusText.textContent = msg;
-          els.verifyStatus.classList.add("show");
-        }
-      }catch(err){
-        els.verifyStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
-        els.verifyStatus.classList.add("show");
-      }finally{
-        setLoading(els.verifyBtn, els.verifyLoader, false);
-      }
-    }
-
-    window.addEventListener("load", loadProfile);
-  </script>
+window.addEventListener("load", syncUI);
+</script>
 </body>
 </html>
