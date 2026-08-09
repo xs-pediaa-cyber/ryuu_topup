@@ -794,7 +794,6 @@
           sessionStorage.setItem("gmail_saved_email", savedEmail);
           localStorage.setItem("gmail_access_session", JSON.stringify({
             trxId: currentTrxId,
-            email: savedEmail,
             username: currentUser?.username || currentUser?.name || "guest",
             role: String(currentUser?.role || "user").toLowerCase(),
             createdAt: new Date().toISOString(),
@@ -851,10 +850,10 @@
             const meta = JSON.parse(localStorage.getItem("gmail_access_session") || "{}");
             meta.verified = true;
             meta.trxId = meta.trxId || currentTrxId;
-            meta.email = meta.email || savedEmail;
             meta.username = meta.username || currentUser?.username || currentUser?.name || "guest";
             meta.role = meta.role || String(currentUser?.role || "user").toLowerCase();
             meta.verifiedAt = new Date().toISOString();
+            delete meta.email;
             localStorage.setItem("gmail_access_session", JSON.stringify(meta));
           } catch (e) {}
 
@@ -863,6 +862,7 @@
           savedEmail = "";
           currentTrxId = "";
           sessionStorage.removeItem("gmail_saved_email");
+
           els.savedEmailChip.style.display = "none";
           els.typedEmailChip.style.display = "none";
           els.typedEmailText.textContent = "";
@@ -895,15 +895,11 @@
     window.addEventListener("load", () => {
       try {
         const meta = JSON.parse(localStorage.getItem("gmail_access_session") || "{}");
-        if (meta && meta.trxId) {
+        if (meta && meta.trxId && !meta.verified) {
           currentTrxId = meta.trxId;
           syncTrxChip();
-        }
-        if (meta && meta.email) {
-          savedEmail = meta.email;
-          els.emailInput.value = meta.email;
-          els.typedEmailChip.style.display = "inline-flex";
-          els.typedEmailText.textContent = meta.email;
+        } else if (meta && meta.verified) {
+
         }
       } catch (e) {}
       refreshProfile();
