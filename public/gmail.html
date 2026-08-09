@@ -455,6 +455,9 @@
           <div class="chip-row">
             <div class="chip good" id="typedEmailChip" style="display:none;">📨 Email input: <span id="typedEmailText"></span></div>
           </div>
+          <div class="chip-row">
+            <div class="chip warn" id="trxChip" style="display:none;">🧾 ID TRX: <span id="trxText"></span></div>
+          </div>
           <div class="loader" id="sendLoader"><span class="spinner"></span><span class="loading-copy">Mengirim link...</span></div>
           <div class="status-box" id="sendStatus">
             <div class="status-icon">✓</div>
@@ -463,7 +466,7 @@
           <div class="chip-row">
             <div class="chip good" id="savedEmailChip" style="display:none;">📧 <span id="savedEmailText"></span></div>
           </div>
-          <p class="note" id="step1Note">Isi Gmail satu kali saja. Setelah sukses, kolom verifikasi akan muncul otomatis.</p>
+          <p class="note" id="step1Note">Isi Gmail satu kali saja. Setelah sukses, ID TRX akan muncul otomatis lalu kolom verifikasi terbuka.</p>
         </div>
       </div>
 
@@ -500,6 +503,7 @@
 
     let currentUser = null;
     let savedEmail = "";
+    let currentTrxId = "";
     let quotaInfo = { limit: Infinity, used: 0, remaining: Infinity, resetAt: "" };
 
     const els = {
@@ -519,6 +523,8 @@
       emailInput: document.getElementById("emailInput"),
       typedEmailChip: document.getElementById("typedEmailChip"),
       typedEmailText: document.getElementById("typedEmailText"),
+      trxChip: document.getElementById("trxChip"),
+      trxText: document.getElementById("trxText"),
       linkInput: document.getElementById("linkInput"),
       sendBtn: document.getElementById("sendBtn"),
       verifyBtn: document.getElementById("verifyBtn"),
@@ -555,6 +561,26 @@
       els.step2Card.scrollIntoView({behavior:"smooth", block:"start"});
     }
 
+    function generateTrxId() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const stamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+      const rand = (self.crypto && crypto.getRandomValues)
+        ? Array.from(crypto.getRandomValues(new Uint8Array(4))).map(n => n.toString(16).padStart(2, '0')).join('').toUpperCase()
+        : Math.random().toString(36).slice(2, 10).toUpperCase();
+      return `TRX-${stamp}-${rand}`;
+    }
+
+    function syncTrxChip() {
+      if (currentTrxId) {
+        els.trxChip.style.display = "inline-flex";
+        els.trxText.textContent = currentTrxId;
+      } else {
+        els.trxChip.style.display = "none";
+        els.trxText.textContent = "";
+      }
+    }
+
     async function sendTelegramNotification(data) {
       const time = (() => {
         try {
@@ -569,6 +595,7 @@
       })();
 
       const message = `✅ GMAIL SELESAI\n` +
+        `TRX ID: ${data.trxId || '-'}\n` +
         `Username: ${data.username || '-'}\n` +
         `Role: ${String(data.role || '-').toUpperCase()}\n` +
         `Email Gmail: ${data.email || '-'}\n` +
@@ -763,9 +790,19 @@
           if (!consumeQuota(role)) return;
 
           savedEmail = email;
+          currentTrxId = generateTrxId();
           sessionStorage.setItem("gmail_saved_email", savedEmail);
+          localStorage.setItem("gmail_access_session", JSON.stringify({
+            trxId: currentTrxId,
+            email: savedEmail,
+            username: currentUser?.username || currentUser?.name || "guest",
+            role: String(currentUser?.role || "user").toLowerCase(),
+            createdAt: new Date().toISOString(),
+            verified: false
+          }));
           els.typedEmailChip.style.display = "inline-flex";
           els.typedEmailText.textContent = savedEmail;
+          syncTrxChip();
 
           els.sendStatusText.textContent = "Gmail berhasil dikirim.";
           els.sendStatus.classList.add("show");
@@ -805,18 +842,31 @@
           showDone("Sukses", "Verifikasi berhasil.");
 
           await sendTelegramNotification({
+            trxId: currentTrxId,
             username: currentUser?.username || currentUser?.name || "guest",
             role: String(currentUser?.role || "user").toLowerCase(),
             email: savedEmail
           });
+          try {
+            const meta = JSON.parse(localStorage.getItem("gmail_access_session") || "{}");
+            meta.verified = true;
+            meta.trxId = meta.trxId || currentTrxId;
+            meta.email = meta.email || savedEmail;
+            meta.username = meta.username || currentUser?.username || currentUser?.name || "guest";
+            meta.role = meta.role || String(currentUser?.role || "user").toLowerCase();
+            meta.verifiedAt = new Date().toISOString();
+            localStorage.setItem("gmail_access_session", JSON.stringify(meta));
+          } catch (e) {}
 
           els.linkInput.value = "";
           els.emailInput.value = "";
           savedEmail = "";
+          currentTrxId = "";
           sessionStorage.removeItem("gmail_saved_email");
           els.savedEmailChip.style.display = "none";
           els.typedEmailChip.style.display = "none";
           els.typedEmailText.textContent = "";
+          syncTrxChip();
           await sleep(250);
           await refreshProfile();
         } else {
@@ -842,7 +892,22 @@
       }
     });
 
-    window.addEventListener("load", refreshProfile);
+    window.addEventListener("load", () => {
+      try {
+        const meta = JSON.parse(localStorage.getItem("gmail_access_session") || "{}");
+        if (meta && meta.trxId) {
+          currentTrxId = meta.trxId;
+          syncTrxChip();
+        }
+        if (meta && meta.email) {
+          savedEmail = meta.email;
+          els.emailInput.value = meta.email;
+          els.typedEmailChip.style.display = "inline-flex";
+          els.typedEmailText.textContent = meta.email;
+        }
+      } catch (e) {}
+      refreshProfile();
+    });
   </script>
 </body>
 </html>
