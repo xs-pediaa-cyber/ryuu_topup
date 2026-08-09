@@ -99,7 +99,7 @@
     <div class="hero">
       <div class="topbar">
         <div class="pill">XS-Pedia Gmail</div>
-        <div class="pill" id="sessionPill">Siap</div>
+        <div class="pill" id="sessionPill">XS-Pedia</div>
       </div>
       <div class="title">
         <div class="badge">✦</div>
@@ -114,7 +114,6 @@
     <div class="card">
       <div class="section"><span class="dot"></span>Status Akses</div>
       <div class="status-row">
-        <div class="mini"><div class="label">ID TRX</div><div class="value" id="trxValue">-</div></div>
         <div class="mini"><div class="label">Username</div><div class="value" id="usernameValue">-</div></div>
         <div class="mini"><div class="label">Role</div><div class="value" id="roleValue">-</div></div>
         <div class="mini"><div class="label">Limit</div><div class="value" id="limitValue">-</div></div>
@@ -150,18 +149,14 @@
   </div>
 
 <script>
-const API_BASE = "";
-let trxId = "";
+const API_BASE = window.XS_PEDIA_API_BASE || window.location.origin;
+const APIKEY_STORAGE = "xs_pedia_apikey";
+
 let savedEmail = "";
-let currentUser = {
-  username: "-",
-  role: "-",
-  limit: "-"
-};
+let currentUser = { username: "-", role: "-", limit: "-" };
 
 const els = {
   sessionPill: document.getElementById("sessionPill"),
-  trxValue: document.getElementById("trxValue"),
   usernameValue: document.getElementById("usernameValue"),
   roleValue: document.getElementById("roleValue"),
   limitValue: document.getElementById("limitValue"),
@@ -182,115 +177,187 @@ const els = {
   linkInput: document.getElementById("linkInput"),
   done: document.getElementById("done"),
   doneTitle: document.getElementById("doneTitle"),
-  doneText: document.getElementById("doneText"),
+  doneText: document.getElementById("doneText")
 };
 
-function setLoading(btn, loader, on){
+function apiKey() {
+  return localStorage.getItem(APIKEY_STORAGE) || "";
+}
+
+function setLoading(btn, loader, on) {
   btn.disabled = on;
   loader.classList.toggle("show", on);
 }
-function showDone(title, text){
+
+function showDone(title, text) {
   els.doneTitle.textContent = title || "Berhasil";
   els.doneText.textContent = text || "Proses selesai.";
   els.done.classList.add("show");
   setTimeout(() => els.done.classList.remove("show"), 1600);
 }
-function syncUI(){
-  els.trxValue.textContent = trxId || "-";
+
+function syncUI() {
   els.usernameValue.textContent = currentUser.username || "-";
   els.roleValue.textContent = currentUser.role || "-";
   els.limitValue.textContent = currentUser.limit || "-";
-  els.sessionPill.textContent = trxId ? `TRX: ${trxId}` : "Siap";
+  els.sessionPill.textContent =
+    currentUser.role && currentUser.role !== "-"
+      ? `XS-Pedia • ${currentUser.role}`
+      : "XS-Pedia";
 }
-function saveAccessSession(status){
-  try{
-    localStorage.setItem("gmail_access_session", JSON.stringify({
-      trxId,
-      username: currentUser.username,
-      role: currentUser.role,
-      limit: currentUser.limit,
-      email: savedEmail,
-      status,
-      updatedAt: new Date().toISOString()
-    }));
-  }catch(e){}
-}
-function parseJSONSafe(text){ try { return JSON.parse(text); } catch(e){ return null; } }
 
-async function doRequest(url){
-  const response = await fetch(url, { method: "GET" });
+function setAccess(access) {
+  if (!access) return;
+  currentUser = {
+    username: access.username || currentUser.username || "-",
+    role: access.role || currentUser.role || "-",
+    limit: access.limit || currentUser.limit || "-"
+  };
+  syncUI();
+}
+
+function parseJSONSafe(text) {
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+async function doRequest(path, params = {}) {
+  const url = new URL(path, API_BASE);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  const headers = { "Accept": "application/json" };
+  const key = apiKey();
+
+  if (key) {
+    headers["X-API-Key"] = key;
+    // Tetap kompatibel dengan middleware lama yang membaca ?apikey=.
+    url.searchParams.set("apikey", key);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    credentials: "include",
+    headers
+  });
+
   const text = await response.text();
-  return { ok: response.ok, status: response.status, json: parseJSONSafe(text), text };
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    json: parseJSONSafe(text),
+    text
+  };
 }
 
 els.emailInput.addEventListener("input", () => {
-  const v = els.emailInput.value.trim();
-  if(v){
-    els.typedChip.style.display = "inline-flex";
-    els.typedText.textContent = v;
-  }else{
-    els.typedChip.style.display = "none";
-    els.typedText.textContent = "";
-  }
+  const value = els.emailInput.value.trim();
+  els.typedChip.style.display = value ? "inline-flex" : "none";
+  els.typedText.textContent = value;
 });
 
-async function sendEmail(){
+async function loadAccess() {
+  try {
+    const res = await doRequest("/profile");
+    if (res.ok && res.json?.success) {
+      setAccess({
+        username: res.json.user?.username,
+        role: res.json.user?.role,
+        limit: res.json.user?.role === "vip" ? "VIP" : undefined
+      });
+    }
+  } catch (_) {}
+
+  syncUI();
+}
+
+async function sendEmail() {
   const email = els.emailInput.value.trim();
-  if(!email){ els.emailInput.focus(); return; }
+
+  if (!email) {
+    els.emailInput.focus();
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    els.sendStatusText.textContent = "Format Gmail tidak valid.";
+    els.sendStatus.classList.add("show");
+    return;
+  }
 
   setLoading(els.sendBtn, els.sendLoader, true);
   els.sendStatus.classList.remove("show");
-  try{
-    const url = `/h2h/gmail/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(localStorage.getItem("xs_pedia_apikey") || "")}`;
-    const res = await doRequest(url);
+
+  try {
+    const res = await doRequest("/h2h/gmail/send", { email });
     const data = res.json || {};
-    if(res.ok && data.success){
+
+    if (res.ok && data.success === true) {
       savedEmail = email;
-      trxId = data.data?.upstream?.data?.payinaja_trx_id || data.data?.upstream?.data?.trx_id || trxId || `TRX-${Date.now()}`;
-      currentUser = {
-        username: (email.split("@")[0] || "user"),
-        role: "user",
-        limit: "1/hari"
-      };
-      els.sendStatusText.textContent = "Gmail berhasil dikirim.";
+      setAccess(data.data?.access);
+
+      els.sendStatusText.textContent =
+        data.message || "Gmail berhasil dikirim.";
       els.sendStatus.classList.add("show");
+
       els.verifyCard.style.display = "block";
       els.savedEmailChip.style.display = "inline-flex";
       els.savedEmailText.textContent = savedEmail;
-      syncUI();
-      saveAccessSession("pending");
-      await new Promise(r => setTimeout(r, 400));
+
       showDone("Terkirim", "Link Gmail berhasil dikirim.");
-    }else{
-      els.sendStatusText.textContent = data.message || "Gagal mengirim Gmail.";
+    } else {
+      els.sendStatusText.textContent =
+        data.message || `Gagal mengirim Gmail (HTTP ${res.status}).`;
       els.sendStatus.classList.add("show");
     }
-  }catch(e){
-    els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+  } catch (error) {
+    console.error(error);
+    els.sendStatusText.textContent =
+      "Koneksi ke backend XS-Pedia gagal. Pastikan halaman dibuka dari domain XS-Pedia.";
     els.sendStatus.classList.add("show");
-  }finally{
+  } finally {
     setLoading(els.sendBtn, els.sendLoader, false);
   }
 }
 
-async function verifyLink(){
+async function verifyLink() {
   const link = els.linkInput.value.trim();
-  if(!savedEmail){ showDone("Email belum ada", "Kirim Gmail dulu."); return; }
-  if(!link){ els.linkInput.focus(); return; }
+
+  if (!savedEmail) {
+    showDone("Email belum ada", "Kirim Gmail dulu.");
+    return;
+  }
+
+  if (!link) {
+    els.linkInput.focus();
+    return;
+  }
 
   setLoading(els.verifyBtn, els.verifyLoader, true);
   els.verifyStatus.classList.remove("show");
-  try{
-    const url = `/h2h/gmail/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(localStorage.getItem("xs_pedia_apikey") || "")}`;
-    const res = await doRequest(url);
+
+  try {
+    const res = await doRequest("/h2h/gmail/verify", {
+      email: savedEmail,
+      link
+    });
+
     const data = res.json || {};
-    if(res.ok && data.success){
-      els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
+
+    if (res.ok && data.success === true) {
+      setAccess(data.data?.access);
+
+      els.verifyStatusText.textContent =
+        data.message || "Link berhasil diverifikasi.";
       els.verifyStatus.classList.add("show");
-      saveAccessSession("success");
+
       showDone("Sukses", "Verifikasi berhasil.");
 
-      trxId = "";
+      // Tidak menyimpan link/token verifikasi.
       savedEmail = "";
       els.emailInput.value = "";
       els.linkInput.value = "";
@@ -298,20 +365,29 @@ async function verifyLink(){
       els.typedText.textContent = "";
       els.savedEmailChip.style.display = "none";
       els.savedEmailText.textContent = "";
-      syncUI();
-    }else{
-      els.verifyStatusText.textContent = data.message || "Verifikasi gagal.";
+      els.verifyCard.style.display = "none";
+    } else {
+      els.verifyStatusText.textContent =
+        data.message || `Verifikasi gagal (HTTP ${res.status}).`;
       els.verifyStatus.classList.add("show");
     }
-  }catch(e){
-    els.verifyStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+  } catch (error) {
+    console.error(error);
+    els.verifyStatusText.textContent =
+      "Koneksi ke backend XS-Pedia gagal. Coba lagi.";
     els.verifyStatus.classList.add("show");
-  }finally{
+  } finally {
     setLoading(els.verifyBtn, els.verifyLoader, false);
   }
 }
 
-window.addEventListener("load", syncUI);
+window.sendEmail = sendEmail;
+window.verifyLink = verifyLink;
+
+window.addEventListener("load", () => {
+  syncUI();
+  loadAccess();
+});
 </script>
 </body>
 </html>
