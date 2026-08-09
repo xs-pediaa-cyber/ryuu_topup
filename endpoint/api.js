@@ -25,80 +25,154 @@ const cloudscraperHeaders = {
 };
 
 
-// === GMAIL API GATEWAY (XS-PEDIA INTERNAL) ===
-const GMAIL_THERESA_BASE = process.env.GMAIL_THERESA_BASE || "https://api.theresav.biz.id/premium/alightmotion";
+// === GMAIL GATEWAY: XS-PEDIA -> THERESA (UPSTREAM INTERNAL) ===
+// Base URL yang terlihat oleh client tetap XS-Pedia.
+// URL upstream + API key Theresa hanya dipakai server-side.
+const GMAIL_THERESA_BASE =
+  process.env.GMAIL_THERESA_BASE ||
+  "https://api.theresav.biz.id/premium/alightmotion";
+
 const GMAIL_THERESA_APIKEY = process.env.GMAIL_THERESA_APIKEY || "RyuuXiao";
 
+const GMAIL_LIMITS = {
+  user: process.env.GMAIL_USER_LIMIT || "1/hari",
+  reseller: process.env.GMAIL_RESELLER_LIMIT || "5/hari",
+  vip: process.env.GMAIL_VIP_LIMIT || "VIP",
+};
+
+function getGmailAccess(user) {
+  const role = String(user?.role || "user").toLowerCase();
+  const tier = ["vip", "premium"].includes(role) ? "vip" : role;
+  return {
+    username: user?.username || "-",
+    role,
+    tier,
+    vip: tier === "vip",
+    limit: GMAIL_LIMITS[tier] || GMAIL_LIMITS.user,
+  };
+}
+
 function buildGmailUpstreamUrl(action, params = {}) {
-  const url = new URL(`${GMAIL_THERESA_BASE}/${action}`);
-  url.searchParams.set("apikey", params.apikey || GMAIL_THERESA_APIKEY);
+  const base = GMAIL_THERESA_BASE.replace(/\/+$/, "");
+  const url = new URL(`${base}/${action}`);
+  url.searchParams.set("apikey", GMAIL_THERESA_APIKEY);
   if (params.email) url.searchParams.set("email", params.email);
   if (params.link) url.searchParams.set("link", params.link);
   return url.toString();
 }
 
+function upstreamSuccess(data) {
+  if (!data || typeof data !== "object") return false;
+  if (data.success === true || data.status === true) return true;
+  if (typeof data.status === "string" && ["success", "ok", "true", "sent", "verified"].includes(data.status.toLowerCase())) {
+    return true;
+  }
+  return false;
+}
+
+function upstreamMessage(data, fallback) {
+  return data?.message || data?.msg || data?.error || fallback;
+}
+
 async function forwardGmail(action, params = {}) {
   const upstreamUrl = buildGmailUpstreamUrl(action, params);
-  const response = await fetch(upstreamUrl, {
-    method: "GET",
-    headers: {
-      "accept": "application/json",
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
-    }
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
 
-  const raw = await response.text();
-  let data;
   try {
-    data = JSON.parse(raw);
-  } catch (e) {
-    data = { raw };
-  }
+    const response = await fetch(upstreamUrl, {
+      method: "GET",
+      headers: {
+        "accept": "application/json",
+        "user-agent": "XS-Pedia-Gmail-Gateway/1.0",
+      },
+      signal: controller.signal,
+    });
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    url: upstreamUrl,
-    data
-  };
+    const raw = await response.text();
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = { raw };
+    }
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      data,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function gmailDocsHtml(basePath) {
   return `<!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>XS-Pedia Gmail API Docs</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f6f8ff;color:#1f2430;margin:0;padding:24px}
-.card{max-width:960px;margin:auto;background:#fff;border:1px solid #e5e8f2;border-radius:20px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
-code,pre{background:#f3f6fd;border-radius:12px}
-pre{padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word}
-.pill{display:inline-block;padding:8px 12px;border-radius:999px;background:#eef3ff;color:#355cc9;font-weight:700;margin:4px 8px 4px 0}
+.card{max-width:980px;margin:auto;background:#fff;border:1px solid #e5e8f2;border-radius:20px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+pre{background:#f3f6fd;border-radius:12px;padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+code{background:#f3f6fd;padding:2px 5px;border-radius:6px}
 small{color:#687084}
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>XS-Pedia Gmail API</h1>
-    <small>Base luar: https://xs-pedia.my.id</small>
-    <h2>Send</h2>
-    <pre>GET ${basePath}/send?email=user@gmail.com&apikey=APIKEY</pre>
-    <h2>Verify</h2>
-    <pre>GET ${basePath}/verify?email=user@gmail.com&link=LINK&apikey=APIKEY</pre>
-    <h2>Response</h2>
-    <pre>{
+<div class="card">
+<h1>XS-Pedia Gmail API</h1>
+<p><small>Base public: https://xs-pedia.my.id</small></p>
+
+<h2>1. Send Gmail</h2>
+<pre>GET https://xs-pedia.my.id${basePath}/send?email=user%40gmail.com&amp;apikey=APIKEY</pre>
+
+<h2>Response Send</h2>
+<pre>{
   "success": true,
   "source": "xs-pedia",
-  "endpoint": "send|verify",
-  "message": "Link verifikasi berhasil dikirim.|Link berhasil diverifikasi.",
+  "endpoint": "send",
+  "message": "Link verifikasi berhasil dikirim.",
   "data": {
     "email": "user@gmail.com",
-    "upstream": {}
+    "access": {
+      "username": "demo",
+      "role": "vip",
+      "tier": "vip",
+      "vip": true,
+      "limit": "VIP"
+    }
   }
 }</pre>
-  </div>
+
+<h2>2. Verify Gmail</h2>
+<pre>GET https://xs-pedia.my.id${basePath}/verify?email=user%40gmail.com&amp;link=LINK_DARI_GMAIL&amp;apikey=APIKEY</pre>
+
+<h2>Response Verify</h2>
+<pre>{
+  "success": true,
+  "source": "xs-pedia",
+  "endpoint": "verify",
+  "message": "Link berhasil diverifikasi.",
+  "data": {
+    "email": "user@gmail.com",
+    "access": {
+      "username": "demo",
+      "role": "vip",
+      "tier": "vip",
+      "vip": true,
+      "limit": "VIP"
+    }
+  }
+}</pre>
+
+<h2>Header alternatif</h2>
+<pre>X-API-Key: APIKEY</pre>
+<p>API key client hanya dipakai untuk autentikasi XS-Pedia. API key upstream tidak pernah dikirim ke browser.</p>
+</div>
 </body>
 </html>`;
 }
@@ -121,7 +195,6 @@ function gmailFail(endpoint, message, extra = {}) {
     ...extra,
   };
 }
-
 
 router.get("/profile", validateApiKey, async (req, res) => {
   try {
@@ -979,43 +1052,93 @@ router.get("/order-panel", validateApiKey, async (req, res) => {
   }
 });
 
-// === GMAIL ROUTES ===
+// === GMAIL ROUTES: PUBLIC XS-PEDIA API ===
 router.get("/h2h/gmail/docs", (req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(gmailDocsHtml("/h2h/gmail"));
 });
 
 router.get("/h2h/gmail/send", validateApiKey, async (req, res) => {
-  const email = req.query.email;
-  if (!email) return res.status(400).json(gmailFail("send", 'Parameter "email" diperlukan.'));
+  const email = String(req.query.email || "").trim();
+  const user = req.user;
+
+  if (!email) {
+    return res.status(400).json(gmailFail("send", 'Parameter "email" diperlukan.'));
+  }
+  if (!user) {
+    return res.status(401).json(gmailFail("send", "User tidak ditemukan."));
+  }
 
   try {
+    const access = getGmailAccess(user);
     const upstream = await forwardGmail("send", { email });
-    const success = Boolean(upstream.data && (upstream.data.success === true || upstream.data.status === true));
-    return res.status(success ? 200 : 502).json(gmailOk("send", {
+
+    if (!upstream.ok || !upstreamSuccess(upstream.data)) {
+      return res.status(502).json(gmailFail(
+        "send",
+        upstreamMessage(upstream.data, "Upstream gagal mengirim link verifikasi."),
+        { data: { email, access } }
+      ));
+    }
+
+    return res.status(200).json(gmailOk("send", {
       message: "Link verifikasi berhasil dikirim.",
-      data: { email, upstream: upstream.data },
+      data: {
+        email,
+        access,
+        status: "pending",
+      },
     }));
   } catch (error) {
-    return res.status(500).json(gmailFail("send", error.message || "Gagal mengirim link verifikasi."));
+    console.error("Gmail send gateway error:", error);
+    return res.status(502).json(gmailFail(
+      "send",
+      error.name === "AbortError" ? "Upstream timeout." : (error.message || "Gagal mengirim link verifikasi.")
+    ));
   }
 });
 
 router.get("/h2h/gmail/verify", validateApiKey, async (req, res) => {
-  const email = req.query.email;
-  const link = req.query.link;
-  if (!email) return res.status(400).json(gmailFail("verify", 'Parameter "email" diperlukan.'));
-  if (!link) return res.status(400).json(gmailFail("verify", 'Parameter "link" diperlukan.'));
+  const email = String(req.query.email || "").trim();
+  const link = String(req.query.link || "").trim();
+  const user = req.user;
+
+  if (!email) {
+    return res.status(400).json(gmailFail("verify", 'Parameter "email" diperlukan.'));
+  }
+  if (!link) {
+    return res.status(400).json(gmailFail("verify", 'Parameter "link" diperlukan.'));
+  }
+  if (!user) {
+    return res.status(401).json(gmailFail("verify", "User tidak ditemukan."));
+  }
 
   try {
+    const access = getGmailAccess(user);
     const upstream = await forwardGmail("verify", { email, link });
-    const success = Boolean(upstream.data && (upstream.data.success === true || upstream.data.status === true));
-    return res.status(success ? 200 : 502).json(gmailOk("verify", {
+
+    if (!upstream.ok || !upstreamSuccess(upstream.data)) {
+      return res.status(502).json(gmailFail(
+        "verify",
+        upstreamMessage(upstream.data, "Upstream gagal memverifikasi link."),
+        { data: { email, access } }
+      ));
+    }
+
+    return res.status(200).json(gmailOk("verify", {
       message: "Link berhasil diverifikasi.",
-      data: { email, link, upstream: upstream.data },
+      data: {
+        email,
+        access,
+        status: "success",
+      },
     }));
   } catch (error) {
-    return res.status(500).json(gmailFail("verify", error.message || "Gagal memverifikasi link."));
+    console.error("Gmail verify gateway error:", error);
+    return res.status(502).json(gmailFail(
+      "verify",
+      error.name === "AbortError" ? "Upstream timeout." : (error.message || "Gagal memverifikasi link.")
+    ));
   }
 });
 
