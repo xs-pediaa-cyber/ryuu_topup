@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gmail Web - API</title>
+  <title>Gmail Web API</title>
   <style>
     :root{
       --bg1:#f7f4ff;
@@ -393,7 +393,7 @@
       <div class="title">
         <div class="badge">✦</div>
         <div>
-          <h1>Alight Motion  Web</h1>
+          <h1>Alight Motion Web</h1>
           <p class="sub">Alight Motion 1 Tahun Free.</p>
         </div>
       </div>
@@ -444,161 +444,206 @@
   </div>
 
   <script>
-  const API_BASE = window.location.origin;
-  const APIKEY_STORAGE = "xs_pedia_apikey";
-  const SESSION_STORAGE = "gmail_access_session";
-  const HISTORY_STORAGE = "gmail_trx_history";
+const APIKEY_STORAGE = "xs_pedia_apikey";
+const SESSION_STORAGE = "gmail_access_session";
+const HISTORY_STORAGE = "gmail_trx_history";
 
-  const qs = new URLSearchParams(window.location.search);
-  const urlApiKey = qs.get("apikey") || "";
-  if (urlApiKey) localStorage.setItem(APIKEY_STORAGE, urlApiKey);
+const qs = new URLSearchParams(window.location.search);
+const urlApiKey = qs.get("apikey") || "";
+if (urlApiKey) localStorage.setItem(APIKEY_STORAGE, urlApiKey);
+const API_KEY = localStorage.getItem(APIKEY_STORAGE) || "";
 
-  const API_KEY = localStorage.getItem(APIKEY_STORAGE) || "";
+const API_BASE_CANDIDATES = [
+  window.location.origin,
+  window.location.origin + "/api",
+  window.location.origin + "/h2h",
+  window.location.origin + "/backend"
+];
 
-  let savedEmail = "";
-  let currentTrxId = "";
-  let currentUser = { username: "-", role: "-", limit: "-" };
+let savedEmail = "";
+let currentTrxId = "";
+let currentUser = { username: "-", role: "-", limit: "-" };
 
-  const els = {
-    sessionPill: document.getElementById("sessionPill"),
-    trxValue: document.getElementById("trxValue"),
-    usernameValue: document.getElementById("usernameValue"),
-    roleValue: document.getElementById("roleValue"),
-    limitValue: document.getElementById("limitValue"),
-    emailInput: document.getElementById("emailInput"),
-    typedEmailChip: document.getElementById("typedEmailChip"),
-    typedEmailText: document.getElementById("typedEmailText"),
-    savedEmailChip: document.getElementById("savedEmailChip"),
-    savedEmailText: document.getElementById("savedEmailText"),
-    sendBtn: document.getElementById("sendBtn"),
-    verifyBtn: document.getElementById("verifyBtn"),
-    sendLoader: document.getElementById("sendLoader"),
-    verifyLoader: document.getElementById("verifyLoader"),
-    sendStatus: document.getElementById("sendStatus"),
-    verifyStatus: document.getElementById("verifyStatus"),
-    sendStatusText: document.getElementById("sendStatusText"),
-    verifyStatusText: document.getElementById("verifyStatusText"),
-    doneLayer: document.getElementById("doneLayer"),
-    doneTitle: document.getElementById("doneTitle"),
-    doneText: document.getElementById("doneText"),
-    step2Card: document.getElementById("step2Card"),
-    step2: document.getElementById("step2"),
-    linkInput: document.getElementById("linkInput")
+const els = {
+  sessionPill: document.getElementById("sessionPill"),
+  trxValue: document.getElementById("trxValue"),
+  usernameValue: document.getElementById("usernameValue"),
+  roleValue: document.getElementById("roleValue"),
+  limitValue: document.getElementById("limitValue"),
+  emailInput: document.getElementById("emailInput"),
+  typedEmailChip: document.getElementById("typedEmailChip"),
+  typedEmailText: document.getElementById("typedEmailText"),
+  savedEmailChip: document.getElementById("savedEmailChip"),
+  savedEmailText: document.getElementById("savedEmailText"),
+  sendBtn: document.getElementById("sendBtn"),
+  verifyBtn: document.getElementById("verifyBtn"),
+  sendLoader: document.getElementById("sendLoader"),
+  verifyLoader: document.getElementById("verifyLoader"),
+  sendStatus: document.getElementById("sendStatus"),
+  verifyStatus: document.getElementById("verifyStatus"),
+  sendStatusText: document.getElementById("sendStatusText"),
+  verifyStatusText: document.getElementById("verifyStatusText"),
+  doneLayer: document.getElementById("doneLayer"),
+  doneTitle: document.getElementById("doneTitle"),
+  doneText: document.getElementById("doneText"),
+  step2Card: document.getElementById("step2Card"),
+  step2: document.getElementById("step2"),
+  linkInput: document.getElementById("linkInput")
+};
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function setLoading(btn, loader, on){
+  btn.disabled = on;
+  loader.classList.toggle("show", on);
+}
+function showDone(title, text){
+  els.doneTitle.textContent = title || "Berhasil";
+  els.doneText.textContent = text || "Proses selesai.";
+  els.doneLayer.classList.add("show");
+  els.doneLayer.setAttribute("aria-hidden","false");
+  setTimeout(() => {
+    els.doneLayer.classList.remove("show");
+    els.doneLayer.setAttribute("aria-hidden","true");
+  }, 1600);
+}
+
+function generatedTrxId(){
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
+  const rand = Math.random().toString(36).slice(2,8).toUpperCase();
+  return `TRX-${stamp}-${rand}`;
+}
+
+function syncTopCards(){
+  els.trxValue.textContent = currentTrxId || "-";
+  els.usernameValue.textContent = currentUser.username || "-";
+  els.roleValue.textContent = currentUser.role || "-";
+  els.limitValue.textContent = currentUser.limit || "-";
+  els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "XS-Pedia";
+}
+
+function updateVisibleEmail(value){
+  const v = String(value || "").trim();
+  if(v){
+    els.typedEmailChip.style.display = "inline-flex";
+    els.typedEmailText.textContent = v;
+  }else{
+    els.typedEmailChip.style.display = "none";
+    els.typedEmailText.textContent = "";
+  }
+}
+
+function normalizeAccess(access){
+  if (!access) return null;
+  const role = String(access.role || "-").toLowerCase();
+  const tier = String(access.tier || role || "-").toLowerCase();
+  return {
+    username: access.username || "-",
+    role: role === "-" ? "-" : role,
+    tier,
+    limit: access.limit || (tier === "vip" ? "VIP" : tier === "reseller" ? "5/hari" : "1/hari")
   };
+}
 
-  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-  function setLoading(btn, loader, on){
-    btn.disabled = on;
-    loader.classList.toggle("show", on);
-  }
-  function showDone(title, text){
-    els.doneTitle.textContent = title || "Berhasil";
-    els.doneText.textContent = text || "Proses selesai.";
-    els.doneLayer.classList.add("show");
-    els.doneLayer.setAttribute("aria-hidden", "false");
-    setTimeout(() => {
-      els.doneLayer.classList.remove("show");
-      els.doneLayer.setAttribute("aria-hidden", "true");
-    }, 1700);
-  }
-  function generatedTrxId(){
-    const d = new Date();
-    const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
-    const rand = Math.random().toString(36).slice(2,8).toUpperCase();
-    return `TRX-${stamp}-${rand}`;
-  }
-  function updateVisibleEmail(email){
-    const v = String(email || "").trim();
-    if (v) {
-      els.typedEmailChip.style.display = "inline-flex";
-      els.typedEmailText.textContent = v;
-    } else {
-      els.typedEmailChip.style.display = "none";
-      els.typedEmailText.textContent = "";
-    }
-  }
-  function syncTopCards(){
-    els.trxValue.textContent = currentTrxId || "-";
-    els.usernameValue.textContent = currentUser.username || "-";
-    els.roleValue.textContent = currentUser.role || "-";
-    els.limitValue.textContent = currentUser.limit || "-";
-    els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "XS-Pedia";
-  }
-  function saveSession(extra = {}){
-    try{
-      const payload = {
-        trxId: currentTrxId || "",
-        username: currentUser.username || "-",
-        role: currentUser.role || "-",
-        limit: currentUser.limit || "-",
-        email: savedEmail || "",
-        status: extra.status || "pending",
-        createdAt: extra.createdAt || new Date().toISOString(),
-        verifiedAt: extra.verifiedAt || ""
-      };
-      localStorage.setItem(SESSION_STORAGE, JSON.stringify(payload));
-    }catch(e){}
-  }
-  function addHistory(extra = {}){
-    try{
-      const history = JSON.parse(localStorage.getItem(HISTORY_STORAGE) || "[]") || [];
-      const item = {
-        trxId: currentTrxId || "",
-        username: currentUser.username || "-",
-        role: currentUser.role || "-",
-        limit: currentUser.limit || "-",
-        email: savedEmail || "",
-        status: extra.status || "pending",
-        createdAt: extra.createdAt || new Date().toISOString(),
-        verifiedAt: extra.verifiedAt || ""
-      };
-      const idx = history.findIndex(x => String(x.trxId) === String(item.trxId));
-      if (idx >= 0) history[idx] = { ...history[idx], ...item };
-      else history.unshift(item);
-      localStorage.setItem(HISTORY_STORAGE, JSON.stringify(history.slice(0, 50)));
-    }catch(e){}
-  }
-  function apiUrl(path, params = {}) {
-    const u = new URL(path, API_BASE);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, v);
-    });
-    if (API_KEY) {
-      u.searchParams.set("apikey", API_KEY);
-    }
-    return u.toString();
-  }
-  async function fetchJson(path, params = {}) {
-    const headers = { "Accept": "application/json" };
-    if (API_KEY) headers["X-API-Key"] = API_KEY;
-    const response = await fetch(apiUrl(path, params), {
-      method: "GET",
-      credentials: "include",
-      headers
-    });
-    const text = await response.text();
-    let json = null;
-    try { json = JSON.parse(text); } catch(e) { json = null; }
-    return { ok: response.ok, status: response.status, json, text };
-  }
-  function normalizeAccess(access){
-    if (!access) return null;
-    return {
-      username: access.username || "-",
-      role: String(access.role || "-").toLowerCase(),
-      limit: access.limit || (String(access.role || "").toLowerCase() === "vip" ? "VIP" : String(access.role || "").toLowerCase() === "reseller" ? "5/hari" : "1/hari")
+function setAccess(access){
+  const normalized = normalizeAccess(access);
+  if(!normalized) return;
+  currentUser = {
+    username: normalized.username,
+    role: normalized.role,
+    limit: normalized.limit
+  };
+  syncTopCards();
+}
+
+function saveSession(extra = {}){
+  try{
+    const payload = {
+      trxId: currentTrxId || "",
+      username: currentUser.username || "-",
+      role: currentUser.role || "-",
+      limit: currentUser.limit || "-",
+      email: savedEmail || "",
+      status: extra.status || "pending",
+      createdAt: extra.createdAt || new Date().toISOString(),
+      verifiedAt: extra.verifiedAt || ""
     };
-  }
-  function setAccess(access){
-    const normalized = normalizeAccess(access);
-    if (!normalized) return;
-    currentUser = normalized;
-    syncTopCards();
-  }
-  async function loadAccess(){
+    localStorage.setItem(SESSION_STORAGE, JSON.stringify(payload));
+  }catch(e){}
+}
+
+function addHistory(extra = {}){
+  try{
+    const history = JSON.parse(localStorage.getItem(HISTORY_STORAGE) || "[]") || [];
+    const item = {
+      trxId: currentTrxId || "",
+      username: currentUser.username || "-",
+      role: currentUser.role || "-",
+      limit: currentUser.limit || "-",
+      email: savedEmail || "",
+      status: extra.status || "pending",
+      createdAt: extra.createdAt || new Date().toISOString(),
+      verifiedAt: extra.verifiedAt || ""
+    };
+    const idx = history.findIndex(x => String(x.trxId) === String(item.trxId));
+    if(idx >= 0) history[idx] = { ...history[idx], ...item };
+    else history.unshift(item);
+    localStorage.setItem(HISTORY_STORAGE, JSON.stringify(history.slice(0, 50)));
+  }catch(e){}
+}
+
+function parseJSONSafe(text){
+  try { return JSON.parse(text); } catch(e){ return null; }
+}
+
+function buildUrl(base, path, params = {}){
+  const u = new URL(path, base);
+  Object.entries(params).forEach(([k,v]) => {
+    if (v !== undefined && v !== null && String(v) !== "") u.searchParams.set(k, v);
+  });
+  if (API_KEY) u.searchParams.set("apikey", API_KEY);
+  return u.toString();
+}
+
+async function fetchJson(path, params = {}, method = "GET"){
+  const headers = { "Accept": "application/json" };
+  if (API_KEY) headers["X-API-Key"] = API_KEY;
+
+  let lastErr = null;
+  for (const base of API_BASE_CANDIDATES){
+    const url = buildUrl(base, path, params);
     try{
-      const res = await fetchJson("/profile");
-      if (res.ok && res.json && res.json.success && res.json.user) {
+      const response = await fetch(url, {
+        method,
+        credentials: "include",
+        headers
+      });
+      const text = await response.text();
+      return {
+        ok: response.ok,
+        status: response.status,
+        json: parseJSONSafe(text),
+        text,
+        url
+      };
+    }catch(err){
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error("Request gagal");
+}
+
+async function fetchAccess(){
+  const candidates = [
+    "/profile",
+    "/profile/users",
+    "/api/profile",
+    "/api/profile/users"
+  ];
+  for (const path of candidates){
+    try{
+      const res = await fetchJson(path);
+      if (res.ok && res.json && res.json.success && res.json.user){
         const user = res.json.user;
         currentUser = {
           username: user.username || user.fullname || "-",
@@ -606,108 +651,156 @@
           limit: user.limit || (String(user.role || "").toLowerCase() === "vip" ? "VIP" : String(user.role || "").toLowerCase() === "reseller" ? "5/hari" : "1/hari")
         };
         syncTopCards();
-        return;
-      }
-    } catch(e) {}
-    try{
-      const saved = JSON.parse(localStorage.getItem(SESSION_STORAGE) || "null");
-      if (saved) {
-        currentTrxId = saved.trxId || currentTrxId;
-        savedEmail = saved.email || savedEmail;
-        currentUser.username = saved.username || currentUser.username;
-        currentUser.role = saved.role || currentUser.role;
-        currentUser.limit = saved.limit || currentUser.limit;
+        return true;
       }
     }catch(e){}
+  }
+  try{
+    const saved = JSON.parse(localStorage.getItem(SESSION_STORAGE) || "null");
+    if (saved){
+      currentTrxId = saved.trxId || currentTrxId;
+      savedEmail = saved.email || savedEmail;
+      currentUser.username = saved.username || currentUser.username;
+      currentUser.role = saved.role || currentUser.role;
+      currentUser.limit = saved.limit || currentUser.limit;
+      if (savedEmail) updateVisibleEmail(savedEmail);
+    }
+  }catch(e){}
+  syncTopCards();
+  return false;
+}
+
+els.emailInput.addEventListener("input", () => {
+  updateVisibleEmail(els.emailInput.value.trim());
+});
+
+async function sendEmail(){
+  const email = els.emailInput.value.trim();
+  if (!email) return els.emailInput.focus();
+
+  setLoading(els.sendBtn, els.sendLoader, true);
+  els.sendStatus.classList.remove("show");
+
+  try{
+    // generate trx immediately when user enters/send email
+    currentTrxId = generatedTrxId();
     syncTopCards();
-    if (savedEmail) updateVisibleEmail(savedEmail);
-  }
-  els.emailInput.addEventListener("input", () => {
-    updateVisibleEmail(els.emailInput.value.trim());
-  });
-  async function sendEmail(){
-    const email = els.emailInput.value.trim();
-    if (!email) return els.emailInput.focus();
-    setLoading(els.sendBtn, els.sendLoader, true);
-    els.sendStatus.classList.remove("show");
-    try{
-      const res = await fetchJson("/h2h/gmail/send", { email });
-      const data = res.json || {};
-      if (res.ok && data.success === true) {
-        const access = data.data?.access || data.access;
-        if (access) setAccess(access);
-        savedEmail = email;
-        currentTrxId = data.data?.trxId || data.data?.id || currentTrxId || generatedTrxId();
-        syncTopCards();
 
-        els.sendStatusText.textContent = data.message || "Gmail berhasil dikirim.";
-        els.sendStatus.classList.add("show");
+    const res = await fetchJson("/h2h/gmail/send", {
+      email,
+      trxId: currentTrxId,
+      id: currentTrxId
+    });
 
-        els.savedEmailChip.style.display = "inline-flex";
-        els.savedEmailText.textContent = savedEmail;
-        els.step2Card.style.display = "block";
-        els.step2.classList.add("show");
+    const data = res.json || {};
+    if (res.ok && data.success === true){
+      const access = data.data?.access || data.access;
+      if (access) setAccess(access);
 
-        saveSession({ status: "pending" });
-        addHistory({ status: "pending" });
+      savedEmail = email;
+      currentTrxId = data.data?.trxId || data.data?.id || currentTrxId || generatedTrxId();
+      syncTopCards();
 
-        showDone("Terkirim", "Link Gmail berhasil dikirim.");
-      } else {
-        els.sendStatusText.textContent = data.message || `Gagal mengirim Gmail (HTTP ${res.status}).`;
-        els.sendStatus.classList.add("show");
-      }
-    }catch(err){
-      console.error(err);
-      els.sendStatusText.textContent = "Gagal terhubung ke backend XS-Pedia.";
+      els.sendStatusText.textContent = data.message || "Gmail berhasil dikirim.";
       els.sendStatus.classList.add("show");
-    }finally{
-      setLoading(els.sendBtn, els.sendLoader, false);
+
+      els.savedEmailChip.style.display = "inline-flex";
+      els.savedEmailText.textContent = savedEmail;
+
+      els.step2Card.style.display = "block";
+      els.step2.classList.add("show");
+
+      saveSession({ status: "pending" });
+      addHistory({ status: "pending" });
+
+      showDone("Terkirim", "Link Gmail berhasil dikirim.");
+    }else{
+      // keep trx so user can retry without losing id
+      els.sendStatusText.textContent = data.message || `Gagal mengirim Gmail (HTTP ${res.status}).`;
+      els.sendStatus.classList.add("show");
     }
+  }catch(err){
+    console.error(err);
+    els.sendStatusText.textContent = "Gagal terhubung ke backend XS-Pedia.";
+    els.sendStatus.classList.add("show");
+  }finally{
+    setLoading(els.sendBtn, els.sendLoader, false);
   }
-  async function verifyLink(){
-    const link = els.linkInput.value.trim();
-    if (!savedEmail) return showDone("Email belum ada", "Kirim Gmail dulu.");
-    if (!link) return els.linkInput.focus();
-    setLoading(els.verifyBtn, els.verifyLoader, true);
-    els.verifyStatus.classList.remove("show");
-    try{
-      const res = await fetchJson("/h2h/gmail/verify", { email: savedEmail, link });
-      const data = res.json || {};
-      if (res.ok && data.success === true) {
-        const access = data.data?.access || data.access;
-        if (access) setAccess(access);
+}
 
-        els.verifyStatusText.textContent = data.message || "Link berhasil diverifikasi.";
-        els.verifyStatus.classList.add("show");
-        showDone("Sukses", "Verifikasi berhasil.");
+async function verifyLink(){
+  const link = els.linkInput.value.trim();
 
-        const verifiedAt = new Date().toISOString();
-        saveSession({ status: "success", verifiedAt });
-        addHistory({ status: "success", verifiedAt });
+  if (!savedEmail){
+    showDone("Email belum ada", "Kirim Gmail dulu di langkah 1.");
+    return;
+  }
+  if (!link){
+    els.linkInput.focus();
+    return;
+  }
 
-        // Bersihkan email/link, tapi TRX tetap dipertahankan.
-        savedEmail = "";
-        els.emailInput.value = "";
-        els.linkInput.value = "";
-        updateVisibleEmail("");
-        els.savedEmailChip.style.display = "none";
-        els.savedEmailText.textContent = "";
-      } else {
-        els.verifyStatusText.textContent = data.message || `Verifikasi gagal (HTTP ${res.status}).`;
-        els.verifyStatus.classList.add("show");
-      }
-    }catch(err){
-      console.error(err);
-      els.verifyStatusText.textContent = "Gagal terhubung ke backend XS-Pedia.";
+  setLoading(els.verifyBtn, els.verifyLoader, true);
+  els.verifyStatus.classList.remove("show");
+
+  try{
+    const res = await fetchJson("/h2h/gmail/verify", {
+      email: savedEmail,
+      link,
+      trxId: currentTrxId,
+      id: currentTrxId
+    });
+
+    const data = res.json || {};
+    if (res.ok && data.success === true){
+      const access = data.data?.access || data.access;
+      if (access) setAccess(access);
+
+      els.verifyStatusText.textContent = data.message || "Link berhasil diverifikasi.";
       els.verifyStatus.classList.add("show");
-    }finally{
-      setLoading(els.verifyBtn, els.verifyLoader, false);
-    }
-  }
+      showDone("Sukses", "Verifikasi berhasil.");
 
-  window.sendEmail = sendEmail;
-  window.verifyLink = verifyLink;
-  window.addEventListener("load", loadAccess);
+      const verifiedAt = new Date().toISOString();
+      saveSession({ status: "success", verifiedAt });
+      addHistory({ status: "success", verifiedAt });
+
+      // auto-refresh tampilan setelah verifikasi tahap ke-2
+      await sleep(500);
+
+      // reset tampilan input tapi TRX baru tetap tampil sebagai session terbaru
+      const finishedTrx = currentTrxId;
+      currentTrxId = generatedTrxId();
+      currentUser = normalizeAccess(access) || currentUser;
+      savedEmail = "";
+      els.emailInput.value = "";
+      els.linkInput.value = "";
+      updateVisibleEmail("");
+      els.savedEmailChip.style.display = "none";
+      els.savedEmailText.textContent = "";
+      els.step2Card.style.display = "none";
+      syncTopCards();
+      saveSession({ status: "idle", verifiedAt });
+      addHistory({ status: "success", verifiedAt, trxId: finishedTrx });
+      await fetchAccess();
+    }else{
+      els.verifyStatusText.textContent = data.message || `Verifikasi gagal (HTTP ${res.status}).`;
+      els.verifyStatus.classList.add("show");
+    }
+  }catch(err){
+    console.error(err);
+    els.verifyStatusText.textContent = "Gagal terhubung ke backend XS-Pedia.";
+    els.verifyStatus.classList.add("show");
+  }finally{
+    setLoading(els.verifyBtn, els.verifyLoader, false);
+  }
+}
+
+window.sendEmail = sendEmail;
+window.verifyLink = verifyLink;
+window.addEventListener("load", () => {
+  syncTopCards();
+  fetchAccess();
+});
 </script>
 </body>
 </html>
