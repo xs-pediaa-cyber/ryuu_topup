@@ -799,13 +799,6 @@
             createdAt: new Date().toISOString(),
             verified: false
           }));
-          pushTrxHistory({
-            trxId: currentTrxId,
-            username: currentUser?.username || currentUser?.name || "guest",
-            role: String(currentUser?.role || "user").toLowerCase(),
-            status: "pending",
-            createdAt: new Date().toISOString()
-          });
           els.typedEmailChip.style.display = "inline-flex";
           els.typedEmailText.textContent = savedEmail;
           syncTrxChip();
@@ -863,14 +856,6 @@
             delete meta.email;
             localStorage.setItem("gmail_access_session", JSON.stringify(meta));
           } catch (e) {}
-          pushTrxHistory({
-            trxId: currentTrxId,
-            username: currentUser?.username || currentUser?.name || "guest",
-            role: String(currentUser?.role || "user").toLowerCase(),
-            status: "success",
-            createdAt: (JSON.parse(localStorage.getItem("gmail_access_session") || "{}").createdAt) || new Date().toISOString(),
-            verifiedAt: new Date().toISOString()
-          });
 
           els.linkInput.value = "";
           els.emailInput.value = "";
