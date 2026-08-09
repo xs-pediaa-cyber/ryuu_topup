@@ -34,6 +34,105 @@ const cloudscraperHeaders = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
 };
 
+
+// === GMAIL API GATEWAY (XS-PEDIA INTERNAL) ===
+const GMAIL_THERESA_BASE = process.env.GMAIL_THERESA_BASE || "https://api.theresav.biz.id/premium/alightmotion";
+const GMAIL_THERESA_APIKEY = process.env.GMAIL_THERESA_APIKEY || "RyuuXiao";
+
+function buildGmailUpstreamUrl(action, params = {}) {
+  const url = new URL(`${GMAIL_THERESA_BASE}/${action}`);
+  url.searchParams.set("apikey", params.apikey || GMAIL_THERESA_APIKEY);
+  if (params.email) url.searchParams.set("email", params.email);
+  if (params.link) url.searchParams.set("link", params.link);
+  return url.toString();
+}
+
+async function forwardGmail(action, params = {}) {
+  const upstreamUrl = buildGmailUpstreamUrl(action, params);
+  const response = await fetch(upstreamUrl, {
+    method: "GET",
+    headers: {
+      "accept": "application/json",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+    }
+  });
+
+  const raw = await response.text();
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    data = { raw };
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    url: upstreamUrl,
+    data
+  };
+}
+
+function gmailDocsHtml(basePath) {
+  return `<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>XS-Pedia Gmail API Docs</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f6f8ff;color:#1f2430;margin:0;padding:24px}
+.card{max-width:960px;margin:auto;background:#fff;border:1px solid #e5e8f2;border-radius:20px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+code,pre{background:#f3f6fd;border-radius:12px}
+pre{padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.pill{display:inline-block;padding:8px 12px;border-radius:999px;background:#eef3ff;color:#355cc9;font-weight:700;margin:4px 8px 4px 0}
+small{color:#687084}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>XS-Pedia Gmail API</h1>
+    <small>Base luar: https://xs-pedia.my.id</small>
+    <h2>Send</h2>
+    <pre>GET ${basePath}/send?email=user@gmail.com&apikey=APIKEY</pre>
+    <h2>Verify</h2>
+    <pre>GET ${basePath}/verify?email=user@gmail.com&link=LINK&apikey=APIKEY</pre>
+    <h2>Response</h2>
+    <pre>{
+  "success": true,
+  "source": "xs-pedia",
+  "endpoint": "send|verify",
+  "message": "Link verifikasi berhasil dikirim.|Link berhasil diverifikasi.",
+  "data": {
+    "email": "user@gmail.com",
+    "upstream": {}
+  }
+}</pre>
+  </div>
+</body>
+</html>`;
+}
+
+function gmailOk(endpoint, payload = {}) {
+  return {
+    success: true,
+    source: "xs-pedia",
+    endpoint,
+    ...payload,
+  };
+}
+
+function gmailFail(endpoint, message, extra = {}) {
+  return {
+    success: false,
+    source: "xs-pedia",
+    endpoint,
+    message,
+    ...extra,
+  };
+}
+
+
 //=== ROUTE DAFTAR METODE (HANYA PAYINAJA QRIS) ===
 router.post("/deposit/metode", requireLogin, async (req, res) => {
   try {
@@ -718,6 +817,46 @@ router.post("/order/check", requireLogin, async (req, res) => {
       message: apiError?.message || "Terjadi kesalahan internal saat memeriksa status order.",
       error: apiError || error.message,
     });
+  }
+});
+
+// === GMAIL ROUTES ===
+router.get("/h2h/gmail/docs", requireLogin, (req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(gmailDocsHtml("/h2h/gmail"));
+});
+
+router.get("/h2h/gmail/send", requireLogin, async (req, res) => {
+  const email = req.query.email;
+  if (!email) return res.status(400).json(gmailFail("send", 'Parameter "email" diperlukan.'));
+
+  try {
+    const upstream = await forwardGmail("send", { email });
+    const success = Boolean(upstream.data && (upstream.data.success === true || upstream.data.status === true));
+    return res.status(success ? 200 : 502).json(gmailOk("send", {
+      message: "Link verifikasi berhasil dikirim.",
+      data: { email, upstream: upstream.data },
+    }));
+  } catch (error) {
+    return res.status(500).json(gmailFail("send", error.message || "Gagal mengirim link verifikasi."));
+  }
+});
+
+router.get("/h2h/gmail/verify", requireLogin, async (req, res) => {
+  const email = req.query.email;
+  const link = req.query.link;
+  if (!email) return res.status(400).json(gmailFail("verify", 'Parameter "email" diperlukan.'));
+  if (!link) return res.status(400).json(gmailFail("verify", 'Parameter "link" diperlukan.'));
+
+  try {
+    const upstream = await forwardGmail("verify", { email, link });
+    const success = Boolean(upstream.data && (upstream.data.success === true || upstream.data.status === true));
+    return res.status(success ? 200 : 502).json(gmailOk("verify", {
+      message: "Link berhasil diverifikasi.",
+      data: { email, link, upstream: upstream.data },
+    }));
+  } catch (error) {
+    return res.status(500).json(gmailFail("verify", error.message || "Gagal memverifikasi link."));
   }
 });
 
