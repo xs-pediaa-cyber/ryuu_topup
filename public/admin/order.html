@@ -1,348 +1,405 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Orders - FelixTopUp Admin</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        :root { --sidebar-width: 260px; --topbar-height: 70px; --color-primary: #4e73df; --color-success: #1cc88a; --color-info: #36b9cc; --color-warning: #f6c23e; --color-danger: #e74a3b; --color-secondary: #858796; --color-dark: #5a5c69; --color-light: #f8f9fc; --color-white: #ffffff; --font-family: 'Poppins', sans-serif; --border-radius: 0.75rem; --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1); }
-        *, *::before, *::after { box-sizing: border-box; }
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        body { margin: 0; font-family: var(--font-family); background-color: var(--color-light); color: var(--color-dark); font-size: 1rem; }
-        a { text-decoration: none; color: var(--color-primary); }
-        .page-wrapper { display: flex; }
-        .sidebar { width: var(--sidebar-width); min-width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--color-primary); color: rgba(255, 255, 255, 0.8); z-index: 1030; transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; }
-        .content-wrapper { width: calc(100% - var(--sidebar-width)); margin-left: var(--sidebar-width); transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out; }
-        .topbar { height: var(--topbar-height); background-color: var(--color-white); box-shadow: var(--box-shadow); display: flex; align-items: center; padding: 0 2rem; }
-        .main-content { padding: 2rem; }
-        .sidebar-brand { padding: 1.5rem; font-size: 1.6rem; font-weight: 700; color: var(--color-white); text-align: center; }
-        .sidebar-nav { list-style: none; padding: 0; margin: 0; }
-        .nav-item .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1.5rem; color: rgba(255, 255, 255, 0.7); font-weight: 500; transition: all 0.2s; border-left: 4px solid transparent; }
-        .nav-item .nav-link:hover, .nav-item .nav-link.active { color: var(--color-white); background: rgba(255, 255, 255, 0.1); border-left-color: var(--color-white); }
-        .nav-item.logout { margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.15); }
-        .sidebar-toggle-btn { background: none; border: none; font-size: 1.75rem; cursor: pointer; color: var(--color-dark); display: none; }
-        .dashboard-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem; }
-        .stat-card { background-color: var(--color-white); border: 1px solid #e3e6f0; border-radius: var(--border-radius); box-shadow: var(--box-shadow); border-left: 5px solid; padding: 1.5rem; }
-        .stat-card .card-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 0.5rem 0; }
-        .stat-card .card-value { font-size: 1.75rem; font-weight: 700; }
-        .stat-card.success { border-left-color: var(--color-success); } .stat-card.success .card-title { color: var(--color-success); }
-        .stat-card.secondary { border-left-color: var(--color-secondary); } .stat-card.secondary .card-title { color: var(--color-secondary); }
-        .stat-card.primary { border-left-color: var(--color-primary); } .stat-card.primary .card-title { color: var(--color-primary); }
-        .main-card { background-color: var(--color-white); border-radius: var(--border-radius); box-shadow: var(--box-shadow); overflow: hidden; }
-        .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e6f0; flex-wrap: wrap; gap: 1rem; }
-        .card-header h3 { margin: 0; font-size: 1.25rem; }
-        .header-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-        .form-group { display: flex; align-items: center; gap: 0.5rem; }
-        .form-group input { border: 1px solid #d1d3e2; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 1rem; }
-        .form-group button { background-color: var(--color-info); color: white; }
-        .search-bar { display: flex; align-items: center; gap: 0.5rem; border: 1px solid #d1d3e2; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
-        .search-bar input { border: none; outline: none; font-size: 1rem; }
-        .table-responsive { overflow-x: auto; }
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th, .data-table td { padding: 1rem 1.25rem; text-align: left; border-bottom: 1px solid #e3e6f0; white-space: nowrap; }
-        .data-table th { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: var(--color-secondary); }
-        .data-table tbody tr:hover { background-color: var(--color-light); }
-        .status-badge { padding: 0.25em 0.6em; font-size: 0.8em; font-weight: 600; border-radius: 0.5rem; color: var(--color-white); text-transform: capitalize; }
-        .status-success { background-color: var(--color-success); } .status-pending { background-color: var(--color-warning); } .status-failed, .status-cancel, .status-expired { background-color: var(--color-danger); }
-        .action-cell { display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; }
-        .action-select, .action-input { font-size: 0.9rem; padding: 0.3rem 0.5rem; border: 1px solid #d1d3e2; border-radius: 0.3rem; }
-        .action-input { max-width: 150px; }
-        .action-btn { background-color: var(--color-primary); color: var(--color-white); border: none; padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1029; opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
-        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); z-index: 1050; background: var(--color-white); border-radius: var(--border-radius); width: 95%; max-width: 700px; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); opacity: 0; visibility: hidden; transition: all 0.3s ease; display: flex; flex-direction: column; }
-        .modal.active, .modal-overlay.active { opacity: 1; visibility: visible; } .modal.active { transform: translate(-50%, -50%) scale(1); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; }
-        .modal-title { margin: 0; font-size: 1.25rem; }
-        .modal-close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-        .modal-body { padding: 1.5rem; overflow-y: auto; flex-grow: 1; max-height: 80vh; }
-        .detail-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem 1.5rem; } .detail-grid dt { font-weight: 600; color: var(--color-secondary); } .detail-grid dd { margin: 0; word-break: break-all; }
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 2000; }
-        .toast-message { background-color: var(--color-dark); color: var(--color-white); padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1); margin-bottom: 1rem; opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease; }
-        .toast-message.show { opacity: 1; transform: translateY(0); }
-        .spinner { width: 1.5rem; height: 1.5rem; border: 3px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; animation: spinner-border .75s linear infinite; } @keyframes spinner-border { to { transform: rotate(360deg); } }
-        @media (max-width: 992px) { .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); } .sidebar.active { transform: translateX(0); } .content-wrapper { width: 100%; margin-left: 0; } .sidebar-toggle-btn { display: block; } }
-
-        .gmail-access-card { background-color: var(--color-white); border: 1px solid #e3e6f0; border-radius: var(--border-radius); box-shadow: var(--box-shadow); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
-        .gmail-access-card .title { display:flex; align-items:center; gap:0.75rem; font-weight:700; font-size:1.05rem; margin-bottom:0.85rem; }
-        .gmail-access-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem; }
-        .gmail-access-item { background:#f8f9fc; border:1px solid #e3e6f0; border-radius:0.5rem; padding:0.75rem 0.9rem; }
-        .gmail-access-item .label { display:block; font-size:0.75rem; text-transform:uppercase; color:var(--color-secondary); margin-bottom:0.35rem; font-weight:700; }
-        .gmail-access-item .value { font-size:0.95rem; font-weight:600; word-break:break-all; }
-        .row-highlight { outline: 3px solid var(--color-success); outline-offset: -3px; background: rgba(28, 200, 138, 0.07) !important; }
-        .muted-small { font-size:0.85rem; color: var(--color-secondary); }
-
-        @media (max-width: 768px) { .card-header { flex-direction: column; align-items: stretch; } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gmail TRX - Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root{
+      --sidebar-width: 260px;
+      --topbar-height: 70px;
+      --color-primary: #4e73df;
+      --color-success: #1cc88a;
+      --color-info: #36b9cc;
+      --color-warning: #f6c23e;
+      --color-danger: #e74a3b;
+      --color-secondary: #858796;
+      --color-dark: #5a5c69;
+      --color-light: #f8f9fc;
+      --color-white: #ffffff;
+      --font-family: 'Poppins', sans-serif;
+      --border-radius: 0.85rem;
+      --box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    }
+    *{box-sizing:border-box}
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+    body{ margin:0; font-family:var(--font-family); background-color:var(--color-light); color:var(--color-dark); font-size:1rem; overflow-x:hidden; }
+    a{ text-decoration:none; color:var(--color-primary); }
+    .page-wrapper{ display:flex; min-height:100vh; }
+    .sidebar{
+      width:var(--sidebar-width); min-width:var(--sidebar-width); height:100vh; position:fixed; top:0; left:0;
+      background-color:var(--color-primary); color:rgba(255,255,255,.82); z-index:1030; transition:transform .3s ease-in-out;
+      display:flex; flex-direction:column;
+    }
+    .sidebar-brand{ padding:1.5rem; font-size:1.55rem; font-weight:800; color:var(--color-white); text-align:center; border-bottom:1px solid rgba(255,255,255,.12); }
+    .sidebar-nav{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; height:100%; }
+    .nav-item .nav-link{
+      display:flex; align-items:center; gap:.75rem; padding:.9rem 1.5rem; color:rgba(255,255,255,.74); font-weight:500;
+      transition:all .2s; border-left:4px solid transparent; white-space:nowrap;
+    }
+    .nav-item .nav-link:hover, .nav-item .nav-link.active{ color:var(--color-white); background:rgba(255,255,255,.1); border-left-color:var(--color-white); }
+    .nav-item.logout{ margin-top:auto; border-top:1px solid rgba(255,255,255,.15); }
+    .content-wrapper{ width:calc(100% - var(--sidebar-width)); margin-left:var(--sidebar-width); transition:margin-left .3s ease-in-out, width .3s ease-in-out; min-height:100vh; }
+    .topbar{
+      height:var(--topbar-height); background-color:var(--color-white); box-shadow:var(--box-shadow); display:flex; align-items:center; justify-content:space-between;
+      padding:0 1.25rem; position:sticky; top:0; z-index:20;
+    }
+    .topbar-left{ display:flex; align-items:center; gap:.75rem; }
+    .sidebar-toggle-btn{ background:none; border:none; font-size:1.75rem; cursor:pointer; color:var(--color-dark); display:none; }
+    .topbar-title{ display:flex; flex-direction:column; line-height:1.2; }
+    .topbar-title h5{ margin:0; font-size:1.05rem; font-weight:800; color:var(--color-dark); }
+    .topbar-title span{ font-size:.8rem; color:var(--color-secondary); }
+    .topbar-badge{ padding:.45rem .75rem; background:#eef3ff; color:var(--color-primary); border-radius:999px; font-weight:700; font-size:.85rem; border:1px solid #dfe7ff; }
+    .main-content{ padding:1.4rem; }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem; }
+    .stat-card{ background:var(--color-white); border:1px solid #e3e6f0; border-radius:var(--border-radius); box-shadow:var(--box-shadow); padding:1.2rem 1.25rem; border-left:5px solid var(--color-primary); }
+    .stat-card .label{ font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--color-secondary); margin-bottom:.35rem; }
+    .stat-card .value{ font-size:1.6rem; font-weight:800; color:var(--color-dark); word-break:break-all; }
+    .gmail-access-card{ background:var(--color-white); border:1px solid #e3e6f0; border-radius:var(--border-radius); box-shadow:var(--box-shadow); padding:1.25rem; margin-bottom:1rem; }
+    .gmail-access-card .title{ display:flex; align-items:center; gap:.75rem; font-weight:800; font-size:1.05rem; margin-bottom:1rem; color:var(--color-dark); }
+    .gmail-access-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:.75rem; }
+    .gmail-access-item{ background:#f8f9fc; border:1px solid #e3e6f0; border-radius:.65rem; padding:.8rem .95rem; }
+    .gmail-access-item .label{ display:block; font-size:.72rem; text-transform:uppercase; color:var(--color-secondary); margin-bottom:.35rem; font-weight:800; letter-spacing:.4px; }
+    .gmail-access-item .value{ font-size:.95rem; font-weight:700; word-break:break-all; color:var(--color-dark); }
+    .main-card{ background:var(--color-white); border-radius:var(--border-radius); box-shadow:var(--box-shadow); overflow:hidden; border:1px solid #e3e6f0; }
+    .card-header{ padding:1rem 1.25rem; border-bottom:1px solid #e3e6f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+    .card-header h3{ margin:0; font-size:1.15rem; font-weight:800; color:var(--color-dark); }
+    .card-header p{ margin:.25rem 0 0; color:var(--color-secondary); font-size:.9rem; }
+    .header-actions{ display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
+    .search-bar, .form-group{ display:flex; align-items:center; gap:.5rem; border:1px solid #d1d3e2; border-radius:.6rem; padding:.55rem .8rem; background:#fff; }
+    .search-bar input, .form-group input{ border:none; outline:none; font-size:.95rem; background:transparent; min-width:180px; }
+    .action-btn{
+      background-color:var(--color-primary); color:var(--color-white); border:none; padding:.5rem .85rem; border-radius:.55rem; cursor:pointer;
+      transition:background-color .2s; display:inline-flex; align-items:center; gap:.35rem; font-weight:700;
+    }
+    .action-btn:hover{ background-color:#355cc9; }
+    .action-btn.secondary{ background-color:var(--color-info); }
+    .action-btn.secondary:hover{ background-color:#1ea4bf; }
+    .tx-list{ display:grid; gap:.85rem; padding:1rem; }
+    .tx-card{
+      border:1px solid #e3e6f0; border-radius:1rem; background:#fff; box-shadow:0 .4rem 1rem rgba(58,59,69,.05);
+      padding:1rem 1rem .95rem; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .tx-card:hover{ transform:translateY(-2px); box-shadow:0 .75rem 1.25rem rgba(58,59,69,.08); border-color:#c8d2f8; }
+    .tx-card.highlight{ border:2px solid var(--color-success); box-shadow:0 0 0 4px rgba(28,200,138,.1); }
+    .tx-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:.85rem; }
+    .tx-id{ font-weight:900; font-size:1rem; color:var(--color-dark); word-break:break-all; }
+    .tx-meta{ color:var(--color-secondary); font-size:.84rem; margin-top:.25rem; }
+    .status-badge{ padding:.28rem .65rem; font-size:.78rem; font-weight:800; border-radius:.55rem; color:#fff; text-transform:capitalize; display:inline-flex; align-items:center; gap:.35rem; white-space:nowrap; }
+    .status-success{ background-color:var(--color-success); }
+    .status-pending{ background-color:var(--color-warning); color:#212529; }
+    .status-failed, .status-cancel, .status-expired{ background-color:var(--color-danger); }
+    .tx-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:.75rem; }
+    .tx-item{ background:#f8f9fc; border:1px solid #e3e6f0; border-radius:.65rem; padding:.7rem .85rem; }
+    .tx-item .label{ display:block; font-size:.72rem; color:var(--color-secondary); text-transform:uppercase; font-weight:800; margin-bottom:.25rem; }
+    .tx-item .value{ font-size:.92rem; font-weight:700; word-break:break-word; color:var(--color-dark); }
+    .tx-actions{ margin-top:.85rem; display:flex; gap:.6rem; flex-wrap:wrap; }
+    .spinner { width:1.25rem; height:1.25rem; border:3px solid currentColor; border-right-color:transparent; border-radius:50%; display:inline-block; animation:spinner-border .75s linear infinite; }
+    @keyframes spinner-border { to { transform: rotate(360deg); } }
+    #toast-container{ position:fixed; top:20px; right:20px; z-index:3000; }
+    .toast-message{ background-color:var(--color-dark); color:var(--color-white); padding:1rem 1.2rem; border-radius:.6rem; box-shadow:0 .25rem .75rem rgba(0,0,0,.15); margin-bottom:1rem; opacity:0; transform:translateY(-20px); transition:opacity .3s ease, transform .3s ease; max-width:min(92vw, 420px); }
+    .toast-message.show{ opacity:1; transform:translateY(0); }
+    .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1029; opacity:0; visibility:hidden; transition:opacity .3s ease; }
+    .modal-overlay.active{ opacity:1; visibility:visible; }
+    .modal{
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(.95); z-index:1050; background:var(--color-white);
+      border-radius:var(--border-radius); width:min(92vw, 720px); box-shadow:0 .5rem 1rem rgba(0,0,0,.15); opacity:0; visibility:hidden; transition:all .3s ease;
+      display:flex; flex-direction:column;
+    }
+    .modal.active{ opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1); }
+    .modal-header{ display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-bottom:1px solid #dee2e6; }
+    .modal-title{ margin:0; font-size:1.15rem; font-weight:800; }
+    .modal-close-btn{ background:none; border:none; font-size:1.45rem; cursor:pointer; }
+    .modal-body{ padding:1.25rem; overflow-y:auto; max-height:78vh; }
+    .detail-grid{ display:grid; grid-template-columns:auto 1fr; gap:.7rem 1rem; }
+    .detail-grid dt{ font-weight:800; color:var(--color-secondary); }
+    .detail-grid dd{ margin:0; word-break:break-all; }
+    .empty-state{ padding:2rem 1rem; text-align:center; color:var(--color-secondary); }
+    .empty-state i{ font-size:2rem; display:block; margin-bottom:.5rem; color:var(--color-info); }
+    @media (max-width: 992px){ .sidebar{ transform:translateX(calc(-1 * var(--sidebar-width))); } .sidebar.active{ transform:translateX(0); } .content-wrapper{ width:100%; margin-left:0; } .sidebar-toggle-btn{ display:block; } }
+    @media (max-width: 768px){ .main-content{ padding:1rem; } .topbar{ padding:0 .85rem; } .card-header{ flex-direction:column; align-items:stretch; } .topbar-title h5{ font-size:1rem; } .topbar-title span{ font-size:.75rem; } .tx-top{ flex-direction:column; } .search-bar input, .form-group input{ min-width:130px; } }
+  </style>
 </head>
 <body>
 <div id="toast-container"></div>
 <div class="modal-overlay" id="modalOverlay"></div>
 <div class="page-wrapper">
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-brand"><i class="bi bi-shield-shaded"></i> FelixTopUp</div>
-        <ul class="sidebar-nav">
-            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
-            <li class="nav-item"><a class="nav-link" href="/admin/deposit"><i class="bi bi-wallet2"></i> Global Deposit</a></li>
-            <li class="nav-item"><a class="nav-link active" href="/admin/order"><i class="bi bi-cart-check-fill"></i> Global Order</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-clipboard-data-fill"></i> Rekap Transaksi</a></li>
-            <li class="nav-item logout"><a class="nav-link" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-        </ul>
-    </nav>
-    <div class="content-wrapper">
-        <header class="topbar">
-            <button class="sidebar-toggle-btn" id="sidebarToggleBtn"><i class="bi bi-list"></i></button>
-            <h5 style="margin-left: 1rem; margin-bottom: 0;">Manajemen Order</h5>
-        </header>
-        <main class="main-content">
-            <section class="dashboard-grid">
-                <article class="stat-card success"><div class="card-info"><div class="card-title">Total Omset Sukses</div><div class="card-value" id="totalOrderSuccess"></div></div></article>
-                <article class="stat-card secondary"><div class="card-info"><div class="card-title">Total Omset Lainnya</div><div class="card-value" id="totalOrderOther"></div></div></article>
-                <article class="stat-card primary"><div class="card-info"><div class="card-title">Total Semua Omset</div><div class="card-value" id="totalAllOrder"></div></div></article>
-            </section>
-
-            <section class="gmail-access-card">
-                <div class="title"><i class="bi bi-envelope-check-fill"></i> Gmail Access Terakhir</div>
-                <div class="gmail-access-grid">
-                    <div class="gmail-access-item"><span class="label">ID TRX</span><span class="value" id="gmailAccessTrx">-</span></div>
-                    <div class="gmail-access-item"><span class="label">Email</span><span class="value" id="gmailAccessEmail">-</span></div>
-                    <div class="gmail-access-item"><span class="label">Username</span><span class="value" id="gmailAccessUsername">-</span></div>
-                    <div class="gmail-access-item"><span class="label">Role</span><span class="value" id="gmailAccessRole">-</span></div>
-                    <div class="gmail-access-item"><span class="label">Status</span><span class="value" id="gmailAccessStatus">-</span></div>
-                    <div class="gmail-access-item"><span class="label">Waktu</span><span class="value" id="gmailAccessTime">-</span></div>
-                </div>
-                <div class="muted-small" style="margin-top:0.75rem;">Data ini mengikuti ID TRX yang dipakai saat akses Gmail dari halaman Gmail.</div>
-            </section>
-
-            <div class="main-card">
-                <div class="card-header">
-                    <h3>Riwayat Semua Order</h3>
-                    <div class="header-actions">
-                        <form class="form-group" id="checkStatusForm">
-                            <input type="text" id="checkStatusId" placeholder="ID TRX Gmail / Order...">
-                            <button type="submit" class="action-btn"><i class="bi bi-search"></i> Cek</button>
-                        </form>
-                        <div class="search-bar">
-                            <i class="bi bi-funnel-fill"></i>
-                            <input type="text" id="searchInput" placeholder="Filter ID TRX, Username...">
-                        </div>
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead><tr><th>ID</th><th>ID TRX</th><th>Username</th><th>Layanan</th><th>Target</th><th>SN</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
-                        <tbody id="ordersTableBody"><tr><td colspan="9" style="text-align: center; padding: 3rem;"><span class="spinner"></span> Memuat data...</td></tr></tbody>
-                    </table>
-                </div>
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><i class="bi bi-envelope-check"></i> Gmail TRX</div>
+    <ul class="sidebar-nav">
+      <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+      <li class="nav-item"><a class="nav-link" href="/admin/users"><i class="bi bi-people-fill"></i> Global User</a></li>
+      <li class="nav-item"><a class="nav-link active" href="/admin/order-gmail"><i class="bi bi-envelope-paper-heart-fill"></i> Gmail TRX</a></li>
+      <li class="nav-item"><a class="nav-link" href="/admin/deposit"><i class="bi bi-wallet2"></i> Deposit</a></li>
+      <li class="nav-item logout"><a class="nav-link" href="/auth/logout"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+    </ul>
+  </nav>
+  <div class="content-wrapper">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle-btn" id="sidebarToggleBtn" type="button" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+        <div class="topbar-title">
+          <h5>Gmail Transaction Dashboard</h5>
+          <span>Hanya data Gmail transaksi yang ditampilkan.</span>
+        </div>
+      </div>
+      <div class="topbar-badge" id="sessionBadge">Session: -</div>
+    </header>
+    <main class="main-content">
+      <section class="grid">
+        <article class="stat-card"><div class="label">Total Gmail TRX</div><div class="value" id="totalGmailTrx">0</div></article>
+        <article class="stat-card"><div class="label">Sukses</div><div class="value" id="totalGmailSuccess">0</div></article>
+        <article class="stat-card"><div class="label">Pending</div><div class="value" id="totalGmailPending">0</div></article>
+        <article class="stat-card"><div class="label">Session TRX Aktif</div><div class="value" id="activeTrx">-</div></article>
+      </section>
+      <section class="gmail-access-card">
+        <div class="title"><i class="bi bi-info-circle-fill"></i> Data Akses Gmail</div>
+        <div class="gmail-access-grid">
+          <div class="gmail-access-item"><span class="label">ID TRX</span><span class="value" id="gmailAccessTrx">-</span></div>
+          <div class="gmail-access-item"><span class="label">Username</span><span class="value" id="gmailAccessUsername">-</span></div>
+          <div class="gmail-access-item"><span class="label">Role</span><span class="value" id="gmailAccessRole">-</span></div>
+          <div class="gmail-access-item"><span class="label">Status</span><span class="value" id="gmailAccessStatus">-</span></div>
+          <div class="gmail-access-item"><span class="label">Waktu</span><span class="value" id="gmailAccessTime">-</span></div>
+        </div>
+        <div style="margin-top:.75rem; color:var(--color-secondary); font-size:.9rem;">Data ini mengikuti ID TRX yang dipakai saat akses Gmail dari halaman Gmail.</div>
+      </section>
+      <section class="main-card">
+        <div class="card-header">
+          <div>
+            <h3>Riwayat Gmail TRX</h3>
+            <p>Hanya transaksi Gmail yang ditampilkan dalam bentuk kartu.</p>
+          </div>
+          <div class="header-actions">
+            <form class="form-group" id="checkStatusForm">
+              <input type="text" id="checkStatusId" placeholder="ID TRX Gmail...">
+              <button type="submit" class="action-btn secondary"><i class="bi bi-search"></i> Cek</button>
+            </form>
+            <div class="search-bar">
+              <i class="bi bi-funnel-fill"></i>
+              <input type="text" id="searchInput" placeholder="Filter ID TRX, Username...">
             </div>
-        </main>
-    </div>
+          </div>
+        </div>
+        <div class="tx-list" id="gmailTxList"><div class="empty-state"><i class="bi bi-hourglass-split"></i> Memuat data Gmail...</div></div>
+      </section>
+    </main>
+  </div>
 </div>
 <div class="modal" id="statusModal">
-    <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title" id="statusModalLabel">Hasil Pengecekan Status</h5><button type="button" class="modal-close-btn" id="modalCloseBtn"><i class="bi bi-x-lg"></i></button></div>
-        <div class="modal-body" id="statusModalBody"></div>
-    </div>
+  <div class="modal-header">
+    <h5 class="modal-title" id="statusModalLabel">Hasil Pengecekan Status</h5>
+    <button type="button" class="modal-close-btn" id="modalCloseBtn"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="modal-body" id="statusModalBody"></div>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    let allOrders = [];
-    let currentGmailSession = null;
-    const statusModal = document.getElementById('statusModal');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    
-    const toggleSidebar = () => { sidebar.classList.toggle('active'); modalOverlay.classList.toggle('active'); };
-    sidebarToggleBtn.addEventListener('click', toggleSidebar);
-    sidebar.addEventListener('click', (e) => e.stopPropagation());
-    
-    const closeModal = () => { statusModal.classList.remove('active'); if (!sidebar.classList.contains('active')) modalOverlay.classList.remove('active'); };
-    modalOverlay.addEventListener('click', () => { if (sidebar.classList.contains('active')) toggleSidebar(); if (statusModal.classList.contains('active')) closeModal(); });
-    modalCloseBtn.addEventListener('click', closeModal);
-    
-    const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-    const showToast = (message, isSuccess = true) => {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = 'toast-message';
-        toast.textContent = message;
-        toast.style.backgroundColor = isSuccess ? 'var(--color-success)' : 'var(--color-danger)';
-        container.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
-    };
+  let allOrders = [];
+  let currentGmailSession = null;
 
-    const readGmailSession = () => {
-        try {
-            return JSON.parse(localStorage.getItem('gmail_access_session') || 'null');
-        } catch (e) {
-            return null;
-        }
-    };
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  const statusModal = document.getElementById('statusModal');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalCloseBtn = document.getElementById('modalCloseBtn');
 
-    const updateGmailAccessPanel = () => {
-        const s = currentGmailSession || readGmailSession();
-        const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
-        if (s && s.trxId) {
-            set('gmailAccessTrx', s.trxId);
-            set('gmailAccessEmail', s.email || '-');
-            set('gmailAccessUsername', s.username || '-');
-            set('gmailAccessRole', String(s.role || '-').toUpperCase());
-            set('gmailAccessStatus', s.verified ? 'VERIFIED' : 'PENDING');
-            set('gmailAccessTime', s.verifiedAt || s.createdAt ? new Date(s.verifiedAt || s.createdAt).toLocaleString('id-ID') : '-');
-        } else {
-            set('gmailAccessTrx', '-');
-            set('gmailAccessEmail', '-');
-            set('gmailAccessUsername', '-');
-            set('gmailAccessRole', '-');
-            set('gmailAccessStatus', 'Belum ada data');
-            set('gmailAccessTime', '-');
-        }
-    };
+  const toggleSidebar = () => { sidebar.classList.toggle('active'); modalOverlay.classList.toggle('active'); };
+  sidebarToggleBtn.addEventListener('click', toggleSidebar);
+  sidebar.addEventListener('click', (e) => e.stopPropagation());
 
-    const updateOrder = async (userId, orderId, actionCell) => {
-        const newStatus = actionCell.querySelector('.action-select').value;
-        const newSn = actionCell.querySelector('.action-input').value;
-        const button = actionCell.querySelector('.save-status-btn');
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px;"></span>';
+  const closeModal = () => {
+    statusModal.classList.remove('active');
+    if (!sidebar.classList.contains('active')) modalOverlay.classList.remove('active');
+  };
+  modalOverlay.addEventListener('click', () => {
+    if (sidebar.classList.contains('active')) toggleSidebar();
+    if (statusModal.classList.contains('active')) closeModal();
+  });
+  modalCloseBtn.addEventListener('click', closeModal);
 
-        try {
-            const response = await fetch('/admin/update-order-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, orderId, newStatus, newSn })
-            });
-            const result = await response.json();
-            if (!result.success) throw new Error(result.message);
-            showToast(result.message, true);
-            const orderToUpdate = allOrders.find(d => d.id === orderId);
-            if (orderToUpdate) {
-                orderToUpdate.status = newStatus;
-                orderToUpdate.sn = newSn;
-            }
-            renderPage(allOrders);
-        } catch (error) {
-            showToast(error.message, false);
-        } finally {
-            button.disabled = false;
-            button.innerHTML = '<i class="bi bi-check-lg"></i>';
-        }
-    };
+  const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 
-    const renderTable = (orders) => {
-        const tableBody = document.getElementById('ordersTableBody');
-        const sessionTrx = currentGmailSession?.trxId || readGmailSession()?.trxId || '';
-        if (!orders || orders.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 3rem;">Tidak ada data order ditemukan.</td></tr>`;
-            return;
-        }
-        tableBody.innerHTML = orders.map(item => {
-            const itemTrx = item.trxId || item.trx_id || item.trx || item.id;
-            const isHighlighted = sessionTrx && String(itemTrx) === String(sessionTrx);
-            const statusClass = String(item.status || '').toLowerCase();
-            return `
-            <tr class="${isHighlighted ? 'row-highlight' : ''}">
-                <td>${item.id}</td><td>${itemTrx}</td><td>${item.username}</td><td>${item.layanan}</td><td>${item.target}</td><td>${item.sn || '-'}</td><td>${formatRupiah(item.price)}</td>
-                <td><span class="status-badge status-${statusClass}">${item.status}</span></td>
-                <td class="action-cell">
-                    <select class="action-select">
-                        <option value="pending" ${item.status === 'pending' ? 'selected' : ''}>Pending</option>
-                        <option value="success" ${item.status === 'success' ? 'selected' : ''}>Success</option>
-                        <option value="failed" ${item.status === 'failed' ? 'selected' : ''}>Failed</option>
-                    </select>
-                    <input type="text" class="action-input" placeholder="SN baru..." value="${item.sn || ''}">
-                    <button class="action-btn save-status-btn" data-user-id="${item.userId}" data-order-id="${item.id}"><i class="bi bi-check-lg"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
-        document.querySelectorAll('.save-status-btn').forEach(button => button.addEventListener('click', (e) => {
-            const { userId, orderId } = e.currentTarget.dataset;
-            updateOrder(userId, orderId, e.currentTarget.parentElement);
-        }));
-    };
-    
-    const renderPage = (orders) => {
-        let totalSuccess = 0, totalOther = 0;
-        orders.forEach(o => {
-            const price = parseFloat(o.price) || 0;
-            if (o.status === 'success') {
-                totalSuccess += price;
-            } else {
-                totalOther += price;
-            }
-        });
-        document.getElementById('totalOrderSuccess').textContent = formatRupiah(totalSuccess);
-        document.getElementById('totalOrderOther').textContent = formatRupiah(totalOther);
-        document.getElementById('totalAllOrder').textContent = formatRupiah(totalSuccess + totalOther);
-        renderTable(orders);
-    };
+  const showToast = (message, isSuccess = true) => {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.textContent = message;
+    toast.style.backgroundColor = isSuccess ? 'var(--color-success)' : 'var(--color-danger)';
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+  };
 
-    document.getElementById('checkStatusForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const trxId = document.getElementById('checkStatusId').value;
-        if (!trxId) { showToast('ID Transaksi tidak boleh kosong.', false); return; }
-        const button = e.currentTarget.querySelector('button');
-        button.disabled = true; button.innerHTML = '<span class="spinner"></span>';
-        try {
-            const response = await (await fetch(`/admin/check-order?id=${trxId}`)).json();
-            const body = document.getElementById('statusModalBody');
-            if (response.success) {
-                const d = response.detail;
-                body.innerHTML = `<dl class="detail-grid">
-                    <dt>Status</dt><dd><span class="status-badge status-${response.status.toLowerCase()}">${response.status}</span></dd>
-                    <dt>ID TRX</dt><dd>${d.trxId || d.trx_id || d.id || '-'}</dd>
-                    <dt>ID</dt><dd>${d.id}</dd><dt>Ref ID</dt><dd>${d.reff_id}</dd>
-                    <dt>Layanan</dt><dd>${d.layanan}</dd><dt>Target</dt><dd>${d.target}</dd>
-                    <dt>Harga Provider</dt><dd>${formatRupiah(d.harga)}</dd>
-                    <dt>SN/Keterangan</dt><dd><code>${d.sn || '-'}</code></dd>
-                    <dt>Waktu</dt><dd>${new Date(d.waktu).toLocaleString('id-ID')}</dd>
-                </dl>`;
-            } else { body.innerHTML = `<p style="text-align:center;color:var(--color-danger);">${response.message}</p>`; }
-            statusModal.classList.add('active'); modalOverlay.classList.add('active');
-        } catch (error) { showToast('Gagal menghubungi server.', false); } 
-        finally { button.disabled = false; button.innerHTML = '<i class="bi bi-search"></i> Cek'; }
+  const readGmailSession = () => {
+    try { return JSON.parse(localStorage.getItem('gmail_access_session') || 'null'); }
+    catch (e) { return null; }
+  };
+
+  const isGmailOrder = (o) => {
+    const hay = [o?.layanan, o?.service, o?.product, o?.category, o?.name, o?.title, o?.desc, o?.target].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes('gmail') || hay.includes('g mail');
+  };
+
+  const updateGmailAccessPanel = () => {
+    const s = currentGmailSession || readGmailSession();
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    if (s && s.trxId) {
+      set('gmailAccessTrx', s.trxId);
+      set('gmailAccessUsername', s.username || '-');
+      set('gmailAccessRole', String(s.role || '-').toUpperCase());
+      set('gmailAccessStatus', s.verified ? 'VERIFIED' : 'PENDING');
+      set('gmailAccessTime', s.verifiedAt || s.createdAt ? new Date(s.verifiedAt || s.createdAt).toLocaleString('id-ID') : '-');
+      set('activeTrx', s.trxId);
+      set('sessionBadge', `Session: ${String(s.role || '-').toUpperCase()}`);
+    } else {
+      set('gmailAccessTrx', '-');
+      set('gmailAccessUsername', '-');
+      set('gmailAccessRole', '-');
+      set('gmailAccessStatus', 'Belum ada data');
+      set('gmailAccessTime', '-');
+      set('activeTrx', '-');
+      set('sessionBadge', 'Session: -');
+    }
+  };
+
+  const renderList = (orders) => {
+    const list = document.getElementById('gmailTxList');
+    if (!orders || orders.length === 0) {
+      list.innerHTML = `<div class="empty-state"><i class="bi bi-inbox"></i>Tidak ada data Gmail ditemukan.</div>`;
+      return;
+    }
+    list.innerHTML = orders.map(item => {
+      const itemTrx = String(item.trxId || item.trx_id || item.trx || item.id || '-');
+      const statusClass = String(item.status || 'pending').toLowerCase();
+      const isHighlighted = currentGmailSession?.trxId && String(currentGmailSession.trxId) === itemTrx;
+      return `
+        <article class="tx-card ${isHighlighted ? 'highlight' : ''}">
+          <div class="tx-top">
+            <div>
+              <div class="tx-id">${itemTrx}</div>
+              <div class="tx-meta">Username: ${item.username || '-'} • ID Order: ${item.id || '-'}</div>
+            </div>
+            <span class="status-badge status-${statusClass}">${item.status || 'pending'}</span>
+          </div>
+          <div class="tx-grid">
+            <div class="tx-item"><span class="label">Layanan Gmail</span><span class="value">${item.layanan || item.service || 'Gmail Access'}</span></div>
+            <div class="tx-item"><span class="label">Target / Email</span><span class="value">${item.target || item.email || '-'}</span></div>
+            <div class="tx-item"><span class="label">Harga</span><span class="value">${formatRupiah(item.price)}</span></div>
+            <div class="tx-item"><span class="label">Waktu</span><span class="value">${item.created_at ? new Date(item.created_at).toLocaleString('id-ID') : '-'}</span></div>
+          </div>
+          <div class="tx-actions">
+            <button class="action-btn secondary check-single-btn" data-trx="${itemTrx}"><i class="bi bi-search"></i> Cek Status</button>
+            <button class="action-btn copy-trx-btn" data-trx="${itemTrx}" style="background-color:#6c757d;"><i class="bi bi-clipboard"></i> Copy TRX</button>
+          </div>
+        </article>`;
+    }).join('');
+
+    document.querySelectorAll('.check-single-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+      const trx = e.currentTarget.dataset.trx;
+      await checkTransaction(trx);
+    }));
+
+    document.querySelectorAll('.copy-trx-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+      const trx = e.currentTarget.dataset.trx;
+      try { await navigator.clipboard.writeText(trx); showToast('ID TRX disalin.', true); }
+      catch (_) { showToast('Gagal menyalin ID TRX.', false); }
+    }));
+  };
+
+  const renderPage = (orders) => {
+    let totalSuccess = 0, totalPending = 0;
+    orders.forEach(o => {
+      const price = parseFloat(o.price) || 0;
+      if (String(o.status).toLowerCase() === 'success') totalSuccess += price;
+      else totalPending += price;
     });
+    document.getElementById('totalGmailTrx').textContent = orders.length;
+    document.getElementById('totalGmailSuccess').textContent = formatRupiah(totalSuccess);
+    document.getElementById('totalGmailPending').textContent = formatRupiah(totalPending);
+    renderList(orders);
+  };
 
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const filtered = allOrders.filter(o => {
-            const itemTrx = String(o.trxId || o.trx_id || o.trx || o.id || '').toLowerCase();
-            return itemTrx.includes(searchTerm) || o.id.toLowerCase().includes(searchTerm) || o.username.toLowerCase().includes(searchTerm) || o.layanan.toLowerCase().includes(searchTerm) || o.target.toLowerCase().includes(searchTerm);
-        });
-        renderTable(filtered);
+  async function checkTransaction(trxId) {
+    if (!trxId) { showToast('ID TRX tidak boleh kosong.', false); return; }
+    const button = document.getElementById('checkStatusForm').querySelector('button');
+    const original = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span>';
+    try {
+      const response = await (await fetch(`/admin/check-order?id=${encodeURIComponent(trxId)}`)).json();
+      const body = document.getElementById('statusModalBody');
+      if (response.success) {
+        const d = response.detail || {};
+        body.innerHTML = `
+          <dl class="detail-grid">
+            <dt>Status</dt><dd><span class="status-badge status-${String(response.status || 'pending').toLowerCase()}">${response.status || '-'}</span></dd>
+            <dt>ID TRX</dt><dd>${d.trxId || d.trx_id || d.id || trxId || '-'}</dd>
+            <dt>ID</dt><dd>${d.id || '-'}</dd>
+            <dt>Username</dt><dd>${d.username || '-'}</dd>
+            <dt>Layanan</dt><dd>${d.layanan || d.service || '-'}</dd>
+            <dt>Target</dt><dd>${d.target || d.email || '-'}</dd>
+            <dt>Harga Provider</dt><dd>${formatRupiah(d.harga)}</dd>
+            <dt>SN / Keterangan</dt><dd><code>${d.sn || '-'}</code></dd>
+            <dt>Waktu</dt><dd>${d.waktu ? new Date(d.waktu).toLocaleString('id-ID') : '-'}</dd>
+          </dl>`;
+      } else {
+        body.innerHTML = `<p style="text-align:center;color:var(--color-danger);margin:0;">${response.message || 'Data tidak ditemukan.'}</p>`;
+      }
+      statusModal.classList.add('active');
+      modalOverlay.classList.add('active');
+    } catch (error) {
+      showToast('Gagal menghubungi server.', false);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = original;
+    }
+  }
+
+  document.getElementById('checkStatusForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await checkTransaction(document.getElementById('checkStatusId').value.trim());
+  });
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const filtered = allOrders.filter(o => {
+      const itemTrx = String(o.trxId || o.trx_id || o.trx || o.id || '').toLowerCase();
+      return itemTrx.includes(searchTerm)
+        || String(o.id || '').toLowerCase().includes(searchTerm)
+        || String(o.username || '').toLowerCase().includes(searchTerm)
+        || String(o.layanan || o.service || '').toLowerCase().includes(searchTerm)
+        || String(o.target || o.email || '').toLowerCase().includes(searchTerm);
     });
+    renderPage(filtered);
+  });
 
-    const loadData = async () => {
-        try {
-            const users = await (await fetch('/admin/data/users')).json();
-            const orders = [];
-            users.forEach(user => {
-                if (Array.isArray(user.historyOrder)) {
-                    user.historyOrder.forEach(order => orders.push({
-                        ...order,
-                        userId: user._id,
-                        username: user.username,
-                        trxId: order.trxId || order.trx_id || order.trx || order.id
-                    }));
-                }
-            });
-            currentGmailSession = readGmailSession();
-            updateGmailAccessPanel();
-            allOrders = orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            renderPage(allOrders);
-        } catch (error) {
-            console.error('Gagal memuat data order:', error);
-            document.getElementById('ordersTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 3rem; color:var(--color-danger);">Gagal memuat data.</td></tr>`;
+  const loadData = async () => {
+    try {
+      const users = await (await fetch('/admin/data/users')).json();
+      const orders = [];
+      users.forEach(user => {
+        if (Array.isArray(user.historyOrder)) {
+          user.historyOrder.forEach(order => {
+            const normalized = { ...order, userId: user._id, username: user.username, trxId: order.trxId || order.trx_id || order.trx || order.id };
+            if (isGmailOrder(normalized)) orders.push(normalized);
+          });
         }
-    };
-    
-    currentGmailSession = readGmailSession();
-    updateGmailAccessPanel();
-    loadData();
+      });
+      currentGmailSession = readGmailSession();
+      updateGmailAccessPanel();
+      allOrders = orders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      renderPage(allOrders);
+    } catch (error) {
+      console.error('Gagal memuat data Gmail:', error);
+      document.getElementById('gmailTxList').innerHTML = `<div class="empty-state"><i class="bi bi-exclamation-triangle"></i> Gagal memuat data.</div>`;
+    }
+  };
+
+  currentGmailSession = readGmailSession();
+  updateGmailAccessPanel();
+  loadData();
 });
 </script>
 </body>
