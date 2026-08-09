@@ -3,6 +3,135 @@ const qs = require("qs");
 const cloudscraper = require("cloudscraper");
 const router = express.Router();
 
+
+const THERESA_GMAIL_BASE = process.env.THERESA_GMAIL_BASE || "https://api.theresav.biz.id/premium/alightmotion";
+const THERESA_GMAIL_APIKEY = process.env.THERESA_GMAIL_APIKEY || "RyuuXiao";
+
+function buildTheresaUrl(action, params = {}) {
+  const url = new URL(`${THERESA_GMAIL_BASE}/${action}`);
+  const apiKey = params.apikey || THERESA_GMAIL_APIKEY;
+  if (apiKey) url.searchParams.set("apikey", apiKey);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      if (key !== "apikey") url.searchParams.set(key, String(value));
+    }
+  });
+
+  return url.toString();
+}
+
+async function fetchTheresaJson(action, params = {}) {
+  const url = buildTheresaUrl(action, params);
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+    },
+  });
+
+  const rawText = await response.text();
+  let data = null;
+  try {
+    data = JSON.parse(rawText);
+  } catch (error) {
+    data = { raw: rawText };
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    url,
+    data,
+    rawText,
+  };
+}
+
+function gmailDocsHtml(basePath = "/premium/alightmotion") {
+  const sampleEmail = "alfathicloud835@gmail.com";
+  const sampleLink = "https://alight-creative.firebaseapp.com/__ /auth/links?link=https://alightcreative.com/auth_action/";
+  return `<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gmail API Docs</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f7f8fc;color:#1f2430;margin:0;padding:24px}
+    .card{max-width:980px;margin:auto;background:#fff;border:1px solid #e4e7f0;border-radius:20px;padding:24px;box-shadow:0 10px 28px rgba(0,0,0,.08)}
+    h1,h2,h3{margin-top:0}
+    code,pre{background:#f3f5fb;border-radius:12px}
+    pre{padding:14px;overflow:auto}
+    .pill{display:inline-block;padding:8px 12px;border-radius:999px;background:#eef3ff;color:#355cc9;font-weight:700;margin:4px 8px 4px 0}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Gmail API Docs</h1>
+    <p>Endpoint gateway ini meneruskan request ke layanan Theresa Gmail.</p>
+
+    <h2>Endpoint</h2>
+    <div class="pill">GET ${basePath}/send</div>
+    <div class="pill">GET ${basePath}/verify</div>
+    <div class="pill">GET ${basePath}/docs</div>
+
+    <h2>Send</h2>
+    <pre>GET ${basePath}/send?email=${sampleEmail}&apikey=${THERESA_GMAIL_APIKEY}</pre>
+    <p>Parameter: <code>email</code>, <code>apikey</code>.</p>
+
+    <h2>Verify</h2>
+    <pre>GET ${basePath}/verify?email=${sampleEmail}&link=${encodeURIComponent(sampleLink)}&apikey=${THERESA_GMAIL_APIKEY}</pre>
+    <p>Parameter: <code>email</code>, <code>link</code>, <code>apikey</code>.</p>
+
+    <h2>Response</h2>
+    <pre>{
+  "success": true,
+  "source": "theresa",
+  "endpoint": "send|verify",
+  "forwarded_url": "..."
+}</pre>
+  </div>
+</body>
+</html>`;
+}
+
+async function handleGmailProxy(req, res, endpoint) {
+  const email = req.query.email || req.body?.email;
+  const link = req.query.link || req.body?.link;
+  const apikey = req.query.apikey || req.body?.apikey || THERESA_GMAIL_APIKEY;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Parameter email wajib diisi." });
+  }
+
+  if (endpoint === "verify" && !link) {
+    return res.status(400).json({ success: false, message: "Parameter link wajib diisi." });
+  }
+
+  try {
+    const params = { email, apikey };
+    if (endpoint === "verify") params.link = link;
+
+    const result = await fetchTheresaJson(endpoint, params);
+
+    return res.status(result.ok ? 200 : 502).json({
+      success: Boolean(result.data && (result.data.success === true || result.data.status === true)),
+      source: "theresa",
+      endpoint,
+      forwarded_url: result.url,
+      status_code: result.status,
+      data: result.data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      source: "theresa",
+      endpoint,
+      message: error.message || "Gagal memproses request Gmail.",
+    });
+  }
+}
 // KONFIGURASI PROV
 const PAYINAJA_API_KEY = process.env.PAYINAJA_API_KEY;
 const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
@@ -878,6 +1007,37 @@ router.get("/order-panel", validateApiKey, async (req, res) => {
       error: error.response?.data || error.message,
     });
   }
+});
+
+
+// === GMAIL API GATEWAY ===
+router.get("/premium/alightmotion/docs", async (req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(gmailDocsHtml("/premium/alightmotion"));
+});
+
+router.get("/premium/alightmotion/send", async (req, res) => {
+  return handleGmailProxy(req, res, "send");
+});
+
+router.get("/premium/alightmotion/verify", async (req, res) => {
+  return handleGmailProxy(req, res, "verify");
+});
+
+// Alias singkat
+router.get("/gmail/docs", async (req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(gmailDocsHtml("/gmail"));
+});
+
+router.get("/gmail/send", async (req, res) => {
+  req.query.apikey = req.query.apikey || THERESA_GMAIL_APIKEY;
+  return handleGmailProxy(req, res, "send");
+});
+
+router.get("/gmail/verify", async (req, res) => {
+  req.query.apikey = req.query.apikey || THERESA_GMAIL_APIKEY;
+  return handleGmailProxy(req, res, "verify");
 });
 
 module.exports = router;
