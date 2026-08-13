@@ -105,7 +105,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
       metode: "QRIS",
       type: "ewallet",
       name: "QRIS All Payment (Otomatis)",
-      min: 500,
+      min: 100,
       max: 5000000,
       fee: 0,
       fee_persen: feePersen,
@@ -123,7 +123,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
   }
 });
 
-// === ROUTE BUAT DEPOSIT (UPDATE ENDPOINT PAYINAJA & FIX FETCH) ===
+// === ROUTE BUAT DEPOSIT (STRUKTUR ASLI - PAYINAJA) ===
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
   const { nominal } = req.query;
@@ -133,53 +133,30 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal);
-  if (parsedNominal < 500) {
-    return res.status(400).json({ success: false, message: "Minimal deposit Rp500" });
-  }
-
-  const API_KEY = process.env.PAYINAJA_API_KEY;
-  if (!API_KEY) {
-    return res.status(500).json({ success: false, message: "API Key Payinaja belum disetting." });
+  if (parsedNominal < 100) {
+    return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
   }
 
   try {
-    let response;
-    try {
-      // Request ke Payinaja menggunakan endpoint terbaru + Header
-      response = await fetch("https://payinaja.com/api/v1/qris/create2", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "x-api-key": API_KEY 
-        },
-        body: JSON.stringify({
-          amount: parsedNominal,
-          reference_id: `DEP-${Date.now()}`,
-          customer_name: user.username || "Pelanggan"
-        })
-      });
-    } catch (fetchError) {
-      console.error("Fetch API Error (Koneksi ke Payinaja putus):", fetchError);
-      return res.status(502).json({ success: false, message: "Koneksi server ke Payinaja gagal." });
-    }
+    // Request ke Payinaja
+    const response = await fetch("https://payinaja.com/api/v1/qris/create2", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "x-api-key": process.env.PAYINAJA_API_KEY 
+      },
+      body: JSON.stringify({
+        amount: parsedNominal,
+        reference_id: `DEP-${Date.now()}`,
+        customer_name: user.username || "Pelanggan"
+      })
+    });
 
-    // FIX: Cegah crash jika Payinaja merespons HTML/Error Text
-    const rawText = await response.text();
-    let result;
-    try {
-      result = JSON.parse(rawText);
-    } catch (parseError) {
-      console.error("Response Payinaja bukan JSON:", rawText);
-      return res.status(502).json({ success: false, message: "Mendapat respons tidak valid dari Payinaja." });
-    }
-    
+    const result = await response.json();
     if (!result || !result.success) {
-      return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS di server tujuan." });
+      return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS." });
     }
 
-    // Data dari API Payinaja terbaru
     const payData = result.data;
 
     // KALKULASI ANTI-NaN
@@ -202,6 +179,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       created_at: new Date(),
     };
 
+    // Gunakan fungsi internal kamu
     await tambahHistoryDeposit(user._id, history);
 
     res.status(200).json({
@@ -217,31 +195,17 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       },
     });
 
-    // POLLING OTOMATIS
+    // POLLING OTOMATIS (Tanpa cloudscraper agar tidak crash)
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
           method: "GET",
-          headers: { 
-            "Accept": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "x-api-key": API_KEY 
-          }
+          headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
         });
-
-        // FIX: Proteksi JSON parse pada proses polling
-        const rawStatusText = await checkRes.text();
-        let statusData;
-        try {
-          statusData = JSON.parse(rawStatusText);
-        } catch (e) {
-          console.error("Polling API tidak mengembalikan JSON, skip interval ini.");
-          return; // Skip pengecekan ini, jangan clear interval, coba lagi nanti
-        }
+        const statusData = await checkRes.json();
 
         if (statusData?.success && statusData.data) {
           const apiStatus = statusData.data.status.toLowerCase();
-          
           if (apiStatus === "success") {
             const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": payData.payinaja_trx_id });
             const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === payData.payinaja_trx_id);
@@ -256,17 +220,14 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
             clearInterval(intervalId);
           }
         }
-      } catch (e) { 
-        console.error("Polling API Error:", e.message);
-        clearInterval(intervalId); 
-      }
+      } catch (e) { clearInterval(intervalId); }
     }, 10000);
 
   } catch (error) {
-    console.error("Terjadi error global di endpoint create:", error);
-    res.status(500).json({ success: false, message: "Terjadi kesalahan internal server." });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
+
 // === ROUTE CEK STATUS (STRUKTUR ASLI - PAYINAJA) ===
 router.get("/deposit/status", validateApiKey, async (req, res) => {
   const { id } = req.query;
