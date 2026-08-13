@@ -4,8 +4,12 @@ const cloudscraper = require("cloudscraper");
 const router = express.Router();
 
 // KONFIGURASI PROV
-const PAYINAJA_API_KEY = process.env.PAYINAJA_API_KEY;
-const PAYINAJA_BASE_URL = "https://payinaja.com/api/v1";
+const GOREKK_API_KEY = process.env.GOREKK_API_KEY;
+const GOREKK_BASE_URL = "https://www.gorekk.web.id/api/v1";
+
+// Static QRIS merchant Gorekk
+const GOREKK_STATIC_QR = process.env.GOREKK_STATIC_QR || 
+"00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477";
 
 const {
   validateApiKey,
@@ -97,7 +101,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
     const fullUrl = `${req.protocol}://${req.get("host")}`;
     const role = req.user?.role || "user";
     
-    // Fee sesuai role (0.1% reseller, 0.2% user)
+    // Fee sesuai role (0.5% reseller, 1.0% user)
     const feeDesimal = role === "reseller" ? 0.001 : 0.002;
     const feePersen = (feeDesimal * 100).toString(); 
 
@@ -105,7 +109,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
       metode: "QRIS",
       type: "ewallet",
       name: "QRIS All Payment (Otomatis)",
-      min: 100,
+      min: 50,
       max: 5000000,
       fee: 0,
       fee_persen: feePersen,
@@ -123,151 +127,398 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
   }
 });
 
-// === ROUTE BUAT DEPOSIT (STRUKTUR ASLI - PAYINAJA) ===
-router.get("/deposit/create", validateApiKey, async (req, res) => {
-  const { user } = req;
-  const { nominal } = req.query;
-
-  if (!nominal || isNaN(nominal)) {
-    return res.status(400).json({ success: false, message: "Nominal tidak valid." });
-  }
-
-  const parsedNominal = parseInt(nominal);
-  if (parsedNominal < 100) {
-    return res.status(400).json({ success: false, message: "Minimal deposit Rp100" });
-  }
-
-  try {
-    // Request ke Payinaja
-    const response = await fetch("https://payinaja.com/api/v1/qris/create2", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "x-api-key": process.env.PAYINAJA_API_KEY 
-      },
-      body: JSON.stringify({
-        amount: parsedNominal,
-        reference_id: `DEP-${Date.now()}`,
-        customer_name: user.username || "Pelanggan"
-      })
-    });
-
-    const result = await response.json();
-    if (!result || !result.success) {
-      return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS." });
-    }
-
-    const payData = result.data;
-
-    // KALKULASI ANTI-NaN
-    const nominalAsli = Number(payData.amount_requested) || parsedNominal;
-    const feePayinaja = Number(payData.fee) || 0;
-    const totalBayar = Number(payData.total_amount) || (nominalAsli + feePayinaja);
-    
-    const feePercent = user.role === "reseller" ? 0.001 : 0.002;
-    let additionalFee = Math.ceil(nominalAsli * feePercent);
-    const finalBalance = nominalAsli - additionalFee;
-
-    const history = {
-      id: payData.payinaja_trx_id,
-      nominal: nominalAsli,
-      fee: additionalFee + feePayinaja, 
-      get_balance: finalBalance,
-      metode: "QRIS",
-      status: "pending",
-      qr_image: payData.qris_image_url,
-      created_at: new Date(),
-    };
-
-    // Gunakan fungsi internal kamu
-    await tambahHistoryDeposit(user._id, history);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        id: history.id,
-        nominal: nominalAsli,
-        qr_image: history.qr_image,
-        fee: history.fee,
-        get_balance: history.get_balance,
-        total_amount: totalBayar,
-        status: "pending"
-      },
-    });
-
-    // POLLING OTOMATIS (Tanpa cloudscraper agar tidak crash)
-    const intervalId = setInterval(async () => {
-      try {
-        const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
-          method: "GET",
-          headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
-        });
-        const statusData = await checkRes.json();
-
-        if (statusData?.success && statusData.data) {
-          const apiStatus = statusData.data.status.toLowerCase();
-          if (apiStatus === "success") {
-            const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": payData.payinaja_trx_id });
-            const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === payData.payinaja_trx_id);
-
-            if (txInDb && txInDb.status !== "success") {
-              await editHistoryDeposit(user._id, payData.payinaja_trx_id, "success");
-              await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });
-            }
-            clearInterval(intervalId);
-          } else if (["failed", "expired", "cancel"].includes(apiStatus)) {
-            await editHistoryDeposit(user._id, payData.payinaja_trx_id, apiStatus);
-            clearInterval(intervalId);
-          }
-        }
-      } catch (e) { clearInterval(intervalId); }
-    }, 10000);
-
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// === ROUTE CEK STATUS (STRUKTUR ASLI - PAYINAJA) ===
+// === ROUTE CEK STATUS (GOREKK QRIS) ===
 router.get("/deposit/status", validateApiKey, async (req, res) => {
   const { id } = req.query;
   const { user } = req;
-  if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "ID diperlukan."
+    });
+  }
+
+  if (!GOREKK_API_KEY) {
+    return res.status(500).json({
+      success: false,
+      message: "GOREKK_API_KEY belum dikonfigurasi."
+    });
+  }
 
   try {
-    const userHistory = await User.findOne({ _id: user._id, "historyDeposit.id": id }, { "historyDeposit.$": 1 });
-    if (!userHistory) return res.status(404).json({ success: false, message: "Data tidak ditemukan di DB." });
+    // =========================================================
+    // CARI DATA DEPOSIT DI DATABASE
+    // =========================================================
+    const userHistory = await User.findOne(
+      {
+        _id: user._id,
+        "historyDeposit.id": id
+      },
+      {
+        "historyDeposit.$": 1
+      }
+    );
 
-    const localData = userHistory.historyDeposit[0];
-
-    // Cek ke API Payinaja
-    const response = await fetch(`https://payinaja.com/api/v1/transaction/${id}`, {
-        method: "GET",
-        headers: { "x-api-key": process.env.PAYINAJA_API_KEY }
-    });
-    const result = await response.json();
-    
-    if (!result.success) return res.status(404).json({ success: false, message: "Data tidak ditemukan di provider." });
-
-    // Update status jika sudah sukses di provider tapi pending di DB
-    const apiStatus = result.data.status.toLowerCase();
-    if (apiStatus === "success" && localData.status !== "success") {
-        await editHistoryDeposit(user._id, id, "success");
-        await User.findByIdAndUpdate(user._id, { $inc: { saldo: Number(localData.get_balance) || 0 } });
+    if (!userHistory) {
+      return res.status(404).json({
+        success: false,
+        message: "Data tidak ditemukan di DB."
+      });
     }
+
+    const localData =
+      userHistory.historyDeposit[0];
+
+    // =========================================================
+    // CEK KE API GOREKK
+    // =========================================================
+    const statusUrl =
+      `${GOREKK_BASE_URL}/qris/invoice` +
+      `?invoice_id=${encodeURIComponent(id)}`;
+
+    const response = await fetch(statusUrl, {
+      method: "GET",
+      headers: {
+        "X-API-Key": GOREKK_API_KEY
+      }
+    });
+
+    const result = await response.json();
+
+    if (
+      !response.ok ||
+      !result?.success ||
+      !result?.invoice
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          result?.message ||
+          "Data tidak ditemukan di provider."
+      });
+    }
+
+    const invoice = result.invoice;
+
+    const apiStatus = String(
+      invoice.status || "pending"
+    ).toLowerCase();
+
+    // =========================================================
+    // UPDATE SUKSES
+    // =========================================================
+    if (
+      (apiStatus === "paid" ||
+        apiStatus === "success") &&
+      localData.status !== "success"
+    ) {
+      await editHistoryDeposit(
+        user._id,
+        id,
+        "success"
+      );
+
+      await User.findByIdAndUpdate(
+        user._id,
+        {
+          $inc: {
+            saldo:
+              Number(localData.get_balance) || 0
+          }
+        }
+      );
+    }
+
+    // =========================================================
+    // UPDATE STATUS GAGAL / EXPIRED / CANCEL
+    // =========================================================
+    if (
+      [
+        "failed",
+        "expired",
+        "cancel",
+        "cancelled",
+        "canceled"
+      ].includes(apiStatus) &&
+      localData.status !== apiStatus
+    ) {
+      const finalStatus =
+        apiStatus === "cancelled" ||
+        apiStatus === "canceled"
+          ? "cancel"
+          : apiStatus;
+
+      await editHistoryDeposit(
+        user._id,
+        id,
+        finalStatus
+      );
+    }
+
+    const finalStatus =
+      apiStatus === "paid"
+        ? "success"
+        : apiStatus;
 
     return res.status(200).json({
       success: true,
+
       data: {
         id: id,
-        status: apiStatus,
-        nominal: Number(result.data.amount_requested),
-        fee: localData.fee || 0,
-        get_balance: localData.get_balance || 0,
+
+        invoice_id:
+          invoice.id || id,
+
+        status: finalStatus,
+
+        nominal:
+          Number(invoice.amount) ||
+          Number(invoice.expected_amount) ||
+          Number(localData.nominal) ||
+          0,
+
+        expected_amount:
+          Number(invoice.expected_amount) ||
+          Number(invoice.amount) ||
+          0,
+
+        fee:
+          Number(localData.fee) || 0,
+
+        get_balance:
+          Number(localData.get_balance) || 0,
+
+        qr_image:
+          invoice.metadata?.image_url ||
+          localData.qr_image ||
+          null,
+
+        payment_url:
+          localData.payment_url ||
+          null,
+
+        tx_id:
+          invoice.tx_id || null,
+
+        paid_at:
+          invoice.paid_at || null,
+
+        expires_at:
+          invoice.expires_at || null,
+
+        created_at:
+          invoice.created_at || null
       }
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(
+      "Gorekk Status Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+// === ROUTE CEK STATUS (GOREKK QRIS) ===
+router.get("/deposit/status", validateApiKey, async (req, res) => {
+  const { id } = req.query;
+  const { user } = req;
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "ID diperlukan."
+    });
+  }
+
+  if (!GOREKK_API_KEY) {
+    return res.status(500).json({
+      success: false,
+      message: "GOREKK_API_KEY belum dikonfigurasi."
+    });
+  }
+
+  try {
+    // =========================================================
+    // CARI DATA DEPOSIT DI DATABASE
+    // =========================================================
+    const userHistory = await User.findOne(
+      {
+        _id: user._id,
+        "historyDeposit.id": id
+      },
+      {
+        "historyDeposit.$": 1
+      }
+    );
+
+    if (!userHistory) {
+      return res.status(404).json({
+        success: false,
+        message: "Data tidak ditemukan di DB."
+      });
+    }
+
+    const localData =
+      userHistory.historyDeposit[0];
+
+    // =========================================================
+    // CEK KE API GOREKK
+    // =========================================================
+    const statusUrl =
+      `${GOREKK_BASE_URL}/qris/invoice` +
+      `?invoice_id=${encodeURIComponent(id)}`;
+
+    const response = await fetch(statusUrl, {
+      method: "GET",
+      headers: {
+        "X-API-Key": GOREKK_API_KEY
+      }
+    });
+
+    const result = await response.json();
+
+    if (
+      !response.ok ||
+      !result?.success ||
+      !result?.invoice
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          result?.message ||
+          "Data tidak ditemukan di provider."
+      });
+    }
+
+    const invoice = result.invoice;
+
+    const apiStatus = String(
+      invoice.status || "pending"
+    ).toLowerCase();
+
+    // =========================================================
+    // UPDATE SUKSES
+    // =========================================================
+    if (
+      (apiStatus === "paid" ||
+        apiStatus === "success") &&
+      localData.status !== "success"
+    ) {
+      await editHistoryDeposit(
+        user._id,
+        id,
+        "success"
+      );
+
+      await User.findByIdAndUpdate(
+        user._id,
+        {
+          $inc: {
+            saldo:
+              Number(localData.get_balance) || 0
+          }
+        }
+      );
+    }
+
+    // =========================================================
+    // UPDATE STATUS GAGAL / EXPIRED / CANCEL
+    // =========================================================
+    if (
+      [
+        "failed",
+        "expired",
+        "cancel",
+        "cancelled",
+        "canceled"
+      ].includes(apiStatus) &&
+      localData.status !== apiStatus
+    ) {
+      const finalStatus =
+        apiStatus === "cancelled" ||
+        apiStatus === "canceled"
+          ? "cancel"
+          : apiStatus;
+
+      await editHistoryDeposit(
+        user._id,
+        id,
+        finalStatus
+      );
+    }
+
+    const finalStatus =
+      apiStatus === "paid"
+        ? "success"
+        : apiStatus;
+
+    return res.status(200).json({
+      success: true,
+
+      data: {
+        id: id,
+
+        invoice_id:
+          invoice.id || id,
+
+        status: finalStatus,
+
+        nominal:
+          Number(invoice.amount) ||
+          Number(invoice.expected_amount) ||
+          Number(localData.nominal) ||
+          0,
+
+        expected_amount:
+          Number(invoice.expected_amount) ||
+          Number(invoice.amount) ||
+          0,
+
+        fee:
+          Number(localData.fee) || 0,
+
+        get_balance:
+          Number(localData.get_balance) || 0,
+
+        qr_image:
+          invoice.metadata?.image_url ||
+          localData.qr_image ||
+          null,
+
+        payment_url:
+          localData.payment_url ||
+          null,
+
+        tx_id:
+          invoice.tx_id || null,
+
+        paid_at:
+          invoice.paid_at || null,
+
+        expires_at:
+          invoice.expires_at || null,
+
+        created_at:
+          invoice.created_at || null
+      }
+    });
+
+  } catch (error) {
+    console.error(
+      "Gorekk Status Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
