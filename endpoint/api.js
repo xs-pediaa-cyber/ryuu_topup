@@ -145,7 +145,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   try {
     let response;
     try {
-      // Request ke Payinaja menggunakan endpoint terbaru + Header Anti-Block (User-Agent)
+      // Request ke Payinaja menggunakan endpoint terbaru + Header
       response = await fetch("https://payinaja.com/api/v1/qris/create2", {
         method: "POST",
         headers: { 
@@ -161,20 +161,28 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         })
       });
     } catch (fetchError) {
-      console.error("Fetch API Error:", fetchError);
-      return res.status(502).json({ success: false, message: "Koneksi server ke Payinaja gagal/diblokir." });
+      console.error("Fetch API Error (Koneksi ke Payinaja putus):", fetchError);
+      return res.status(502).json({ success: false, message: "Koneksi server ke Payinaja gagal." });
     }
 
-    const result = await response.json();
+    // FIX: Cegah crash jika Payinaja merespons HTML/Error Text
+    const rawText = await response.text();
+    let result;
+    try {
+      result = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error("Response Payinaja bukan JSON:", rawText);
+      return res.status(502).json({ success: false, message: "Mendapat respons tidak valid dari Payinaja." });
+    }
     
     if (!result || !result.success) {
-      return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS." });
+      return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS di server tujuan." });
     }
 
     // Data dari API Payinaja terbaru
     const payData = result.data;
 
-    // KALKULASI ANTI-NaN (menggunakan key dari response docs terbaru)
+    // KALKULASI ANTI-NaN
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
     const feePayinaja = Number(payData.fee) || 0;
     const totalBayar = Number(payData.total_amount) || (nominalAsli + feePayinaja);
@@ -194,7 +202,6 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       created_at: new Date(),
     };
 
-    // Gunakan fungsi internal kamu tanpa ada perubahan agar tidak error/null
     await tambahHistoryDeposit(user._id, history);
 
     res.status(200).json({
@@ -210,7 +217,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       },
     });
 
-    // POLLING OTOMATIS (Tanpa cloudscraper agar tidak crash, ditambah User-Agent)
+    // POLLING OTOMATIS
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
@@ -221,7 +228,16 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
             "x-api-key": API_KEY 
           }
         });
-        const statusData = await checkRes.json();
+
+        // FIX: Proteksi JSON parse pada proses polling
+        const rawStatusText = await checkRes.text();
+        let statusData;
+        try {
+          statusData = JSON.parse(rawStatusText);
+        } catch (e) {
+          console.error("Polling API tidak mengembalikan JSON, skip interval ini.");
+          return; // Skip pengecekan ini, jangan clear interval, coba lagi nanti
+        }
 
         if (statusData?.success && statusData.data) {
           const apiStatus = statusData.data.status.toLowerCase();
@@ -247,7 +263,8 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     }, 10000);
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Terjadi error global di endpoint create:", error);
+    res.status(500).json({ success: false, message: "Terjadi kesalahan internal server." });
   }
 });
 // === ROUTE CEK STATUS (STRUKTUR ASLI - PAYINAJA) ===
