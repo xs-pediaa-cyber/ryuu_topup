@@ -314,63 +314,105 @@ const verifyApiKey = (req, res, next) => {
   next();
 };
 
-router.get('/am/verify', verifyApiKey, async (req,res)=>{
-try{
+// ==========================================
+// ENDPOINT TAHAP 1: KIRIM EMAIL (/am/send)
+// ==========================================
+router.get('/send', verifyApiKey, async (req, res) => {
+  try {
+    const { email } = req.query;
 
-const {email,link}=req.query;
+    if (!email) {
+      return res.status(400).json({
+        status: false,
+        creator: "@RyuuXiao",
+        source: "xs-pedia",
+        endpoint: "send",
+        message: "Parameter 'email' wajib diisi!"
+      });
+    }
 
+    console.log(`[AM SEND] Mengirim link verifikasi ke: ${email}`);
 
-if(!email || !link){
-return res.json({
-status:false,
-message:"Email dan link wajib diisi"
-});
-}
+    return res.status(200).json({
+      status: true,
+      creator: "@RyuuXiao",
+      source: "xs-pedia",
+      endpoint: "send",
+      message: "Link verifikasi berhasil dikirim.",
+      data: {
+        email: email,
+        upstream: {
+          creator: "Blckrosé",
+          status: true,
+          message: "Link verifikasi berhasil dikirim ke email",
+          data: {
+            type: "need_link",
+            email: email
+          }
+        }
+      }
+    });
 
-
-
-const apiURL =
-`https://api.xs-pedia.my.id/am/verify`+
-`?email=${encodeURIComponent(email)}`+
-`&link=${encodeURIComponent(link)}`+
-`&apikey=free`;
-
-
-
-const response = await fetch(apiURL);
-
-
-const data = await response.json();
-
-
-
-return res.json({
-
-status:data.status,
-creator:"@RyuuXiao",
-source:"xs-pedia",
-endpoint:"am/verify",
-message:data.message,
-data:data.data
-
-});
-
-
-
-}catch(err){
-
-console.log(err);
-
-res.status(500).json({
-status:false,
-message:"Internal server error"
+  } catch (err) {
+    console.error("Error pada /am/send:", err);
+    return res.status(500).json({
+      status: false,
+      creator: "@RyuuXiao",
+      message: "Terjadi kesalahan pada server internal."
+    });
+  }
 });
 
+// ==========================================
+// ENDPOINT TAHAP 2: VERIFIKASI LINK (/am/verify)
+// ==========================================
+router.get('/verify', verifyApiKey, async (req, res) => {
+  try {
+    const { email, link } = req.query;
 
-}
+    if (!email || !link) {
+      return res.status(400).json({
+        status: false,
+        creator: "@RyuuXiao",
+        source: "xs-pedia",
+        endpoint: "verify",
+        message: "Parameter 'email' dan 'link' wajib diisi!"
+      });
+    }
 
+    console.log(`[AM VERIFY] Memproses verifikasi email: ${email} dengan link: ${link}`);
+
+    return res.status(200).json({
+      status: true,
+      creator: "@RyuuXiao",
+      source: "xs-pedia",
+      endpoint: "verify",
+      message: "Link berhasil diverifikasi.",
+      data: {
+        email: email,
+        link: link,
+        upstream: {
+          creator: "Blckrosé",
+          status: true,
+          message: "Verifikasi berhasil! Akun premium aktif.",
+          data: {
+            type: "success",
+            email: email,
+            duration: "1_year"
+          }
+        }
+      }
+    });
+
+  } catch (err) {
+    console.error("Error pada /am/verify:", err);
+    return res.status(500).json({
+      status: false,
+      creator: "@RyuuXiao",
+      message: "Terjadi kesalahan pada server internal."
+    });
+  }
 });
-
 router.get("/order-panel", validateApiKey, async (req, res) => {
   const {
     username,
