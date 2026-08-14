@@ -1,117 +1,589 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COMIC AM GENERATOR - 2 STAGES</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comic AM Generator</title>
+  <style>
+    :root{
+      --bg1:#ffeb3b;
+      --bg2:#ffe082;
+      --card:#ffffff;
+      --ink:#000000;
+      --muted:#333333;
+      --line:#000000;
+      --accent:#ff5722;
+      --accent2:#4CAF50;
+      --danger:#f44336;
+      --shadow: 6px 6px 0px #000000;
+      --shadow2: 3px 3px 0px #000000;
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: 'Arial Black', Gadget, sans-serif;
+      color:var(--ink);
+      background: var(--bg1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .back-btn{
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #000;
+      color: #fff;
+      padding: 8px 14px;
+      border: 3px solid #000;
+      text-decoration: none;
+      font-size: 11px;
+      box-shadow: 3px 3px 0px var(--accent);
+      font-weight: bold;
+      text-transform: uppercase;
+      z-index: 10;
+    }
+    .wrap{
+      width:min(480px, 100%);
+      margin: 20px auto;
+    }
+    .hero{
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .title{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content: center;
+      margin-top:5px;
+    }
+    .badge{
+      width:45px;height:45px;border-radius:12px;
+      background: #fff;
+      box-shadow: var(--shadow2);
+      display:grid;place-items:center;
+      font-size:22px;
+      border:3px solid #000;
+      flex:0 0 auto;
+    }
+    h1{
+      font-size: 22px;
+      line-height:1.1;
+      margin:0;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 0px #fff;
+    }
+    .sub{
+      margin: 4px 0 0;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .card{
+      background: #ffffff;
+      border: 4px solid #000000;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      position:relative;
+      margin: 14px 0;
+    }
+    .section-head{
+      position:relative;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:12px;
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .section-dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--accent);
+      border: 2px solid #000;
+      flex: 0 0 auto;
+    }
+    .status-row{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-bottom:5px;
+    }
+    .mini-card{
+      background:#fff;
+      border:2px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: var(--shadow2);
+    }
+    .mini-card .label{
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 3px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .mini-card .value{
+      font-size: 13px;
+      font-weight: 900;
+      word-break:break-word;
+    }
+    .field{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .input{
+      flex: 1 1 100%;
+      width:100%;
+      min-height:48px;
+      border-radius: 12px;
+      border: 3px solid var(--line);
+      background:#fff;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: bold;
+      outline:none;
+      box-shadow: 3px 3px 0px #000;
+    }
+    .btn{
+      appearance:none;
+      border: 3px solid #000;
+      border-radius: 12px;
+      min-height: 48px;
+      width: 100%;
+      padding: 0 14px;
+      font-weight: 900;
+      font-size: 13px;
+      text-transform: uppercase;
+      cursor:pointer;
+      color:#fff;
+      background: var(--accent2);
+      box-shadow: 3px 3px 0px #000;
+    }
+    .btn.secondary{
+      background: #ff9800;
+    }
+    .btn[disabled]{
+      cursor:not-allowed;
+      opacity:.7;
+    }
+    .loader{
+      width:100%;
+      min-height:45px;
+      border-radius: 12px;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      margin-top: 10px;
+      background: #e0f7fa;
+      border: 2px solid #000;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .loader.show{display:flex;}
+    .spinner{
+      width:18px;height:18px;border-radius:50%;
+      border:3px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      animation: spin .8s linear infinite;
+    }
+    .stage{display:none;}
+    .stage.show{display:block;}
+    .chip{
+      padding: 8px 10px;
+      border-radius: 999px;
+      background:#fff;
+      border: 2px solid #000;
+      font-weight: 900;
+      box-shadow: 2px 2px 0px #000;
+      font-size: 11px;
+      margin-top: 10px;
+    }
+    .status-box{
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #e8f5e9;
+      border: 2px solid #000;
+      display:none;
+      align-items:center;
+      gap:10px;
+      font-weight: 900;
+      font-size: 11px;
+      box-shadow: 2px 2px 0px #000;
+    }
+    .status-box.show{display:flex;}
+    .note{
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .history-link-box {
+      margin-top: 15px;
+      text-align: center;
+    }
+    .history-link {
+      display: inline-block;
+      background: #00bcd4;
+      color: #000;
+      border: 3px solid #000;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 900;
+      text-decoration: none;
+      box-shadow: 3px 3px 0px #000;
+      text-transform: uppercase;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
 </head>
-<body style="background-color: #ffeb3b; font-family: 'Arial Black', Gadget, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+<body>
 
-    <div style="background-color: #ffffff; border: 4px solid #000000; box-shadow: 8px 8px 0px #000000; padding: 30px; max-width: 480px; width: 100%; position: relative; box-sizing: border-box;">
-        
-        <!-- Label Komik -->
-        <div style="position: absolute; top: -20px; right: -15px; background-color: #ff5722; color: #ffffff; border: 3px solid #000000; padding: 5px 15px; transform: rotate(5deg); font-size: 14px; box-shadow: 3px 3px 0px #000000;">
-            POW! ⚡
+  <a href="index.html" class="back-btn">⬅ Back</a>
+
+  <div class="wrap">
+    <div class="hero">
+      <div class="title">
+        <div class="badge">💥</div>
+        <div>
+          <h1>Gmail Web API</h1>
+          <p class="sub">Alight Motion 1 Tahun Free</p>
         </div>
-
-        <h2 style="text-align: center; text-transform: uppercase; font-size: 22px; color: #000000; text-shadow: 2px 2px 0px #ffeb3b; margin-top: 0; margin-bottom: 20px;">
-            💥 Alight Motion Generator 💥
-        </h2>
-
-        <!-- TAHAP 1: INPUT EMAIL -->
-        <div id="stage1Box">
-            <div style="background: #03a9f4; color: #fff; padding: 8px 12px; border: 2px solid #000; font-size: 12px; margin-bottom: 15px; box-shadow: 2px 2px 0px #000;">
-                LANGKAH 1: Masukkan Email Anda untuk meminta link verifikasi.
-            </div>
-            <form id="formStage1">
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #000000;">Email:</label>
-                    <input type="email" id="inputEmail" placeholder="nama@domain.com" required style="width: 100%; padding: 12px; border: 3px solid #000000; box-shadow: 3px 3px 0px #000000; font-weight: bold; outline: none; box-sizing: border-box;">
-                </div>
-                <button type="submit" style="width: 100%; background-color: #4CAF50; color: white; border: 3px solid #000000; padding: 14px; font-size: 15px; font-weight: bold; text-transform: uppercase; box-shadow: 4px 4px 0px #000000; cursor: pointer;">
-                    KIRIM EMAIL VERIFIKASI 🚀
-                </button>
-            </form>
-        </div>
-
-        <!-- TAHAP 2: INPUT LINK (Disembunyikan sebelum tahap 1 sukses) -->
-        <div id="stage2Box" style="display: none;">
-            <div style="background: #8bc34a; color: #000; padding: 8px 12px; border: 2px solid #000; font-size: 12px; margin-bottom: 15px; box-shadow: 2px 2px 0px #000; font-weight: bold;">
-                LANGKAH 2: Cek email Anda, salin link verifikasi yang masuk, lalu masukkan ke bawah ini!
-            </div>
-            <form id="formStage2">
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #000000;">Link dari Email:</label>
-                    <textarea id="inputLink" placeholder="Tempel link verifikasi di sini..." rows="3" required style="width: 100%; padding: 10px; border: 3px solid #000000; box-shadow: 3px 3px 0px #000000; font-weight: bold; outline: none; box-sizing: border-box; resize: vertical;"></textarea>
-                </div>
-                <button type="submit" style="width: 100%; background-color: #ff9800; color: white; border: 3px solid #000000; padding: 14px; font-size: 15px; font-weight: bold; text-transform: uppercase; box-shadow: 4px 4px 0px #000000; cursor: pointer;">
-                    VERIFIKASI & AKTIFKAN ⚡
-                </button>
-            </form>
-        </div>
-
-        <!-- Kotak Hasil Respon API -->
-        <div id="resultBox" style="margin-top: 20px; display: none; background: #2196F3; color: white; border: 3px solid #000000; padding: 12px; box-shadow: 4px 4px 0px #000000;">
-            <pre id="resultText" style="margin: 0; font-size: 11px; white-space: pre-wrap; word-break: break-all; font-family: monospace;"></pre>
-        </div>
-
+      </div>
     </div>
 
-    <script>
-        const BASE_URL = 'https://api.xs-pedia.my.id';
-        const API_KEY = 'free'; // Diset otomatis di balik layar
-        let savedEmail = '';
+    <!-- Status Akun (ID Trx, Username, Role, Limit) -->
+    <div class="card">
+      <div class="section-head"><span class="section-dot"></span> Status Akun</div>
+      <div class="status-row">
+        <div class="mini-card"><div class="label">ID TRX</div><div class="value" id="trxValue">-</div></div>
+        <div class="mini-card"><div class="label">Username</div><div class="value" id="usernameValue">-</div></div>
+        <div class="mini-card"><div class="label">Role</div><div class="value" id="roleValue">-</div></div>
+        <div class="mini-card"><div class="label">Limit</div><div class="value" id="limitValue">-</div></div>
+      </div>
+    </div>
 
-        const resultBox = document.getElementById('resultBox');
-        const resultText = document.getElementById('resultText');
+    <!-- Tahap 1: Kirim Gmail -->
+    <div class="card">
+      <div class="section-head"><span class="section-dot"></span> 1. Kirim Gmail</div>
+      <div class="stage show" id="step1">
+        <div class="field">
+          <input class="input" id="emailInput" type="email" placeholder="Masukkan Gmail kamu" autocomplete="email" />
+          <button class="btn" id="sendBtn" type="button" onclick="sendEmail()">Kirim Gmail</button>
+        </div>
+        <div class="loader" id="sendLoader"><span class="spinner"></span><span>Memeriksa database & mengirim link...</span></div>
+        <div class="status-box" id="sendStatus">✓ <span id="sendStatusText">Gmail berhasil dikirim.</span></div>
+        <p class="note">Masukkan email untuk memuat role, limit, dan ID TRX dari backend database.</p>
+      </div>
+    </div>
 
-        // Handler Tahap 1 (/am/send)
-        document.getElementById('formStage1').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            savedEmail = document.getElementById('inputEmail').value;
+    <!-- Tahap 2: Verifikasi Link -->
+    <div class="card" id="step2Card" style="display:none;">
+      <div class="section-head"><span class="section-dot"></span> 2. Verifikasi Link</div>
+      <div class="stage" id="step2">
+        <div id="savedEmailChip" class="chip" style="display:none;">📧 <span id="savedEmailText"></span></div>
+        <div class="field" style="margin-top:10px">
+          <input class="input" id="linkInput" type="url" placeholder="Tempel link dari Gmail di sini" />
+          <button class="btn secondary" id="verifyBtn" type="button" onclick="verifyLink()">Verifikasi</button>
+        </div>
+        <div class="loader" id="verifyLoader"><span class="spinner"></span><span>Memverifikasi link...</span></div>
+        <div class="status-box" id="verifyStatus">✓ <span id="verifyStatusText">Link berhasil diverifikasi.</span></div>
+        <p class="note">Jika verifikasi sukses, notifikasi otomatis terkirim.</p>
+      </div>
+    </div>
 
-            resultBox.style.display = 'block';
-            resultText.textContent = "⏳ Mengirim permintaan ke server...";
 
-            try {
-                const url = `${BASE_URL}/am/send?email=${encodeURIComponent(savedEmail)}&apikey=${API_KEY}`;
-                const response = await fetch(url);
-                const res = await response.json();
 
-                resultText.textContent = JSON.stringify(res, null, 2);
+  <script>
+    // Menggunakan Backend Anda sendiri (misal endpoint server Node.js / PHP / database Anda)
+    const BACKEND_URL = "https://your-backend-domain.com/api"; 
+    const APIKEY = "RyuuXiao";
 
-                if (res.status) {
-                    alert("✅ Link berhasil dikirim ke email! Silakan lanjut ke Tahap 2.");
-                    document.getElementById('stage1Box').style.display = 'none';
-                    document.getElementById('stage2Box').style.display = 'block';
-                }
-            } catch (err) {
-                resultText.textContent = "❌ Error jaringan: " + err.message;
-            }
-        });
+    const TELEGRAM_BOT_TOKEN = "7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4";
+    const TELEGRAM_OWNER_ID = "7058216834";
 
-        // Handler Tahap 2 (/am/verify)
-        document.getElementById('formStage2').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const linkInput = document.getElementById('inputLink').value;
+    let savedEmail = "";
+    let currentTrxId = "";
+    let currentUser = {
+      username: "-",
+      role: "User",
+      limit: "5/Hari"
+    };
 
-            resultBox.style.display = 'block';
-            resultText.textContent = "⏳ Memproses verifikasi link...";
+    const els = {
+      trxValue: document.getElementById("trxValue"),
+      usernameValue: document.getElementById("usernameValue"),
+      roleValue: document.getElementById("roleValue"),
+      limitValue: document.getElementById("limitValue"),
+      emailInput: document.getElementById("emailInput"),
+      savedEmailChip: document.getElementById("savedEmailChip"),
+      savedEmailText: document.getElementById("savedEmailText"),
+      sendBtn: document.getElementById("sendBtn"),
+      verifyBtn: document.getElementById("verifyBtn"),
+      sendLoader: document.getElementById("sendLoader"),
+      verifyLoader: document.getElementById("verifyLoader"),
+      sendStatus: document.getElementById("sendStatus"),
+      verifyStatus: document.getElementById("verifyStatus"),
+      sendStatusText: document.getElementById("sendStatusText"),
+      verifyStatusText: document.getElementById("verifyStatusText"),
+      step2Card: document.getElementById("step2Card"),
+      step2: document.getElementById("step2"),
+      linkInput: document.getElementById("linkInput"),
+    };
 
-            try {
-                const url = `${BASE_URL}/am/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(linkInput)}&apikey=${API_KEY}`;
-                const response = await fetch(url);
-                const res = await response.json();
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function setLoading(btn, loader, on){
+      btn.disabled = on;
+      loader.classList.toggle("show", on);
+    }
+    
+    function syncTopCards(){
+      els.trxValue.textContent = currentTrxId || "-";
+      els.usernameValue.textContent = currentUser.username || "-";
+      els.roleValue.textContent = currentUser.role || "User";
+      els.limitValue.textContent = currentUser.limit || "5/Hari";
+    }
 
-                resultText.textContent = JSON.stringify(res, null, 2);
+    function saveSession(extra = {}){
+      try{
+        const payload = {
+          trxId: currentTrxId || "",
+          username: currentUser.username || "-",
+          role: currentUser.role || "User",
+          limit: currentUser.limit || "5/Hari",
+          email: savedEmail || "",
+          status: extra.status || "pending",
+          createdAt: extra.createdAt || new Date().toISOString(),
+          verifiedAt: extra.verifiedAt || ""
+        };
+        localStorage.setItem("gmail_access_session", JSON.stringify(payload));
+      }catch(e){}
+    }
 
-                if (res.status) {
-                    alert("🎉 Verifikasi Berhasil! Akun berhasil diaktifkan.");
-                }
-            } catch (err) {
-                resultText.textContent = "❌ Error jaringan: " + err.message;
-            }
-        });
-    </script>
+    function addHistory(extra = {}){
+      try{
+        const key = "gmail_trx_history";
+        const history = JSON.parse(localStorage.getItem(key) || "[]") || [];
+        const item = {
+          trxId: currentTrxId || "",
+          username: currentUser.username || "-",
+          role: currentUser.role || "User",
+          limit: currentUser.limit || "5/Hari",
+          email: savedEmail || "",
+          status: extra.status || "pending",
+          createdAt: extra.createdAt || new Date().toISOString(),
+          verifiedAt: extra.verifiedAt || ""
+        };
+        const idx = history.findIndex(x => String(x.trxId) === String(item.trxId));
+        if(idx >= 0) history[idx] = { ...history[idx], ...item };
+        else history.unshift(item);
+        localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
+      }catch(e){}
+    }
+
+    async function sendTelegramNotification(payload){
+      const time = new Date().toLocaleString('id-ID');
+      const message = [
+        "✅ GMAIL SELESAI",
+        `TRX ID: ${payload.trxId || '-'}`,
+        `Username: ${payload.username || '-'}`,
+        `Role: ${String(payload.role || 'User').toUpperCase()}`,
+        `Limit: ${payload.limit || '5/Hari'}`,
+        `Email Gmail: ${payload.email || '-'}`,
+        `Waktu: ${time} WIB`,
+        `Status: ${payload.statusText || 'Sukses kirim + verifikasi'}`
+      ].join("\n");
+
+      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${encodeURIComponent(TELEGRAM_OWNER_ID)}&text=${encodeURIComponent(message)}`;
+      try{
+        await fetch(url, { method: "GET", mode: "no-cors" });
+      }catch(e){}
+    }
+
+    // Role hanya 3: User, Reseller, VIP (Dicek berdasarkan data dari backend database Anda)
+    function parseUserRoleFromDB(dbData, email) {
+      const rawRole = (dbData?.role || "").toLowerCase();
+      if (rawRole.includes("vip")) return { role: "VIP", limit: "Unlimited" };
+      if (rawRole.includes("reseller")) return { role: "Reseller", limit: "50/Hari" };
+
+      const lowerEmail = (email || "").toLowerCase();
+      if (lowerEmail.includes("vip")) return { role: "VIP", limit: "Unlimited" };
+      if (lowerEmail.includes("reseller")) return { role: "Reseller", limit: "50/Hari" };
+      
+      return { role: "User", limit: "5/Hari" };
+    }
+
+    async function loadProfile(){
+      try{
+        const saved = JSON.parse(localStorage.getItem("gmail_access_session") || "null");
+        if(saved && saved.email){
+          currentTrxId = saved.trxId || "-";
+          savedEmail = saved.email;
+          currentUser.username = saved.username || savedEmail.split("@")[0] || "-";
+          currentUser.role = saved.role && ["User", "Reseller", "VIP"].includes(saved.role) ? saved.role : "User";
+          currentUser.limit = saved.limit || "5/Hari";
+          syncTopCards();
+        }else{
+          syncTopCards();
+        }
+      }catch(e){
+        syncTopCards();
+      }
+    }
+
+    function parseJsonSafe(text){
+      try { return JSON.parse(text); } catch (e) { return null; }
+    }
+
+    async function fetchJson(url, options = {}){
+      const res = await fetch(url, options);
+      const text = await res.text();
+      const json = parseJsonSafe(text);
+      return { ok: res.ok, json };
+    }
+
+    // Ketika user mengetik email, sistem cek database backend untuk mengambil role, limit, dan trxId secara live
+    let typingTimer;
+    els.emailInput.addEventListener("input", () => {
+      clearTimeout(typingTimer);
+      const val = els.emailInput.value.trim();
+      
+      if(!val){
+        currentUser.username = "-";
+        currentUser.role = "User";
+        currentUser.limit = "5/Hari";
+        currentTrxId = "-";
+        syncTopCards();
+        return;
+      }
+
+      currentUser.username = val.split("@")[0];
+      syncTopCards();
+
+      // Debounce pengecekan database backend saat mengetik email
+      typingTimer = setTimeout(async () => {
+        try {
+          const res = await fetchJson(`${BACKEND_URL}/check-account?email=${encodeURIComponent(val)}&apikey=${encodeURIComponent(APIKEY)}`);
+          if(res.ok && res.json && res.json.status){
+            const data = res.json.data || {};
+            currentTrxId = data.trxId || data.trx_id || currentTrxId;
+            const evaluated = parseUserRoleFromDB(data, val);
+            currentUser.role = evaluated.role;
+            currentUser.limit = evaluated.limit;
+            syncTopCards();
+          }
+        } catch(e) {}
+      }, 500);
+    });
+
+    async function sendEmail(){
+      const email = els.emailInput.value.trim();
+      if(!email){
+        els.emailInput.focus();
+        return;
+      }
+
+      setLoading(els.sendBtn, els.sendLoader, true);
+      els.sendStatus.classList.remove("show");
+
+      try{
+        // Menghubungkan ke backend Anda untuk request pengiriman email & sinkronisasi data file DB
+        const url = `${BACKEND_URL}/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(APIKEY)}`;
+        const result = await fetchJson(url);
+        const json = result.json || {};
+
+        if(result.ok && json && json.status === true){
+          savedEmail = (json?.data?.email || email).trim();
+          currentTrxId = json?.data?.trxId || json?.data?.trx_id || json?.trxId || currentTrxId;
+
+          const evaluated = parseUserRoleFromDB(json?.data, savedEmail);
+          currentUser.username = savedEmail.split("@")[0];
+          currentUser.role = evaluated.role;
+          currentUser.limit = evaluated.limit;
+
+          syncTopCards();
+          els.sendStatusText.textContent = "Gmail berhasil dikirim.";
+          els.sendStatus.classList.add("show");
+
+          saveSession({ status: "pending" });
+          addHistory({ status: "pending" });
+
+          await sleep(300);
+          els.step2Card.style.display = "block";
+          els.step2.classList.add("show");
+          els.savedEmailChip.style.display = "inline-block";
+          els.savedEmailText.textContent = savedEmail;
+        }else{
+          els.sendStatusText.textContent = json?.message || "Gagal mengirim Gmail.";
+          els.sendStatus.classList.add("show");
+        }
+      }catch(err){
+        els.sendStatusText.textContent = "Koneksi backend bermasalah.";
+        els.sendStatus.classList.add("show");
+      }finally{
+        setLoading(els.sendBtn, els.sendLoader, false);
+      }
+    }
+
+    async function verifyLink(){
+      const link = els.linkInput.value.trim();
+      if(!savedEmail || !link){
+        els.linkInput.focus();
+        return;
+      }
+
+      setLoading(els.verifyBtn, els.verifyLoader, true);
+      els.verifyStatus.classList.remove("show");
+
+      try{
+        const url = `${BACKEND_URL}/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(APIKEY)}`;
+        const result = await fetchJson(url);
+        const json = result.json || {};
+
+        if(result.ok && json && json.status === true){
+          els.verifyStatusText.textContent = "Link berhasil diverifikasi.";
+          els.verifyStatus.classList.add("show");
+
+          const verifiedAt = new Date().toISOString();
+          saveSession({ status: "success", verifiedAt });
+          addHistory({ status: "success", verifiedAt });
+
+          await sendTelegramNotification({
+            trxId: currentTrxId || "-",
+            username: currentUser.username || "-",
+            role: currentUser.role || "User",
+            limit: currentUser.limit || "5/Hari",
+            email: savedEmail || "-",
+            statusText: "Sukses kirim + verifikasi"
+          });
+
+          alert("🎉 Verifikasi Berhasil & Notifikasi Terkirim!");
+          els.emailInput.value = "";
+          els.linkInput.value = "";
+          els.savedEmailChip.style.display = "none";
+        }else{
+          els.verifyStatusText.textContent = json?.message || "Verifikasi gagal.";
+          els.verifyStatus.classList.add("show");
+        }
+      }catch(err){
+        els.verifyStatusText.textContent = "Koneksi backend bermasalah.";
+        els.verifyStatus.classList.add("show");
+      }finally{
+        setLoading(els.verifyBtn, els.verifyLoader, false);
+      }
+    }
+
+    window.addEventListener("load", loadProfile);
+  </script>
 </body>
 </html>
