@@ -45,7 +45,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     const role = req.session.role || "user";
 
     // Fee persen untuk tampilan  
-    let feePersen = role === "reseller" ? "1.0" : "0.5";  
+    let feePersen = role === "reseller" ? "1.5" : "1.5";  
 
     // MENGEMBALIKAN METODE PAYINAJA QRIS  
     const metodeFormatted = [{  
@@ -90,7 +90,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     try {  
       // --- UPDATE: Request GET ke Gorekk API dengan query parameters ---  
       const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
-      const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=60&unique_amount=True`;
+      const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
 
       response = await fetch(createUrl, {  
         method: "GET",  
