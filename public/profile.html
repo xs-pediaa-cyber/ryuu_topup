@@ -707,7 +707,82 @@
        #ipWhitelistManagementForm .button-group {
            margin-top: 16px;
        }
-  </style>
+  
+/* ===== Xiao-Gateaway Comic Upgrade ===== */
+body::before{
+ content:none!important;
+}
+.main-header{
+ padding:6px 10px !important;
+}
+.tab-button{
+ font-size:10px !important;
+ padding:10px 12px !important;
+}
+.section-title{
+ font-size:18px !important;
+ line-height:1.5;
+}
+.sidebar,.main-content,.tab-content,.card,.stats-card,.order-card,.payment-card{
+ background:linear-gradient(145deg,#ffffff,#ecfdf5)!important;
+}
+.profile-image-container{
+ border:3px solid #111827;
+ border-radius:50%;
+ padding:5px;
+ background:#22c55e;
+ box-shadow:5px 5px 0 #111827;
+}
+.profile-image{
+ border:0!important;
+}
+.edit-photo-button{
+ border:2px solid #111827!important;
+ box-shadow:3px 3px 0 #111827;
+}
+.notification{
+ border:2px solid #111827!important;
+ box-shadow:4px 4px 0 #111827;
+}
+
+
+/* ===== Final Header Fix ===== */
+.main-header{
+ overflow:hidden!important;
+ padding:10px 14px!important;
+}
+.header-content{
+ width:100%!important;
+ overflow:hidden!important;
+}
+.tab-navigation{
+ display:flex!important;
+ gap:12px!important;
+ padding:4px 2px!important;
+ overflow-x:auto!important;
+ justify-content:flex-start!important;
+}
+.tab-button{
+ flex:0 0 auto!important;
+ margin:0!important;
+ border-radius:14px!important;
+ padding:12px 18px!important;
+ font-size:10px!important;
+}
+.container{
+ overflow-x:hidden!important;
+ padding-left:14px!important;
+ padding-right:14px!important;
+}
+.sidebar,.main-content{
+ min-width:0!important;
+ max-width:100%!important;
+}
+@media(max-width:768px){
+ .tab-navigation{gap:10px!important;}
+ .tab-button{padding:10px 14px!important;}
+}
+</style>
 </head>
 <body>
   <header class="main-header">
@@ -1392,9 +1467,10 @@
 
         const data = await response.json();
 
-        if (data.success && data.profileUrl) {
+        const uploadedUrl = data.profileUrl || data.photoUrl || data.url || data.image;
+        if ((data.success || response.ok) && uploadedUrl) {
           // pakai cache buster biar gambar langsung update
-          const finalUrl = data.profileUrl + "?t=" + Date.now();
+          const finalUrl = uploadedUrl + (uploadedUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
           profileImage.src = finalUrl;
 
           if (currentUserData) {
@@ -1412,7 +1488,7 @@
         // rollback ke gambar lama
         profileImage.src = oldImage;
 
-        showNotification("Gagal memperbarui foto profil", "error");
+        showNotification("Gagal memperbarui foto profil. Cek endpoint upload foto.", "error");
       } finally {
         profileImage.style.opacity = '1';
         URL.revokeObjectURL(previewURL);
