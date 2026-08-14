@@ -100,7 +100,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
     const role = req.user?.role || "user";
     
     // Fee sesuai role (0.5% reseller, 1.0% user)
-    const feeDesimal = role === "reseller" ? 0.001 : 0.002;
+    const feeDesimal = role === "reseller" ? 0.010 : 0.010;
     const feePersen = (feeDesimal * 100).toString(); 
 
     const metodeFormatted = [{
@@ -143,7 +143,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   try {
     // Request ke Gorekk API (menggunakan parameter URL sesuai dokumentasi)
     const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
-    const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=60&unique_amount=True`;
+    const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
 
     const response = await fetch(createUrl, {
       method: "GET",
