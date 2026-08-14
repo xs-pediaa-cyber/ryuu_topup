@@ -126,7 +126,6 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
 });
 
 
-// === ROUTE BUAT DEPOSIT (GOREKK API) ===
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
   const { nominal } = req.query;
@@ -141,9 +140,9 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   try {
-    // Request ke Gorekk API (menggunakan parameter URL sesuai dokumentasi)
+    // Request ke Gorekk API (expires_in diubah menjadi 900 untuk 15 menit)
     const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
-    const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=60&unique_amount=True`;
+    const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
 
     const response = await fetch(createUrl, {
       method: "GET",
@@ -227,8 +226,6 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-
-// === ROUTE CEK STATUS (GOREKK API) ===
 router.get("/deposit/status", validateApiKey, async (req, res) => {
   const { id } = req.query; // Di sini 'id' adalah invoice_id
   const { user } = req;
@@ -276,7 +273,7 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-// === ROUTE CANCEL (STRUKTUR ASLI - LOCAL ONLY) ===
+
 router.get("/deposit/cancel", validateApiKey, async (req, res) => {
   const { user } = req;
   const { id } = req.query;

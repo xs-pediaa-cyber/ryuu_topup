@@ -88,9 +88,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     let response;  
     try {  
-      // --- UPDATE: Request GET ke Gorekk API dengan query parameters ---  
+      // --- UPDATE: expires_in diubah menjadi 900 (15 menit) ---  
       const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
-      const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=60&unique_amount=True`;
+      const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
 
       response = await fetch(createUrl, {  
         method: "GET",  
@@ -116,7 +116,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     // --- FIX KALKULASI & ROUNDING (Gorekk Response Mapping) ---  
     const nominalAsli = Number(result.amount) || parsedNominal;  
-    const feeGorekk = 0; // Sesuaikan jika ada fee khusus dari provider
+    const feeGorekk = 0;  
       
     let additionalFee = 0;  
     if (user.role === "user") {  
@@ -130,7 +130,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const finalGetBalance = nominalAsli - additionalFee;  
 
     const historyDataForDb = {  
-      id: result.invoice_id, // Menggunakan invoice_id sebagai unik ID transaksi
+      id: result.invoice_id,  
       nominal: nominalAsli,  
       fee: totalFee,  
       get_balance: finalGetBalance,  
@@ -171,7 +171,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         const checkData = await checkRes.json();  
           
         if (checkData?.success && checkData.invoice) {  
-          const apiStatus = checkData.invoice.status.toLowerCase(); // contoh: "paid", "pending", dll
+          const apiStatus = checkData.invoice.status.toLowerCase();  
           
           if (apiStatus === "paid" || apiStatus === "success") {  
             await editHistoryDeposit(user._id, result.invoice_id, "success");  
@@ -201,7 +201,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
 
-    // 1. Ambil data dari database lokal
     const userWithHistory = await User.findOne(
       { _id: user._id, "historyDeposit.id": id },
       { "historyDeposit.$": 1 }
@@ -214,7 +213,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const localData = userWithHistory.historyDeposit[0];  
     const API_KEY = process.env.GOREKK_API_KEY;  
 
-    // 2. Ambil data terbaru dari Gorekk API (Endpoint Invoice)
     const response = await fetch(`https://www.gorekk.web.id/api/v1/qris/invoice?invoice_id=${id}`, {  
         method: "GET",  
         headers: { 
@@ -225,11 +223,9 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
       
     const result = await response.json();  
       
-    // Default status jika provider gagal memberikan respon lengkap  
     const rawStatus = result?.invoice?.status?.toLowerCase() || localData.status;  
     const statusProvider = (rawStatus === "paid") ? "success" : rawStatus;
 
-    // 3. Sinkronisasi Saldo Otomatis jika status sudah paid/success  
     if ((rawStatus === "paid" || rawStatus === "success") && localData.status === "pending") {  
         await User.updateOne(  
             { _id: user._id, "historyDeposit.id": id },  
@@ -240,7 +236,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
         );  
     }  
 
-    // 4. RESPONSE KE FRONTEND  
     return res.status(200).json({  
       success: true,  
       data: {  
