@@ -88,7 +88,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     let response;  
     try {  
-      // --- UPDATE: expires_in diubah menjadi 900 (15 menit) ---  
       const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
       const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
 
@@ -114,7 +113,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       });  
     }  
 
-    // --- FIX KALKULASI & ROUNDING (Gorekk Response Mapping) ---  
     const nominalAsli = Number(result.amount) || parsedNominal;  
     const feeGorekk = 0;  
       
@@ -129,11 +127,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const totalFee = feeGorekk + additionalFee;  
     const finalGetBalance = nominalAsli - additionalFee;  
 
-    // Membuat QR code bersih (tanpa background/bingkai merah bawaan provider)
-    const rawQrData = result.qris_string || result.qris || result.payment_url;
-    const cleanQrImage = rawQrData 
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(rawQrData)}`
-      : result.image_url;
+    // Menggunakan path lokal file background kustom di server
+    const customBgUrl = `${req.protocol}://${req.get('host')}/media/bg.jpg`;
 
     const historyDataForDb = {  
       id: result.invoice_id,  
@@ -142,7 +137,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       get_balance: finalGetBalance,  
       metode: "QRIS",  
       status: "pending",  
-      qr_image: cleanQrImage,  
+      qr_image: result.image_url,  
+      qr_string: result.qris_string || result.qris || "",
+      bg_image: customBgUrl,
       created_at: new Date(),  
     };  
 
@@ -158,12 +155,14 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         fee: totalFee,  
         total_amount: totalBayar,  
         get_balance: finalGetBalance,  
-        qr_image: cleanQrImage,  
+        qr_image: result.image_url,  
+        qris_string: result.qris_string || result.qris || "",
+        bg_image: customBgUrl, // URL background lokal dikirim ke frontend
         status: "pending"  
       }  
     });  
 
-    // POLLING: Diubah menjadi setiap 1 menit (60000 ms)
+    // POLLING: Cek status setiap 1 menit (60000 ms)  
     const intervalId = setInterval(async () => {  
       try {  
         const checkRes = await fetch(`https://www.gorekk.web.id/api/v1/qris/invoice?invoice_id=${result.invoice_id}`, {  

@@ -165,11 +165,8 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     let additionalFee = Math.ceil(nominalAsli * feePercent);    
     const finalBalance = nominalAsli - additionalFee;    
 
-    // Membuat QR code bersih (tanpa background/bingkai merah bawaan provider)
-    const rawQrData = result.qris_string || result.qris || result.payment_url;
-    const cleanQrImage = rawQrData 
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(rawQrData)}`
-      : result.image_url;
+    // Menggunakan path lokal file background kustom di server
+    const customBgUrl = `${req.protocol}://${req.get('host')}/media/bg.jpg`;
 
     const history = {    
       id: result.invoice_id, 
@@ -178,7 +175,9 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       get_balance: finalBalance,    
       metode: "QRIS",    
       status: "pending",    
-      qr_image: cleanQrImage, // Menggunakan gambar QR yang bersih
+      qr_image: result.image_url, 
+      qris_string: result.qris_string || result.qris || "",
+      bg_image: customBgUrl,
       created_at: new Date(),    
     };    
 
@@ -190,7 +189,9 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       data: {    
         id: history.id,    
         nominal: nominalAsli,    
-        qr_image: history.qr_image,    
+        qr_image: history.qr_image, 
+        qris_string: history.qris_string,
+        bg_image: customBgUrl, // URL background lokal dikirim ke frontend
         fee: history.fee,    
         get_balance: history.get_balance,    
         total_amount: totalBayar,    
