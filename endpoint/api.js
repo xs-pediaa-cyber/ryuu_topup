@@ -140,7 +140,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   try {
-    // Request ke Gorekk API (expires_in diubah menjadi 900 untuk 15 menit)
+    // Request ke Gorekk API (expires_in 900 untuk 15 menit)
     const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
     const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
 
@@ -159,20 +159,26 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     // KALKULASI ANTI-NaN    
     const nominalAsli = Number(result.amount) || parsedNominal;    
     const totalBayar = Number(result.expected_amount) || nominalAsli;    
-    const feeGorekk = 0; // Sesuaikan jika ada fee dari provider
+    const feeGorekk = 0; 
     
     const feePercent = user.role === "reseller" ? 0.001 : 0.002;    
     let additionalFee = Math.ceil(nominalAsli * feePercent);    
     const finalBalance = nominalAsli - additionalFee;    
 
+    // Membuat QR code bersih (tanpa background/bingkai merah bawaan provider)
+    const rawQrData = result.qris_string || result.qris || result.payment_url;
+    const cleanQrImage = rawQrData 
+      ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(rawQrData)}`
+      : result.image_url;
+
     const history = {    
-      id: result.invoice_id, // Menggunakan invoice_id sebagai ID transaksi unik
+      id: result.invoice_id, 
       nominal: nominalAsli,    
       fee: additionalFee + feeGorekk,     
       get_balance: finalBalance,    
       metode: "QRIS",    
       status: "pending",    
-      qr_image: result.image_url,    
+      qr_image: cleanQrImage, // Menggunakan gambar QR yang bersih
       created_at: new Date(),    
     };    
 
@@ -202,9 +208,8 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         const statusData = await checkRes.json();    
 
         if (statusData?.success && statusData.invoice) {    
-          const apiStatus = statusData.invoice.status.toLowerCase(); // contoh: "paid", "pending", dll
+          const apiStatus = statusData.invoice.status.toLowerCase(); 
           
-          // Sesuaikan mapping status dari Gorekk (misal 'paid' dianggap setara 'success')
           if (apiStatus === "paid" || apiStatus === "success") {    
             const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": result.invoice_id });    
             const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === result.invoice_id);    
@@ -250,19 +255,22 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
     }    
 
     const invoiceData = result.invoice;
-    const apiStatus = invoiceData.status.toLowerCase(); 
+    const rawStatus = invoiceData.status.toLowerCase(); 
+    const apiStatus = (rawStatus === "paid") ? "success" : rawStatus;
     
     // Update status jika sudah sukses/paid di provider tapi masih pending di DB    
-    if ((apiStatus === "paid" || apiStatus === "success") && localData.status !== "success") {    
+    if ((rawStatus === "paid" || rawStatus === "success") && localData.status !== "success") {    
         await editHistoryDeposit(user._id, id, "success");    
         await User.findByIdAndUpdate(user._id, { $inc: { saldo: Number(localData.get_balance) || 0 } });    
-    }    
+    } else if (["failed", "expired", "cancel", "cancelled"].includes(rawStatus) && localData.status === "pending") {
+        await editHistoryDeposit(user._id, id, rawStatus);
+    }
 
     return res.status(200).json({    
       success: true,    
       data: {    
         id: id,    
-        status: apiStatus === "paid" ? "success" : apiStatus,    
+        status: apiStatus,    
         nominal: Number(invoiceData.amount),    
         fee: localData.fee || 0,    
         get_balance: localData.get_balance || 0,    
@@ -308,7 +316,6 @@ const verifyApiKey = (req, res, next) => {
   }
   next();
 };
-
 // ==========================================
 // ENDPOINT TAHAP 1: KIRIM EMAIL (/am/send)
 // ==========================================

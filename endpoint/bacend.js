@@ -129,6 +129,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const totalFee = feeGorekk + additionalFee;  
     const finalGetBalance = nominalAsli - additionalFee;  
 
+    // Membuat QR code bersih (tanpa background/bingkai merah bawaan provider)
+    const rawQrData = result.qris_string || result.qris || result.payment_url;
+    const cleanQrImage = rawQrData 
+      ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(rawQrData)}`
+      : result.image_url;
+
     const historyDataForDb = {  
       id: result.invoice_id,  
       nominal: nominalAsli,  
@@ -136,7 +142,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       get_balance: finalGetBalance,  
       metode: "QRIS",  
       status: "pending",  
-      qr_image: result.image_url,  
+      qr_image: cleanQrImage,  
       created_at: new Date(),  
     };  
 
@@ -152,12 +158,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         fee: totalFee,  
         total_amount: totalBayar,  
         get_balance: finalGetBalance,  
-        qr_image: result.image_url,  
+        qr_image: cleanQrImage,  
         status: "pending"  
       }  
     });  
 
-    // POLLING: Menggunakan endpoint invoice dari Gorekk API  
+    // POLLING: Diubah menjadi setiap 1 menit (60000 ms)
     const intervalId = setInterval(async () => {  
       try {  
         const checkRes = await fetch(`https://www.gorekk.web.id/api/v1/qris/invoice?invoice_id=${result.invoice_id}`, {  
@@ -185,7 +191,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       } catch (e) {   
         console.error("Polling Error:", e.message);   
       }  
-    }, 10000);  
+    }, 60000);  
 
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
