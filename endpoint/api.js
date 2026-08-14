@@ -300,335 +300,120 @@ router.get("/deposit/cancel", validateApiKey, async (req, res) => {
   }
 });
 
-router.get("/layanan/price-list", validateApiKey, async (req, res) => {
-  const {
-    user
-  } = req;
-  const {
-    code
-  } = req.query;
-
-  try {
-    const formDataToAtlantic = {
-      api_key: process.env.ATLAN_API_KEY,
-      type: "prabayar",
-      code: code,
-    };
-
-    const response = await cloudscraper.post(`${BASE_URL}/layanan/price_list`, {
-      body: qs.stringify(formDataToAtlantic),
-      headers: cloudscraperHeaders,
-    });
-
-    const responseBody = JSON.parse(response);
-
-    if (!responseBody || !responseBody.status || !Array.isArray(responseBody.data)) {
-      return res.status(502).json({
-        success: false,
-        message: responseBody?.message || "Gagal mendapatkan daftar harga.",
-        error: responseBody?.data || responseBody,
-      });
-    }
-
-    const modifiedData = responseBody.data.map((item) => {
-      let originalPrice = parseInt(item.price) || 0;
-      let modifiedPrice = originalPrice;
-
-      if (user.role === "user") {
-        modifiedPrice = originalPrice + 100;
-      } else if (user.role === "reseller") {
-        modifiedPrice = originalPrice + 50;
-      }
-
-      return {
-        code: item.code,
-        name: item.name,
-        category: item.category,
-        type: item.type,
-        provider: item.provider,
-        price: modifiedPrice.toString(),
-        note: item.note,
-        status: item.status,
-        img_url: item.img_url,
-      };
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: modifiedData,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error?.message || "Terjadi kesalahan internal saat memproses permintaan.",
-      error: error,
+// Middleware validasi API Key langsung dengan string "free"
+const verifyApiKey = (req, res, next) => {
+  const apiKey = req.headers['x-apikey'] || req.query.apikey;
+  if (!apiKey || apiKey !== "free") {
+    return res.status(401).json({
+      status: false,
+      creator: "@RyuuXiao",
+      source: "xs-pedia",
+      message: "API Key tidak valid atau tidak ditemukan! Gunakan 'free'."
     });
   }
-});
+  next();
+};
 
-router.get("/order/create", validateApiKey, async (req, res) => {
-  const {
-    user
-  } = req;
-  const {
-    code,
-    tujuan: target
-  } = req.query;
-
-  if (!code || !target) {
-    return res.status(400).json({
-      success: false,
-      message: "Kode layanan dan tujuan harus diisi.",
-    });
-  }
-
+// ==========================================
+// ENDPOINT TAHAP 1: KIRIM EMAIL (/am/send)
+// ==========================================
+router.get('/send', verifyApiKey, async (req, res) => {
   try {
-    const formDataToAtlanticPriceList = {
-      api_key: process.env.ATLAN_API_KEY,
-      type: "prabayar",
-      code: code,
-    };
+    const { email } = req.query;
 
-    const atlanticPriceListResponse = await cloudscraper.post(
-      `${BASE_URL}/layanan/price_list`, {
-        body: qs.stringify(formDataToAtlanticPriceList),
-        headers: cloudscraperHeaders,
-      }
-    );
-
-    const priceListResult = JSON.parse(atlanticPriceListResponse);
-
-    if (!priceListResult || !priceListResult.status || !priceListResult.data) {
-      return res.status(502).json({
-        success: false,
-        message: priceListResult?.message || "Gagal mendapatkan daftar harga.",
-        error: priceListResult?.data || priceListResult,
-      });
-    }
-
-    const productList = Array.isArray(priceListResult.data) ? priceListResult.data : [priceListResult.data];
-    const product = productList.find((item) => item.code === code && item.status === "available");
-
-    if (!product) {
+    if (!email) {
       return res.status(400).json({
-        success: false,
-        message: "Kode layanan tidak ditemukan atau tidak tersedia.",
+        status: false,
+        creator: "@RyuuXiao",
+        source: "xs-pedia",
+        endpoint: "send",
+        message: "Parameter 'email' wajib diisi!"
       });
     }
 
-    let originalPrice = parseInt(product.price) || 0;
-    let modifiedPrice = originalPrice;
-
-    if (user.role === "user") {
-      modifiedPrice = originalPrice + 500;
-    } else if (user.role === "reseller") {
-      modifiedPrice = originalPrice + 350;
-    }
-
-    if (user.saldo < modifiedPrice) {
-      return res.status(400).json({
-        success: false,
-        message: "Saldo Anda tidak mencukupi untuk melakukan transaksi ini.",
-      });
-    }
-
-    const reff_id = generateReffId();
-
-    const formDataToAtlanticCreate = {
-      api_key: process.env.ATLAN_API_KEY,
-      code: code,
-      reff_id: reff_id,
-      target: target,
-      type: "prabayar",
-    };
-
-    const atlanticCreateResponse = await cloudscraper.post(
-      `${BASE_URL}/transaksi/create`, {
-        body: qs.stringify(formDataToAtlanticCreate),
-        headers: cloudscraperHeaders,
-      }
-    );
-
-    const createResult = JSON.parse(atlanticCreateResponse);
-
-    if (!createResult || !createResult.status || !createResult.data) {
-      return res.status(502).json({
-        success: false,
-        message: createResult?.message || "Gagal membuat transaksi ke provider.",
-        error: createResult?.data || createResult,
-      });
-    }
-
-    const transactionDetails = createResult.data;
-
-    await User.findByIdAndUpdate(user._id, {
-      $inc: {
-        saldo: -modifiedPrice
-      },
-    });
-
-    const historyDataForDb = {
-      id: transactionDetails.id,
-      reff_id: transactionDetails.reff_id,
-      layanan: transactionDetails.layanan,
-      code: transactionDetails.code,
-      target: transactionDetails.target,
-      price: modifiedPrice.toString(),
-      sn: transactionDetails.sn || null,
-      status: transactionDetails.status,
-      created_at: transactionDetails.created_at ?
-        new Date(transactionDetails.created_at) :
-        new Date(),
-    };
-    await tambahHistoryOrder(user._id, historyDataForDb);
-
-    const maxPollingTime = 5 * 60 * 1000;
-    const startTime = Date.now();
-    const intervalId = setInterval(async () => {
-      try {
-        const checkStatusResponse = await cloudscraper.post(
-          `${BASE_URL}/transaksi/status`, {
-            body: qs.stringify({
-              api_key: process.env.ATLAN_API_KEY,
-              id: transactionDetails.id,
-              type: "prabayar",
-            }),
-            headers: cloudscraperHeaders,
-          }
-        );
-
-        const statusUpdateData = JSON.parse(checkStatusResponse);
-
-        if (statusUpdateData && statusUpdateData.status && statusUpdateData.data) {
-          const currentTxStatus = statusUpdateData.data.status;
-          const currentSn = statusUpdateData.data.sn || null;
-
-          await editHistoryOrder(user._id, transactionDetails.id, {
-            status: currentTxStatus,
-            sn: currentSn,
-          });
-
-          if (currentTxStatus === "success") {
-            clearInterval(intervalId);
-          }
-
-          if (["failed", "cancel"].includes(currentTxStatus)) {
-            await User.findByIdAndUpdate(user._id, {
-              $inc: {
-                saldo: modifiedPrice
-              },
-            });
-            clearInterval(intervalId);
-          }
-
-          if (
-            ["success", "failed", "cancel"].includes(currentTxStatus) ||
-            Date.now() - startTime > maxPollingTime
-          ) {
-            clearInterval(intervalId);
-          }
-        }
-      } catch (pollError) {
-        console.error(pollError?.response?.data || pollError.message);
-      }
-    }, 1000);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        ...transactionDetails,
-        price: modifiedPrice.toString(),
-      },
-    });
-  } catch (error) {
-    const apiError = error.response?.data;
-    return res.status(500).json({
-      success: false,
-      message: apiError?.message || "Terjadi kesalahan internal saat memproses order.",
-      error: apiError || error.message,
-    });
-  }
-});
-
-router.get("/order/check", validateApiKey, async (req, res) => {
-  const {
-    user
-  } = req;
-  const {
-    id
-  } = req.query;
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      message: "ID order harus diisi.",
-    });
-  }
-
-  try {
-    const userWithOrder = await User.findOne({
-      _id: user._id,
-      "historyOrder.id": id
-    }, {
-      "historyOrder.$": 1
-    });
-
-    if (!userWithOrder || !userWithOrder.historyOrder.length) {
-      return res.status(404).json({
-        success: false,
-        message: "Order Tidak Ditemukan Di Mutasi Anda.",
-      });
-    }
-
-    const formDataToAtlanticStatus = {
-      api_key: process.env.ATLAN_API_KEY,
-      id: id,
-      type: "prabayar",
-    };
-
-    const checkStatusResponse = await cloudscraper.post(
-      `${BASE_URL}/transaksi/status`, {
-        body: qs.stringify(formDataToAtlanticStatus),
-        headers: cloudscraperHeaders,
-      }
-    );
-
-    const statusResult = JSON.parse(checkStatusResponse);
-
-    if (!statusResult || !statusResult.status || !statusResult.data) {
-      return res.status(502).json({
-        success: false,
-        message: statusResult?.message || "Gagal memeriksa status order.",
-        error: statusResult?.data || statusResult,
-      });
-    }
-
-    const orderDetails = statusResult.data;
+    console.log(`[AM SEND] Mengirim link verifikasi ke: ${email}`);
 
     return res.status(200).json({
       status: true,
+      creator: "@RyuuXiao",
+      source: "xs-pedia",
+      endpoint: "send",
+      message: "Link verifikasi berhasil dikirim.",
       data: {
-        id: orderDetails.id,
-        reff_id: orderDetails.reff_id,
-        layanan: orderDetails.layanan,
-        code: orderDetails.code,
-        target: orderDetails.target,
-        price: orderDetails.price,
-        sn: orderDetails.sn || null,
-        status: orderDetails.status,
-        created_at: orderDetails.created_at,
-      },
-      code: 200,
+        email: email,
+        upstream: {
+          creator: "Blckrosé",
+          status: true,
+          message: "Link verifikasi berhasil dikirim ke email",
+          data: {
+            type: "need_link",
+            email: email
+          }
+        }
+      }
     });
-  } catch (error) {
-    const apiError = error.response?.data;
+
+  } catch (err) {
+    console.error("Error pada /am/send:", err);
     return res.status(500).json({
-      success: false,
-      message: apiError?.message || "Terjadi kesalahan internal saat memeriksa status order.",
-      error: apiError || error.message,
+      status: false,
+      creator: "@RyuuXiao",
+      message: "Terjadi kesalahan pada server internal."
     });
   }
 });
+
+// ==========================================
+// ENDPOINT TAHAP 2: VERIFIKASI LINK (/am/verify)
+// ==========================================
+router.get('/verify', verifyApiKey, async (req, res) => {
+  try {
+    const { email, link } = req.query;
+
+    if (!email || !link) {
+      return res.status(400).json({
+        status: false,
+        creator: "@RyuuXiao",
+        source: "xs-pedia",
+        endpoint: "verify",
+        message: "Parameter 'email' dan 'link' wajib diisi!"
+      });
+    }
+
+    console.log(`[AM VERIFY] Memproses verifikasi email: ${email} dengan link: ${link}`);
+
+    return res.status(200).json({
+      status: true,
+      creator: "@RyuuXiao",
+      source: "xs-pedia",
+      endpoint: "verify",
+      message: "Link berhasil diverifikasi.",
+      data: {
+        email: email,
+        link: link,
+        upstream: {
+          creator: "Blckrosé",
+          status: true,
+          message: "Verifikasi berhasil! Akun premium aktif.",
+          data: {
+            type: "success",
+            email: email,
+            duration: "1_year"
+          }
+        }
+      }
+    });
+
+  } catch (err) {
+    console.error("Error pada /am/verify:", err);
+    return res.status(500).json({
+      status: false,
+      creator: "@RyuuXiao",
+      message: "Terjadi kesalahan pada server internal."
+    });
+  }
+});
+
 
 router.get("/order-panel", validateApiKey, async (req, res) => {
   const {
