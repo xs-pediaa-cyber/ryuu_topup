@@ -281,10 +281,9 @@
           <input class="input" id="emailInput" type="email" placeholder="Masukkan Gmail kamu" autocomplete="email" />
           <button class="btn" id="sendBtn" type="button" onclick="sendEmail()">Kirim Gmail</button>
         </div>
-        <div id="typedEmailChip" class="chip" style="display:none;">📨 Email: <span id="typedEmailText"></span></div>
-        <div class="loader" id="sendLoader"><span class="spinner"></span><span>Mengirim link...</span></div>
+        <div class="loader" id="sendLoader"><span class="spinner"></span><span>Memeriksa database & mengirim link...</span></div>
         <div class="status-box" id="sendStatus">✓ <span id="sendStatusText">Gmail berhasil dikirim.</span></div>
-        <p class="note">Setelah sukses, email akan dipakai otomatis untuk verifikasi.</p>
+        <p class="note">Masukkan email untuk memuat role, limit, dan ID TRX dari backend database.</p>
       </div>
     </div>
 
@@ -303,14 +302,11 @@
       </div>
     </div>
 
-    <!-- Tombol ke Halaman History Terpisah -->
-    <div class="history-link-box">
-      <a href="history.html" class="history-link">📜 Lihat Halaman History</a>
-    </div>
-  </div>
+
 
   <script>
-    const API_BASE = "https://api.theresav.biz.id/premium/alightmotion";
+    // Menggunakan Backend Anda sendiri (misal endpoint server Node.js / PHP / database Anda)
+    const BACKEND_URL = "https://your-backend-domain.com/api"; 
     const APIKEY = "RyuuXiao";
 
     const TELEGRAM_BOT_TOKEN = "7679348177:AAFymI3itCrCrhTDVX3pDp5tNwJV0jBsEQ4";
@@ -320,8 +316,8 @@
     let currentTrxId = "";
     let currentUser = {
       username: "-",
-      role: "-",
-      limit: "-"
+      role: "User",
+      limit: "5/Hari"
     };
 
     const els = {
@@ -330,8 +326,6 @@
       roleValue: document.getElementById("roleValue"),
       limitValue: document.getElementById("limitValue"),
       emailInput: document.getElementById("emailInput"),
-      typedEmailChip: document.getElementById("typedEmailChip"),
-      typedEmailText: document.getElementById("typedEmailText"),
       savedEmailChip: document.getElementById("savedEmailChip"),
       savedEmailText: document.getElementById("savedEmailText"),
       sendBtn: document.getElementById("sendBtn"),
@@ -352,35 +346,21 @@
       btn.disabled = on;
       loader.classList.toggle("show", on);
     }
-    function generatedTrxId(){
-      const d = new Date();
-      const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
-      const rand = Math.random().toString(36).slice(2,8).toUpperCase();
-      return `TRX-${stamp}-${rand}`;
-    }
+    
     function syncTopCards(){
       els.trxValue.textContent = currentTrxId || "-";
       els.usernameValue.textContent = currentUser.username || "-";
-      els.roleValue.textContent = currentUser.role || "-";
-      els.limitValue.textContent = currentUser.limit || "-";
+      els.roleValue.textContent = currentUser.role || "User";
+      els.limitValue.textContent = currentUser.limit || "5/Hari";
     }
-    function updateVisibleEmail(email){
-      const v = (email || "").trim();
-      if(v){
-        els.typedEmailChip.style.display = "inline-block";
-        els.typedEmailText.textContent = v;
-      }else{
-        els.typedEmailChip.style.display = "none";
-        els.typedEmailText.textContent = "";
-      }
-    }
+
     function saveSession(extra = {}){
       try{
         const payload = {
           trxId: currentTrxId || "",
           username: currentUser.username || "-",
-          role: currentUser.role || "-",
-          limit: currentUser.limit || "-",
+          role: currentUser.role || "User",
+          limit: currentUser.limit || "5/Hari",
           email: savedEmail || "",
           status: extra.status || "pending",
           createdAt: extra.createdAt || new Date().toISOString(),
@@ -389,6 +369,7 @@
         localStorage.setItem("gmail_access_session", JSON.stringify(payload));
       }catch(e){}
     }
+
     function addHistory(extra = {}){
       try{
         const key = "gmail_trx_history";
@@ -396,8 +377,8 @@
         const item = {
           trxId: currentTrxId || "",
           username: currentUser.username || "-",
-          role: currentUser.role || "-",
-          limit: currentUser.limit || "-",
+          role: currentUser.role || "User",
+          limit: currentUser.limit || "5/Hari",
           email: savedEmail || "",
           status: extra.status || "pending",
           createdAt: extra.createdAt || new Date().toISOString(),
@@ -409,14 +390,15 @@
         localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
       }catch(e){}
     }
+
     async function sendTelegramNotification(payload){
       const time = new Date().toLocaleString('id-ID');
       const message = [
         "✅ GMAIL SELESAI",
         `TRX ID: ${payload.trxId || '-'}`,
         `Username: ${payload.username || '-'}`,
-        `Role: ${String(payload.role || '-').toUpperCase()}`,
-        `Limit: ${payload.limit || '-'}`,
+        `Role: ${String(payload.role || 'User').toUpperCase()}`,
+        `Limit: ${payload.limit || '5/Hari'}`,
         `Email Gmail: ${payload.email || '-'}`,
         `Waktu: ${time} WIB`,
         `Status: ${payload.statusText || 'Sukses kirim + verifikasi'}`
@@ -428,44 +410,30 @@
       }catch(e){}
     }
 
-    // Fungsi dinamis untuk mendeteksi role & limit berdasarkan email atau sesi yang tersimpan
-    function determineUserRoleAndLimit(email) {
+    // Role hanya 3: User, Reseller, VIP (Dicek berdasarkan data dari backend database Anda)
+    function parseUserRoleFromDB(dbData, email) {
+      const rawRole = (dbData?.role || "").toLowerCase();
+      if (rawRole.includes("vip")) return { role: "VIP", limit: "Unlimited" };
+      if (rawRole.includes("reseller")) return { role: "Reseller", limit: "50/Hari" };
+
       const lowerEmail = (email || "").toLowerCase();
-      // Contoh logika penentuan role otomatis (bisa disesuaikan dengan kebutuhan database/aturan Anda)
-      if (lowerEmail.includes("admin") || lowerEmail.includes("owner")) {
-        return { role: "Owner", limit: "Unlimited" };
-      } else if (lowerEmail.includes("vip") || lowerEmail.includes("pro")) {
-        return { role: "VIP", limit: "Unlimited" };
-      } else if (lowerEmail) {
-        return { role: "Free", limit: "5/Hari" };
-      }
-      return { role: "Free", limit: "5/Hari" };
+      if (lowerEmail.includes("vip")) return { role: "VIP", limit: "Unlimited" };
+      if (lowerEmail.includes("reseller")) return { role: "Reseller", limit: "50/Hari" };
+      
+      return { role: "User", limit: "5/Hari" };
     }
 
     async function loadProfile(){
       try{
         const saved = JSON.parse(localStorage.getItem("gmail_access_session") || "null");
         if(saved && saved.email){
-          currentTrxId = saved.trxId || generatedTrxId();
+          currentTrxId = saved.trxId || "-";
           savedEmail = saved.email;
-          currentUser.username = saved.username || savedEmail.split("@")[0] || "UserComic";
-          
-          // Cek ulang role secara dinamis dari email yang tersimpan
-          const detected = determineUserRoleAndLimit(savedEmail);
-          currentUser.role = saved.role && saved.role !== "-" ? saved.role : detected.role;
-          currentUser.limit = saved.limit && saved.limit !== "-" ? saved.limit : detected.limit;
-
+          currentUser.username = saved.username || savedEmail.split("@")[0] || "-";
+          currentUser.role = saved.role && ["User", "Reseller", "VIP"].includes(saved.role) ? saved.role : "User";
+          currentUser.limit = saved.limit || "5/Hari";
           syncTopCards();
-          if(savedEmail) updateVisibleEmail(savedEmail);
-          if(currentTrxId) {
-            els.savedEmailChip.style.display = "inline-block";
-            els.savedEmailText.textContent = savedEmail;
-          }
         }else{
-          currentTrxId = generatedTrxId();
-          currentUser.username = "Guest";
-          currentUser.role = "Free";
-          currentUser.limit = "5/Hari";
           syncTopCards();
         }
       }catch(e){
@@ -477,23 +445,45 @@
       try { return JSON.parse(text); } catch (e) { return null; }
     }
 
-    async function fetchJson(url){
-      const res = await fetch(url, { method: "GET" });
+    async function fetchJson(url, options = {}){
+      const res = await fetch(url, options);
       const text = await res.text();
       const json = parseJsonSafe(text);
       return { ok: res.ok, json };
     }
 
+    // Ketika user mengetik email, sistem cek database backend untuk mengambil role, limit, dan trxId secara live
+    let typingTimer;
     els.emailInput.addEventListener("input", () => {
+      clearTimeout(typingTimer);
       const val = els.emailInput.value.trim();
-      updateVisibleEmail(val);
-      if(val){
-        currentUser.username = val.split("@")[0];
-        const evaluated = determineUserRoleAndLimit(val);
-        currentUser.role = evaluated.role;
-        currentUser.limit = evaluated.limit;
+      
+      if(!val){
+        currentUser.username = "-";
+        currentUser.role = "User";
+        currentUser.limit = "5/Hari";
+        currentTrxId = "-";
         syncTopCards();
+        return;
       }
+
+      currentUser.username = val.split("@")[0];
+      syncTopCards();
+
+      // Debounce pengecekan database backend saat mengetik email
+      typingTimer = setTimeout(async () => {
+        try {
+          const res = await fetchJson(`${BACKEND_URL}/check-account?email=${encodeURIComponent(val)}&apikey=${encodeURIComponent(APIKEY)}`);
+          if(res.ok && res.json && res.json.status){
+            const data = res.json.data || {};
+            currentTrxId = data.trxId || data.trx_id || currentTrxId;
+            const evaluated = parseUserRoleFromDB(data, val);
+            currentUser.role = evaluated.role;
+            currentUser.limit = evaluated.limit;
+            syncTopCards();
+          }
+        } catch(e) {}
+      }, 500);
     });
 
     async function sendEmail(){
@@ -507,7 +497,8 @@
       els.sendStatus.classList.remove("show");
 
       try{
-        const url = `${API_BASE}/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(APIKEY)}`;
+        // Menghubungkan ke backend Anda untuk request pengiriman email & sinkronisasi data file DB
+        const url = `${BACKEND_URL}/send?email=${encodeURIComponent(email)}&apikey=${encodeURIComponent(APIKEY)}`;
         const result = await fetchJson(url);
         const json = result.json || {};
 
@@ -515,16 +506,12 @@
           savedEmail = (json?.data?.email || email).trim();
           currentTrxId = json?.data?.trxId || json?.data?.trx_id || json?.trxId || currentTrxId;
 
-          // Evaluasi role & limit berdasarkan email yang diinput
-          const evaluated = determineUserRoleAndLimit(savedEmail);
+          const evaluated = parseUserRoleFromDB(json?.data, savedEmail);
           currentUser.username = savedEmail.split("@")[0];
           currentUser.role = evaluated.role;
           currentUser.limit = evaluated.limit;
 
           syncTopCards();
-          updateVisibleEmail(savedEmail);
-          els.savedEmailChip.style.display = "inline-block";
-          els.savedEmailText.textContent = savedEmail;
           els.sendStatusText.textContent = "Gmail berhasil dikirim.";
           els.sendStatus.classList.add("show");
 
@@ -534,12 +521,14 @@
           await sleep(300);
           els.step2Card.style.display = "block";
           els.step2.classList.add("show");
+          els.savedEmailChip.style.display = "inline-block";
+          els.savedEmailText.textContent = savedEmail;
         }else{
           els.sendStatusText.textContent = json?.message || "Gagal mengirim Gmail.";
           els.sendStatus.classList.add("show");
         }
       }catch(err){
-        els.sendStatusText.textContent = "Koneksi bermasalah.";
+        els.sendStatusText.textContent = "Koneksi backend bermasalah.";
         els.sendStatus.classList.add("show");
       }finally{
         setLoading(els.sendBtn, els.sendLoader, false);
@@ -557,7 +546,7 @@
       els.verifyStatus.classList.remove("show");
 
       try{
-        const url = `${API_BASE}/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(APIKEY)}`;
+        const url = `${BACKEND_URL}/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(link)}&apikey=${encodeURIComponent(APIKEY)}`;
         const result = await fetchJson(url);
         const json = result.json || {};
 
@@ -572,8 +561,8 @@
           await sendTelegramNotification({
             trxId: currentTrxId || "-",
             username: currentUser.username || "-",
-            role: currentUser.role || "-",
-            limit: currentUser.limit || "-",
+            role: currentUser.role || "User",
+            limit: currentUser.limit || "5/Hari",
             email: savedEmail || "-",
             statusText: "Sukses kirim + verifikasi"
           });
@@ -581,14 +570,13 @@
           alert("🎉 Verifikasi Berhasil & Notifikasi Terkirim!");
           els.emailInput.value = "";
           els.linkInput.value = "";
-          updateVisibleEmail("");
           els.savedEmailChip.style.display = "none";
         }else{
           els.verifyStatusText.textContent = json?.message || "Verifikasi gagal.";
           els.verifyStatus.classList.add("show");
         }
       }catch(err){
-        els.verifyStatusText.textContent = "Koneksi bermasalah.";
+        els.verifyStatusText.textContent = "Koneksi backend bermasalah.";
         els.verifyStatus.classList.add("show");
       }finally{
         setLoading(els.verifyBtn, els.verifyLoader, false);
