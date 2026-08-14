@@ -314,214 +314,61 @@ const verifyApiKey = (req, res, next) => {
   next();
 };
 
-// ==========================================
-// ENDPOINT TAHAP 1: KIRIM EMAIL (/am/send)
-// ==========================================
+router.get('/am/verify', verifyApiKey, async (req,res)=>{
+try{
 
-// ==========================================
-// ALIGHT MOTION - SEND
-// Member API -> Backend -> XS-PEDIA
-// ==========================================
-router.get('/send', verifyApiKey, async (req, res) => {
-  try {
-    const { email } = req.query;
+const {email,link}=req.query;
 
-    if (!email) {
-      return res.status(400).json({
-        status: false,
-        creator: "@RyuuXiao",
-        source: "xs-pedia",
-        endpoint: "am/send",
-        message: "Parameter 'email' wajib diisi!"
-      });
-    }
 
-    // Validasi email sederhana
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+if(!email || !link){
+return res.json({
+status:false,
+message:"Email dan link wajib diisi"
+});
+}
 
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        status: false,
-        creator: "@RyuuXiao",
-        source: "xs-pedia",
-        endpoint: "am/send",
-        message: "Format email tidak valid!"
-      });
-    }
 
-    console.log(`[AM SEND] Member meminta pengiriman link ke: ${email}`);
 
-    // ==========================================
-    // TEMBAK API XS-PEDIA
-    // ==========================================
-    const upstreamUrl =
-      `https://api.xs-pedia.my.id/am/send` +
-      `?email=${encodeURIComponent(email)}` +
-      `&apikey=free`;
+const apiURL =
+`https://api.xs-pedia.my.id/am/verify`+
+`?email=${encodeURIComponent(email)}`+
+`&link=${encodeURIComponent(link)}`+
+`&apikey=free`;
 
-    const upstreamResponse = await fetch(upstreamUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "XS-PEDIA-Backend/1.0"
-      }
-    });
 
-    const upstreamText = await upstreamResponse.text();
 
-    let upstreamData;
+const response = await fetch(apiURL);
 
-    try {
-      upstreamData = JSON.parse(upstreamText);
-    } catch {
-      upstreamData = {
-        status: false,
-        message: upstreamText || "Response dari upstream tidak valid."
-      };
-    }
 
-    console.log(
-      `[AM SEND] XS-PEDIA status: ${upstreamResponse.status}`
-    );
+const data = await response.json();
 
-    // Jika XS-PEDIA gagal
-    if (!upstreamResponse.ok || upstreamData?.status !== true) {
-      return res.status(502).json({
-        status: false,
-        creator: "@RyuuXiao",
-        source: "xs-pedia",
-        endpoint: "am/send",
-        message:
-          upstreamData?.message ||
-          "Gagal mengirim link verifikasi dari XS-PEDIA.",
-        data: upstreamData?.data || null
-      });
-    }
 
-    // Response ke member
-    return res.status(200).json({
-      status: true,
-      creator: "@RyuuXiao",
-      source: "xs-pedia",
-      endpoint: "am/send",
-      message: "Link verifikasi berhasil dikirim.",
-      data: {
-        email: email,
-        upstream: upstreamData
-      }
-    });
 
-  } catch (err) {
-    console.error("[AM SEND] Error:", err);
+return res.json({
 
-    return res.status(500).json({
-      status: false,
-      creator: "@RyuuXiao",
-      source: "xs-pedia",
-      endpoint: "am/send",
-      message: "Terjadi kesalahan pada server internal."
-    });
-  }
+status:data.status,
+creator:"@RyuuXiao",
+source:"xs-pedia",
+endpoint:"am/verify",
+message:data.message,
+data:data.data
+
 });
 
 
-// ==========================================
-// ALIGHT MOTION - VERIFY
-// Member API -> Backend -> XS-PEDIA
-// ==========================================
-router.get('/verify', verifyApiKey, async (req, res) => {
-  try {
-    const { email, link } = req.query;
 
-    if (!email || !link) {
-      return res.status(400).json({
-        status: false,
-        creator: "@RyuuXiao",
-        source: "xs-pedia",
-        endpoint: "am/verify",
-        message: "Parameter 'email' dan 'link' wajib diisi!"
-      });
-    }
+}catch(err){
 
-    console.log(
-      `[AM VERIFY] Member meminta verifikasi: ${email}`
-    );
+console.log(err);
 
-    // ==========================================
-    // TEMBAK API XS-PEDIA
-    // ==========================================
-    const upstreamUrl =
-      `https://api.xs-pedia.my.id/am/verify` +
-      `?email=${encodeURIComponent(email)}` +
-      `&link=${encodeURIComponent(link)}` +
-      `&apikey=free`;
+res.status(500).json({
+status:false,
+message:"Internal server error"
+});
 
-    const upstreamResponse = await fetch(upstreamUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "XS-PEDIA-Backend/1.0"
-      }
-    });
 
-    const upstreamText = await upstreamResponse.text();
+}
 
-    let upstreamData;
-
-    try {
-      upstreamData = JSON.parse(upstreamText);
-    } catch {
-      upstreamData = {
-        status: false,
-        message: upstreamText || "Response dari upstream tidak valid."
-      };
-    }
-
-    console.log(
-      `[AM VERIFY] XS-PEDIA status: ${upstreamResponse.status}`
-    );
-
-    // Jika XS-PEDIA gagal
-    if (!upstreamResponse.ok || upstreamData?.status !== true) {
-      return res.status(502).json({
-        status: false,
-        creator: "@RyuuXiao",
-        source: "xs-pedia",
-        endpoint: "am/verify",
-        message:
-          upstreamData?.message ||
-          "Verifikasi gagal dari XS-PEDIA.",
-        data: upstreamData?.data || null
-      });
-    }
-
-    // ==========================================
-    // RESPONSE KE MEMBER
-    // ==========================================
-    return res.status(200).json({
-      status: true,
-      creator: "@RyuuXiao",
-      source: "xs-pedia",
-      endpoint: "am/verify",
-      message: "Link berhasil diverifikasi.",
-      data: {
-        email: email,
-        link: link,
-        upstream: upstreamData
-      }
-    });
-
-  } catch (err) {
-    console.error("[AM VERIFY] Error:", err);
-
-    return res.status(500).json({
-      status: false,
-      creator: "@RyuuXiao",
-      source: "xs-pedia",
-      endpoint: "am/verify",
-      message: "Terjadi kesalahan pada server internal."
-    });
-  }
 });
 
 router.get("/order-panel", validateApiKey, async (req, res) => {
