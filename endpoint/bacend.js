@@ -52,7 +52,7 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
       metode: "QRIS",  
       type: "ewallet",  
       name: "QRIS All Payment (Otomatis)",  
-      min: 50,  
+      min: 10,  
       max: 5000000,  
       fee: 0,  
       fee_persen: feePersen,  
@@ -77,179 +77,118 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const { nominal } = req.body;
 
     const parsedNominal = parseInt(nominal);
+    if (!nominal || isNaN(parsedNominal) || parsedNominal < 1) {  
+      return res.status(400).json({ success: false, message: "Minimal deposit Rp1" });  
+    }  
 
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Minimal deposit Rp1"
-      });
-    }
+    const API_KEY = process.env.GOREKK_API_KEY;  
+    if (!API_KEY) {  
+      return res.status(500).json({ success: false, message: "API Key Gorekk belum disetting di server." });  
+    }  
 
-    const API_KEY = process.env.GOREKK_API_KEY;
+    let response;  
+    try {  
+      // --- UPDATE: Request GET ke Gorekk API dengan query parameters ---  
+      const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
+      const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=60&unique_amount=True`;
 
-    if (!API_KEY) {
-      return res.status(500).json({
-        success: false,
-        message: "API Key Gorekk belum disetting di server."
-      });
-    }
+      response = await fetch(createUrl, {  
+        method: "GET",  
+        headers: {   
+          "Accept": "application/json",  
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",  
+          "X-API-Key": API_KEY   
+        }  
+      });  
+    } catch (fetchError) {  
+      console.error("Fetch API Error:", fetchError);  
+      return res.status(502).json({ success: false, message: "Koneksi server ke Gorekk gagal/diblokir." });  
+    }  
 
-    let response;
+    const result = await response.json();  
+      
+    if (!result || !result.success) {  
+      return res.status(400).json({   
+        success: false,   
+        message: result.message || "Gagal membuat QRIS (Cek kembali pengaturan akun/nominal)"   
+      });  
+    }  
 
-    try {
-      const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B";
+    // --- FIX KALKULASI & ROUNDING (Gorekk Response Mapping) ---  
+    const nominalAsli = Number(result.amount) || parsedNominal;  
+    const feeGorekk = 0; // Sesuaikan jika ada fee khusus dari provider
+      
+    let additionalFee = 0;  
+    if (user.role === "user") {  
+        additionalFee = Math.ceil(nominalAsli * 0.002);  
+    } else if (user.role === "reseller") {  
+        additionalFee = Math.ceil(nominalAsli * 0.001);  
+    }  
 
-      const createUrl = `https://www.gorekk.web.id/api/v1/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
+    const totalBayar = Math.ceil(Number(result.expected_amount) || (nominalAsli + feeGorekk));  
+    const totalFee = feeGorekk + additionalFee;  
+    const finalGetBalance = nominalAsli - additionalFee;  
 
-      response = await fetch(createUrl, {
-        method: "GET",
-        headers: {
-          "Accept": "application/json",
-          "User-Agent": "Mozilla/5.0",
-          "X-API-Key": API_KEY
-        }
-      });
+    const historyDataForDb = {  
+      id: result.invoice_id, // Menggunakan invoice_id sebagai unik ID transaksi
+      nominal: nominalAsli,  
+      fee: totalFee,  
+      get_balance: finalGetBalance,  
+      metode: "QRIS",  
+      status: "pending",  
+      qr_image: result.image_url,  
+      created_at: new Date(),  
+    };  
 
-    } catch (fetchError) {
-      console.error("Fetch Gorekk Error:", fetchError);
-      return res.status(502).json({
-        success: false,
-        message: "Koneksi server ke Gorekk gagal."
-      });
-    }
+    await tambahHistoryDeposit(user._id, historyDataForDb);  
 
-    const result = await response.json();
+    res.status(200).json({  
+      success: true,  
+      data: {  
+        id: result.invoice_id,  
+        trx_id: result.invoice_id,  
+        metode: "QRIS",  
+        nominal: nominalAsli,  
+        fee: totalFee,  
+        total_amount: totalBayar,  
+        get_balance: finalGetBalance,  
+        qr_image: result.image_url,  
+        status: "pending"  
+      }  
+    });  
 
-    if (!result || !result.success) {
-      return res.status(400).json({
-        success: false,
-        message: result?.message || "Gagal membuat QRIS."
-      });
-    }
-
-    const nominalAsli = Number(result.amount) || parsedNominal;
-    const feeGorekk = 0;
-
-    let additionalFee = 0;
-
-    if (user.role === "user") {
-      additionalFee = Math.ceil(nominalAsli * 0.002);
-    } else if (user.role === "reseller") {
-      additionalFee = Math.ceil(nominalAsli * 0.001);
-    }
-
-    const totalBayar = Number(result.expected_amount) || nominalAsli;
-    const totalFee = feeGorekk + additionalFee;
-    const finalGetBalance = nominalAsli - additionalFee;
-
-    const historyDataForDb = {
-      id: result.invoice_id,
-      invoice_id: result.invoice_id,
-      nominal: nominalAsli,
-      fee: totalFee,
-      get_balance: finalGetBalance,
-      metode: "QRIS",
-      status: "pending",
-      qr_image: result.image_url,
-      payment_url: result.payment_url || null,
-      expires_at: result.expires_at || new Date(Date.now() + (15 * 60 * 1000)),
-      created_at: new Date()
-    };
-
-    await tambahHistoryDeposit(user._id, historyDataForDb);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        id: result.invoice_id,
-        trx_id: result.invoice_id,
-        invoice_id: result.invoice_id,
-        metode: "QRIS",
-        nominal: nominalAsli,
-        fee: totalFee,
-        total_amount: totalBayar,
-        get_balance: finalGetBalance,
-        qr_image: result.image_url,
-        payment_url: result.payment_url || null,
-        expires_at: result.expires_at || null,
-        status: "pending"
-      }
-    });
-
-    const intervalId = setInterval(async () => {
-      try {
-        const checkRes = await fetch(
-          `https://www.gorekk.web.id/api/v1/qris/invoice?invoice_id=${result.invoice_id}`,
-          {
-            method: "GET",
-            headers: {
-              "Accept": "application/json",
-              "User-Agent": "Mozilla/5.0",
-              "X-API-Key": API_KEY
-            }
-          }
-        );
-
-        const checkData = await checkRes.json();
-
-        if (checkData?.success && checkData.invoice) {
-          const apiStatus = checkData.invoice.status.toLowerCase();
-
-          if (apiStatus === "paid" || apiStatus === "success") {
-            const userCheck = await User.findOne({
-              _id: user._id,
-              "historyDeposit.id": result.invoice_id
-            });
-
-            const txInDb = userCheck?.historyDeposit?.find(
-              tx => tx.id === result.invoice_id
-            );
-
-            if (txInDb && txInDb.status !== "success") {
-              await editHistoryDeposit(
-                user._id,
-                result.invoice_id,
-                "success"
-              );
-
-              await User.findByIdAndUpdate(user._id, {
-                $inc: {
-                  saldo: finalGetBalance
-                }
-              });
-            }
-
-            clearInterval(intervalId);
-
-          } else if (
-            ["failed", "expired", "cancel", "cancelled"].includes(apiStatus)
-          ) {
-            await editHistoryDeposit(
-              user._id,
-              result.invoice_id,
-              apiStatus
-            );
-
-            clearInterval(intervalId);
-          }
-        }
-
-      } catch (e) {
-        console.error("Polling Error:", e.message);
-      }
-    }, 10000);
-
-    setTimeout(() => {
-      clearInterval(intervalId);
-    }, 16 * 60 * 1000);
+    // POLLING: Menggunakan endpoint invoice dari Gorekk API  
+    const intervalId = setInterval(async () => {  
+      try {  
+        const checkRes = await fetch(`https://www.gorekk.web.id/api/v1/qris/invoice?invoice_id=${result.invoice_id}`, {  
+          method: "GET",  
+          headers: {   
+            "Accept": "application/json",  
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",  
+            "X-API-Key": API_KEY   
+          }  
+        });  
+        const checkData = await checkRes.json();  
+          
+        if (checkData?.success && checkData.invoice) {  
+          const apiStatus = checkData.invoice.status.toLowerCase(); // contoh: "paid", "pending", dll
+          
+          if (apiStatus === "paid" || apiStatus === "success") {  
+            await editHistoryDeposit(user._id, result.invoice_id, "success");  
+            await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalGetBalance } });  
+            clearInterval(intervalId);  
+          } else if (["failed", "expired", "cancel", "cancelled"].includes(apiStatus)) {  
+            await editHistoryDeposit(user._id, result.invoice_id, apiStatus);
+            clearInterval(intervalId);  
+          }  
+        }  
+      } catch (e) {   
+        console.error("Polling Error:", e.message);   
+      }  
+    }, 10000);  
 
   } catch (err) {
-    console.error("Deposit Error:", err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
