@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMIC AM GENERATOR - 2 STAGES</title>
+</head>
+<body style="background-color: #ffeb3b; font-family: 'Arial Black', Gadget, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+
+    <div style="background-color: #ffffff; border: 4px solid #000000; box-shadow: 8px 8px 0px #000000; padding: 30px; max-width: 480px; width: 100%; position: relative; box-sizing: border-box;">
+        
+        <!-- Label Komik -->
+        <div style="position: absolute; top: -20px; right: -15px; background-color: #ff5722; color: #ffffff; border: 3px solid #000000; padding: 5px 15px; transform: rotate(5deg); font-size: 14px; box-shadow: 3px 3px 0px #000000;">
+            POW! ⚡
+        </div>
+
+        <h2 style="text-align: center; text-transform: uppercase; font-size: 22px; color: #000000; text-shadow: 2px 2px 0px #ffeb3b; margin-top: 0; margin-bottom: 20px;">
+            💥 Alight Motion Generator 💥
+        </h2>
+
+        <!-- TAHAP 1: INPUT EMAIL -->
+        <div id="stage1Box">
+            <div style="background: #03a9f4; color: #fff; padding: 8px 12px; border: 2px solid #000; font-size: 12px; margin-bottom: 15px; box-shadow: 2px 2px 0px #000;">
+                LANGKAH 1: Masukkan Email Anda untuk meminta link verifikasi.
+            </div>
+            <form id="formStage1">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #000000;">Email:</label>
+                    <input type="email" id="inputEmail" placeholder="nama@domain.com" required style="width: 100%; padding: 12px; border: 3px solid #000000; box-shadow: 3px 3px 0px #000000; font-weight: bold; outline: none; box-sizing: border-box;">
+                </div>
+                <button type="submit" style="width: 100%; background-color: #4CAF50; color: white; border: 3px solid #000000; padding: 14px; font-size: 15px; font-weight: bold; text-transform: uppercase; box-shadow: 4px 4px 0px #000000; cursor: pointer;">
+                    KIRIM EMAIL VERIFIKASI 🚀
+                </button>
+            </form>
+        </div>
+
+        <!-- TAHAP 2: INPUT LINK (Disembunyikan sebelum tahap 1 sukses) -->
+        <div id="stage2Box" style="display: none;">
+            <div style="background: #8bc34a; color: #000; padding: 8px 12px; border: 2px solid #000; font-size: 12px; margin-bottom: 15px; box-shadow: 2px 2px 0px #000; font-weight: bold;">
+                LANGKAH 2: Cek email Anda, salin link verifikasi yang masuk, lalu masukkan ke bawah ini!
+            </div>
+            <form id="formStage2">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-size: 13px; text-transform: uppercase; margin-bottom: 5px; color: #000000;">Link dari Email:</label>
+                    <textarea id="inputLink" placeholder="Tempel link verifikasi di sini..." rows="3" required style="width: 100%; padding: 10px; border: 3px solid #000000; box-shadow: 3px 3px 0px #000000; font-weight: bold; outline: none; box-sizing: border-box; resize: vertical;"></textarea>
+                </div>
+                <button type="submit" style="width: 100%; background-color: #ff9800; color: white; border: 3px solid #000000; padding: 14px; font-size: 15px; font-weight: bold; text-transform: uppercase; box-shadow: 4px 4px 0px #000000; cursor: pointer;">
+                    VERIFIKASI & AKTIFKAN ⚡
+                </button>
+            </form>
+        </div>
+
+        <!-- Kotak Hasil Respon API -->
+        <div id="resultBox" style="margin-top: 20px; display: none; background: #2196F3; color: white; border: 3px solid #000000; padding: 12px; box-shadow: 4px 4px 0px #000000;">
+            <pre id="resultText" style="margin: 0; font-size: 11px; white-space: pre-wrap; word-break: break-all; font-family: monospace;"></pre>
+        </div>
+
+    </div>
+
+    <script>
+        const BASE_URL = 'https://api.xs-pedia.my.id';
+        const API_KEY = 'free'; // Diset otomatis di balik layar
+        let savedEmail = '';
+
+        const resultBox = document.getElementById('resultBox');
+        const resultText = document.getElementById('resultText');
+
+        // Handler Tahap 1 (/am/send)
+        document.getElementById('formStage1').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            savedEmail = document.getElementById('inputEmail').value;
+
+            resultBox.style.display = 'block';
+            resultText.textContent = "⏳ Mengirim permintaan ke server...";
+
+            try {
+                const url = `${BASE_URL}/am/send?email=${encodeURIComponent(savedEmail)}&apikey=${API_KEY}`;
+                const response = await fetch(url);
+                const res = await response.json();
+
+                resultText.textContent = JSON.stringify(res, null, 2);
+
+                if (res.status) {
+                    alert("✅ Link berhasil dikirim ke email! Silakan lanjut ke Tahap 2.");
+                    document.getElementById('stage1Box').style.display = 'none';
+                    document.getElementById('stage2Box').style.display = 'block';
+                }
+            } catch (err) {
+                resultText.textContent = "❌ Error jaringan: " + err.message;
+            }
+        });
+
+        // Handler Tahap 2 (/am/verify)
+        document.getElementById('formStage2').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const linkInput = document.getElementById('inputLink').value;
+
+            resultBox.style.display = 'block';
+            resultText.textContent = "⏳ Memproses verifikasi link...";
+
+            try {
+                const url = `${BASE_URL}/am/verify?email=${encodeURIComponent(savedEmail)}&link=${encodeURIComponent(linkInput)}&apikey=${API_KEY}`;
+                const response = await fetch(url);
+                const res = await response.json();
+
+                resultText.textContent = JSON.stringify(res, null, 2);
+
+                if (res.status) {
+                    alert("🎉 Verifikasi Berhasil! Akun berhasil diaktifkan.");
+                }
+            } catch (err) {
+                resultText.textContent = "❌ Error jaringan: " + err.message;
+            }
+        });
+    </script>
+</body>
+</html>
