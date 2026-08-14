@@ -129,8 +129,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const totalFee = feePayinaja + additionalFee;
     const finalGetBalance = nominalAsli - additionalFee;
 
-    // Membuat link URL dinamis untuk file background kustom lokal (bg.jpg)
-    const customBgUrl = `${req.protocol}://${req.get('host')}/media/bg.jpg`;
+    // Link background langsung dari Catbox
+    const customBgUrl = "https://files.catbox.moe/sh2bcj.png";
 
     const historyDataForDb = {
       id: payData.payinaja_trx_id,
@@ -141,7 +141,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       status: "pending",
       qr_image: payData.qris_image_url,
       qris_string: payData.qris_string || payData.qris || "",
-      bg_image: customBgUrl, // Disimpan ke riwayat database
+      bg_image: customBgUrl, // Disimpan ke database
       created_at: new Date(),
     };
 
@@ -159,7 +159,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         get_balance: finalGetBalance,
         qr_image: payData.qris_image_url,
         qris_string: payData.qris_string || payData.qris || "",
-        bg_image: customBgUrl, // Dikirim langsung ke response frontend
+        bg_image: customBgUrl, // Dikirim ke respons JSON frontend
         status: "pending"
       }
     });
