@@ -85,7 +85,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     let response;
     try {
-      // --- UPDATE: Menambahkan User-Agent & Accept agar tidak diblokir server Payinaja ---
       response = await fetch("https://payinaja.com/api/v1/qris/create2", {
         method: "POST",
         headers: { 
@@ -116,7 +115,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     const payData = result.data;
 
-    // --- FIX KALKULASI & ROUNDING ---
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
     const feePayinaja = Number(payData.fee) || 0;
     
@@ -131,7 +129,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const totalFee = feePayinaja + additionalFee;
     const finalGetBalance = nominalAsli - additionalFee;
 
-    // Menggunakan path lokal file background kustom di server
+    // Membuat link URL dinamis untuk file background kustom lokal (bg.jpg)
     const customBgUrl = `${req.protocol}://${req.get('host')}/media/bg.jpg`;
 
     const historyDataForDb = {
@@ -143,7 +141,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       status: "pending",
       qr_image: payData.qris_image_url,
       qris_string: payData.qris_string || payData.qris || "",
-      bg_image: customBgUrl,
+      bg_image: customBgUrl, // Disimpan ke riwayat database
       created_at: new Date(),
     };
 
@@ -161,12 +159,11 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         get_balance: finalGetBalance,
         qr_image: payData.qris_image_url,
         qris_string: payData.qris_string || payData.qris || "",
-        bg_image: customBgUrl, // URL background lokal dikirim ke frontend
+        bg_image: customBgUrl, // Dikirim langsung ke response frontend
         status: "pending"
       }
     });
 
-    // POLLING: Diubah menjadi setiap 1 menit (60000 ms) dengan User-Agent agar tidak kena blokir
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
