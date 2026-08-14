@@ -127,6 +127,7 @@ router.get("/deposit/metode", validateApiKey, async (req, res) => {
 
 
 // === ROUTE BUAT DEPOSIT (GOREKK API) ===
+// === ROUTE BUAT DEPOSIT (GOREKK API) ===
 router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
   const { nominal } = req.query;
@@ -136,14 +137,17 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal);
+
   if (parsedNominal < 1) {
     return res.status(400).json({ success: false, message: "Minimal deposit Rp1" });
   }
 
   try {
-    // Request ke Gorekk API (menggunakan parameter URL sesuai dokumentasi)
-    const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B4";
-    const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=900&unique_amount=True`;
+    const QRIS_EXPIRE_TIME = 15 * 60; // 15 menit
+
+    const qrisString = "00020101021126610014COM.GO-JEK.WWW01189360091430973426920210G0973426920303UMI51440014ID.CO.QRIS.WWW0215ID10265700401900303UMI5204152053033605802ID5925Toko%20Online%2C%20Konstruksi%20%266009TANGERANG61051512362070703A01630477B";
+
+    const createUrl = `${GOREKK_BASE_URL}/qris/create?amount=${parsedNominal}&static_qr=${qrisString}&expires_in=${QRIS_EXPIRE_TIME}&unique_amount=True`;
 
     const response = await fetch(createUrl, {
       method: "GET",
@@ -152,79 +156,112 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       }
     });
 
-    const result = await response.json();    
-    if (!result || !result.success) {    
-      return res.status(502).json({ success: false, message: result?.message || "Gagal membuat QRIS." });    
-    }    
+    const result = await response.json();
 
-    // KALKULASI ANTI-NaN    
-    const nominalAsli = Number(result.amount) || parsedNominal;    
-    const totalBayar = Number(result.expected_amount) || nominalAsli;    
-    const feeGorekk = 0; // Sesuaikan jika ada fee dari provider
-    
-    const feePercent = user.role === "reseller" ? 0.001 : 0.002;    
-    let additionalFee = Math.ceil(nominalAsli * feePercent);    
-    const finalBalance = nominalAsli - additionalFee;    
+    if (!result || !result.success) {
+      return res.status(502).json({
+        success: false,
+        message: result?.message || "Gagal membuat QRIS."
+      });
+    }
 
-    const history = {    
-      id: result.invoice_id, // Menggunakan invoice_id sebagai ID transaksi unik
-      nominal: nominalAsli,    
-      fee: additionalFee + feeGorekk,     
-      get_balance: finalBalance,    
-      metode: "QRIS",    
-      status: "pending",    
-      qr_image: result.image_url,    
-      created_at: new Date(),    
-    };    
+    const nominalAsli = Number(result.amount) || parsedNominal;
+    const totalBayar = Number(result.expected_amount) || nominalAsli;
 
-    // Gunakan fungsi internal kamu    
-    await tambahHistoryDeposit(user._id, history);    
+    const feePercent = user.role === "reseller" ? 0.001 : 0.002;
+    const additionalFee = Math.ceil(nominalAsli * feePercent);
+    const finalBalance = nominalAsli - additionalFee;
 
-    res.status(200).json({    
-      success: true,    
-      data: {    
-        id: history.id,    
-        nominal: nominalAsli,    
-        qr_image: history.qr_image,    
-        fee: history.fee,    
-        get_balance: history.get_balance,    
-        total_amount: totalBayar,    
-        status: "pending"    
-      },    
-    });    
+    const history = {
+      id: result.invoice_id,
+      invoice_id: result.invoice_id,
+      nominal: nominalAsli,
+      fee: additionalFee,
+      get_balance: finalBalance,
+      metode: "QRIS",
+      status: "pending",
+      qr_image: result.image_url,
+      payment_url: result.payment_url || null,
+      expires_at: result.expires_at || new Date(Date.now() + (15 * 60 * 1000)),
+      created_at: new Date()
+    };
 
-    // POLLING OTOMATIS (Gorekk API Invoice Status)    
-    const intervalId = setInterval(async () => {    
-      try {    
-        const checkRes = await fetch(`${GOREKK_BASE_URL}/qris/invoice?invoice_id=${result.invoice_id}`, {    
-          method: "GET",    
-          headers: { "X-API-Key": GOREKK_API_KEY }    
-        });    
-        const statusData = await checkRes.json();    
+    await tambahHistoryDeposit(user._id, history);
 
-        if (statusData?.success && statusData.invoice) {    
-          const apiStatus = statusData.invoice.status.toLowerCase(); // contoh: "paid", "pending", dll
-          
-          // Sesuaikan mapping status dari Gorekk (misal 'paid' dianggap setara 'success')
-          if (apiStatus === "paid" || apiStatus === "success") {    
-            const userCheck = await User.findOne({ _id: user._id, "historyDeposit.id": result.invoice_id });    
-            const txInDb = userCheck?.historyDeposit?.find(tx => tx.id === result.invoice_id);    
+    res.status(200).json({
+      success: true,
+      data: {
+        id: history.id,
+        invoice_id: history.invoice_id,
+        nominal: nominalAsli,
+        qr_image: history.qr_image,
+        payment_url: history.payment_url,
+        expires_at: history.expires_at,
+        fee: history.fee,
+        get_balance: history.get_balance,
+        total_amount: totalBayar,
+        status: "pending"
+      }
+    });
 
-            if (txInDb && txInDb.status !== "success") {    
-              await editHistoryDeposit(user._id, result.invoice_id, "success");    
-              await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalBalance } });    
-            }    
-            clearInterval(intervalId);    
-          } else if (["failed", "expired", "cancel", "cancelled"].includes(apiStatus)) {    
-            await editHistoryDeposit(user._id, result.invoice_id, apiStatus);    
-            clearInterval(intervalId);    
-          }    
-        }    
-      } catch (e) { clearInterval(intervalId); }    
+    const intervalId = setInterval(async () => {
+      try {
+        const checkRes = await fetch(`${GOREKK_BASE_URL}/qris/invoice?invoice_id=${result.invoice_id}`, {
+          method: "GET",
+          headers: {
+            "X-API-Key": GOREKK_API_KEY
+          }
+        });
+
+        const statusData = await checkRes.json();
+
+        if (statusData?.success && statusData.invoice) {
+          const apiStatus = statusData.invoice.status.toLowerCase();
+
+          if (apiStatus === "paid" || apiStatus === "success") {
+            const userCheck = await User.findOne({
+              _id: user._id,
+              "historyDeposit.id": result.invoice_id
+            });
+
+            const txInDb = userCheck?.historyDeposit?.find(
+              tx => tx.id === result.invoice_id
+            );
+
+            if (txInDb && txInDb.status !== "success") {
+              await editHistoryDeposit(user._id, result.invoice_id, "success");
+
+              await User.findByIdAndUpdate(user._id, {
+                $inc: {
+                  saldo: finalBalance
+                }
+              });
+            }
+
+            clearInterval(intervalId);
+
+          } else if (
+            ["failed", "expired", "cancel", "cancelled"].includes(apiStatus)
+          ) {
+            await editHistoryDeposit(user._id, result.invoice_id, apiStatus);
+            clearInterval(intervalId);
+          }
+        }
+
+      } catch (e) {
+        console.log("Polling Gorekk Error:", e.message);
+      }
     }, 10000);
 
+    setTimeout(() => {
+      clearInterval(intervalId);
+    }, 16 * 60 * 1000);
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
