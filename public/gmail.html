@@ -454,7 +454,6 @@
     let currentTrxId = "";
     let currentUser = {
       username: "-",
-      id: "-",
       role: "-",
       limit: "-"
     };
@@ -463,7 +462,6 @@
       sessionPill: document.getElementById("sessionPill"),
       trxValue: document.getElementById("trxValue"),
       usernameValue: document.getElementById("usernameValue"),
-      idValue: document.getElementById("idValue"),
       roleValue: document.getElementById("roleValue"),
       limitValue: document.getElementById("limitValue"),
       emailInput: document.getElementById("emailInput"),
@@ -509,12 +507,11 @@
       return `TRX-${stamp}-${rand}`;
     }
     function syncTopCards(){
-      els.trxValue.textContent = currentTrxId || "-";
-      els.usernameValue.textContent = currentUser.username || "-";
-      els.idValue.textContent = currentUser.id || "-";
-      els.roleValue.textContent = currentUser.role || "-";
-      els.limitValue.textContent = currentUser.limit || "-";
-      els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "Memuat sesi...";
+      if (els.trxValue) els.trxValue.textContent = currentTrxId || "-";
+      if (els.usernameValue) els.usernameValue.textContent = currentUser.username || "-";
+      if (els.roleValue) els.roleValue.textContent = currentUser.role || "-";
+      if (els.limitValue) els.limitValue.textContent = currentUser.limit || "-";
+      if (els.sessionPill) els.sessionPill.textContent = currentTrxId ? `TRX: ${currentTrxId}` : "Memuat sesi...";
     }
     function updateVisibleEmail(email){
       const v = (email || "").trim();
@@ -531,7 +528,6 @@
         const payload = {
           trxId: currentTrxId || "",
           username: currentUser.username || "-",
-          id: currentUser.id || "-",
           role: currentUser.role || "-",
           limit: currentUser.limit || "-",
           email: savedEmail || "",
@@ -549,7 +545,6 @@
         const item = {
           trxId: currentTrxId || "",
           username: currentUser.username || "-",
-          id: currentUser.id || "-",
           role: currentUser.role || "-",
           limit: currentUser.limit || "-",
           email: savedEmail || "",
@@ -580,7 +575,6 @@
         "✅ GMAIL SELESAI",
         `TRX ID: ${payload.trxId || '-'}`,
         `Username: ${payload.username || '-'}`,
-        `ID: ${payload.id || '-'}`,
         `Role: ${String(payload.role || '-').toUpperCase()}`,
         `Limit: ${payload.limit || '-'}`,
         `Email Gmail: ${payload.email || '-'}`,
@@ -605,7 +599,6 @@
         if(data && data.success && data.user){
           const u = data.user;
           currentUser.username = u.username || u.fullname || u.name || currentUser.username;
-          currentUser.id = u.id || u._id || u.userId || u.userid || currentUser.id;
           currentUser.role = String(u.role || currentUser.role || "-");
           currentUser.limit = u.limit || u.glimit || (String(currentUser.role).toLowerCase() === "vip" ? "Unlimited" : "1/hari");
           syncTopCards();
@@ -704,7 +697,8 @@
           els.sendStatus.classList.add("show");
         }
       }catch(err){
-        els.sendStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+        console.error("AM send error:", err);
+        els.sendStatusText.textContent = err?.message || "Koneksi bermasalah. Coba lagi.";
         els.sendStatus.classList.add("show");
       }finally{
         setLoading(els.sendBtn, els.sendLoader, false);
@@ -760,7 +754,8 @@
           els.verifyStatus.classList.add("show");
         }
       }catch(err){
-        els.verifyStatusText.textContent = "Koneksi bermasalah. Coba lagi.";
+        console.error("AM verify error:", err);
+        els.verifyStatusText.textContent = err?.message || "Koneksi bermasalah. Coba lagi.";
         els.verifyStatus.classList.add("show");
       }finally{
         setLoading(els.verifyBtn, els.verifyLoader, false);
