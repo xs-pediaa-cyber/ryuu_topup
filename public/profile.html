@@ -843,6 +843,16 @@
       .cropper-title { font-size: 12px; }
     }
 
+
+    .phone-change-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1fr);gap:16px;align-items:start;margin-bottom:16px}
+    .phone-change-card{border:2px solid var(--ink);border-radius:14px;padding:16px;background:#f0fdf4;box-shadow:3px 3px 0 var(--ink)}
+    .phone-change-card h3{font-size:14px;margin:0 0 8px;color:#065f46}
+    .phone-change-card p{font-size:12px;color:#166534;margin:0 0 12px;line-height:1.5}
+    .phone-change-card .button{width:100%}
+    .help-text{font-size:12px;color:#6b7280;margin-top:6px;line-height:1.4}
+    #phoneChangeRequestStatus{margin-top:8px}
+    @media(max-width:768px){.phone-change-grid{grid-template-columns:1fr}}
+
   </style>
 </head>
 <body>
@@ -972,9 +982,24 @@
             <label for="lastName">Nama Belakang</label>
             <input id="lastName" name="lastName" placeholder="Nama belakang" type="text"/>
           </div>
-          <div class="form-group">
-            <label for="phoneNumber">Nomor Telepon</label>
-            <input id="phoneNumber" name="phoneNumber" placeholder="Nomor telepon" type="text"/>
+          <div class="phone-change-grid">
+            <div class="form-group">
+              <label for="phoneNumber">Nomor Telepon Saat Ini</label>
+              <input id="phoneNumber" name="phoneNumber" placeholder="Nomor telepon" type="text" readonly/>
+              <div class="help-text">Nomor lama akun Anda.</div>
+            </div>
+            <div class="phone-change-card">
+              <h3><i class="fas fa-mobile-alt"></i> Ubah Nomor</h3>
+              <p>Masukkan nomor baru. OTP konfirmasi akan dikirim ke <strong>nomor lama</strong>.</p>
+              <div class="form-group">
+                <label for="newPhoneNumber">Nomor Baru</label>
+                <input id="newPhoneNumber" name="newPhoneNumber" placeholder="Contoh: 628123456789" type="text" inputmode="numeric" autocomplete="tel"/>
+              </div>
+              <button type="button" class="button button-primary" id="requestPhoneChangeOtp">
+                <i class="fas fa-paper-plane"></i> Minta OTP
+              </button>
+              <div id="phoneChangeRequestStatus" class="help-text"></div>
+            </div>
           </div>
           <div class="divider"></div>
           <div class="form-group">
@@ -988,7 +1013,7 @@
           
           <div id="phoneChangeOtpSection" class="phone-change-otp-section hidden">
               <h3>Konfirmasi Perubahan Nomor Telepon</h3>
-              <p>Kami telah mengirim OTP verifikasi ke nomor telepon lama Anda. Harap masukkan di bawah untuk mengkonfirmasi perubahan nomor telepon Anda.</p>
+              <p>OTP dikirim ke <strong>nomor telepon lama</strong> untuk memastikan benar Anda yang meminta perubahan.</p>
               <div class="otp-input-group">
                   <input type="text" maxlength="1" class="otp-input" data-index="0" autocomplete="one-time-code">
                   <input type="text" maxlength="1" class="otp-input" data-index="1">
@@ -1303,6 +1328,9 @@
     const firstNameInput = document.getElementById("firstName");
     const lastNameInput = document.getElementById("lastName");
     const phoneNumberInput = document.getElementById("phoneNumber");
+    const newPhoneNumberInput = document.getElementById("newPhoneNumber");
+    const requestPhoneChangeOtpBtn = document.getElementById("requestPhoneChangeOtp");
+    const phoneChangeRequestStatus = document.getElementById("phoneChangeRequestStatus");
     const usernameInput = document.getElementById("username");
     const emailInput = document.getElementById("email");
 
@@ -2085,39 +2113,14 @@
           }
         }
 
-        // Jika nomor telepon berubah, OTP dikirim ke nomor lama.
-        if (newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest) {
-          const otpResponse = await fetch("/get/otp-change-nomor", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nomorLama: oldPhoneNumber }),
-            credentials: "include",
-          });
-          const otpData = await otpResponse.json().catch(() => ({}));
+        // Nomor telepon hanya diproses melalui kotak "Ubah Nomor".
+        // Submit form utama tidak lagi otomatis mengirim OTP.
+        const requestedNewPhone = (newPhoneNumberInput.value || "").trim();
+        const phonePending = phoneNumberChangeRequest;
 
-          if (!otpResponse.ok || !otpData.success) {
-            throw new Error(normalizeApiMessage(otpData, "Gagal meminta OTP perubahan nomor telepon."));
-          }
-
-          phoneNumberChangeRequest = {
-            newNomor: newPhoneNumber,
-            otpIssuedAt: Date.now()
-          };
-          resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
-          phoneChangeOtpSection.classList.remove("hidden");
-          startOtpTimer("phone", phoneChangeOtpTimer, resendPhoneChangeOtpBtn);
-          phoneChangeOtpInputs[0]?.focus();
-
-          // Gunakan message dari endpoint/Fonnte persis seperti response server.
-          showNotification(normalizeApiMessage(otpData, "Kode OTP berhasil dikirim."), "success");
-          setLoading(saveChangesBtn, false);
-          return;
-        }
-
-        // Verifikasi OTP nomor hanya jika request masih aktif dan belum 30 detik.
-        if (phoneNumberChangeRequest && newPhoneNumber === phoneNumberChangeRequest.newNomor) {
-          if (isOtpExpired("phone")) {
-            phoneChangeOtpError.textContent = "OTP sudah kedaluwarsa setelah 30 detik. Silakan kirim ulang OTP.";
+        if (phonePending && requestedNewPhone === phonePending.newNomor) {
+          if (!phonePending.otpIssuedAt || Date.now() - phonePending.otpIssuedAt >= 30000) {
+            phoneChangeOtpError.textContent = 'OTP sudah kedaluwarsa. Tekan "Kirim Ulang OTP" untuk mendapatkan OTP baru.';
             phoneChangeOtpError.classList.remove("hidden");
             setLoading(saveChangesBtn, false);
             return;
@@ -2134,13 +2137,13 @@
           const changePhoneResponse = await fetch("/auth/change-number", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nomorLama: oldPhoneNumber, otp, nomorBaru: newPhoneNumber }),
+            body: JSON.stringify({ nomorLama: oldPhoneNumber, otp, nomorBaru: requestedNewPhone }),
             credentials: "include",
           });
           const changePhoneData = await changePhoneResponse.json().catch(() => ({}));
 
           if (!changePhoneResponse.ok || !changePhoneData.success) {
-            phoneChangeOtpError.textContent = normalizeApiMessage(changePhoneData, "OTP tidak valid atau kadaluarsa.");
+            phoneChangeOtpError.textContent = normalizeApiMessage(changePhoneData, "OTP tidak valid atau sudah kedaluwarsa.");
             phoneChangeOtpError.classList.remove("hidden");
             setLoading(saveChangesBtn, false);
             return;
@@ -2150,7 +2153,12 @@
           clearOtpTimer("phone");
           phoneChangeOtpSection.classList.add("hidden");
           phoneNumberChangeRequest = null;
+          phoneNumberInput.value = requestedNewPhone;
           resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
+        } else if (requestedNewPhone && requestedNewPhone !== oldPhoneNumber && !phonePending) {
+          showNotification('Silakan klik "Minta OTP" di kotak Ubah Nomor terlebih dahulu.', "info");
+          setLoading(saveChangesBtn, false);
+          return;
         }
 
         const requests = [];
@@ -2212,56 +2220,96 @@
       }
     });
 
+    requestPhoneChangeOtpBtn.addEventListener("click", async () => {
+      const oldNomor = (currentUserData?.nomor || phoneNumberInput.value || "").trim();
+      const newNomor = (newPhoneNumberInput.value || "").trim();
+
+      if (!oldNomor) {
+        showNotification("Nomor lama tidak ditemukan.", "error");
+        return;
+      }
+      if (!/^\d{10,15}$/.test(newNomor)) {
+        showNotification("Nomor baru harus 10-15 digit angka.", "error");
+        return;
+      }
+      if (newNomor === oldNomor) {
+        showNotification("Nomor baru tidak boleh sama dengan nomor lama.", "error");
+        return;
+      }
+      try {
+        setLoading(requestPhoneChangeOtpBtn, true);
+        phoneChangeRequestStatus.textContent = "Mengecek nomor baru...";
+        const availabilityResponse = await fetch("/profile/check-availability", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          credentials:"include",
+          body:JSON.stringify({ nomor:newNomor })
+        });
+        const availability = await availabilityResponse.json().catch(()=>({}));
+        if (availabilityResponse.ok && availability.supported && availability.nomorAvailable === false) {
+          throw new Error("Nomor baru sudah terdaftar di DB.");
+        }
+
+        const response = await fetch("/get/otp-change-nomor", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          credentials:"include",
+          body:JSON.stringify({ nomorLama:oldNomor, nomorBaru:newNomor })
+        });
+        const data = await response.json().catch(()=>({}));
+        if (!response.ok || !data.success) throw new Error(normalizeApiMessage(data,"Gagal mengirim OTP."));
+
+        phoneNumberChangeRequest={newNomor,otpIssuedAt:Date.now()};
+        phoneNumberInput.value=oldNomor;
+        resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError);
+        phoneChangeOtpSection.classList.remove("hidden");
+        startOtpTimer("phone",phoneChangeOtpTimer,resendPhoneChangeOtpBtn);
+        phoneChangeRequestStatus.textContent="OTP dikirim ke nomor lama.";
+        showNotification(normalizeApiMessage(data,"OTP berhasil dikirim ke nomor lama."),"success");
+        phoneChangeOtpInputs[0]?.focus();
+      } catch(error){
+        console.error("Error requesting phone OTP:",error);
+        showNotification(error.message || "Gagal meminta OTP perubahan nomor.","error");
+        phoneChangeRequestStatus.textContent="";
+      } finally {
+        setLoading(requestPhoneChangeOtpBtn,false);
+      }
+    });
+
     cancelPhoneChangeBtn.addEventListener("click", () => {
       clearOtpTimer("phone");
       phoneChangeOtpSection.classList.add("hidden");
       phoneNumberChangeRequest = null;
-      if (currentUserData) phoneNumberInput.value = currentUserData.nomor;
+      newPhoneNumberInput.value = "";
+      phoneNumberInput.value = currentUserData?.nomor || "";
+      phoneChangeRequestStatus.textContent = "";
       resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
       resendPhoneChangeOtpBtn.disabled = true;
-      phoneChangeOtpTimer.textContent = "OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
-      showNotification("Perubahan nomor telepon dibatalkan", "info");
+      showNotification("Permintaan perubahan nomor dibatalkan","info");
     });
 
     resendPhoneChangeOtpBtn.addEventListener("click", async () => {
-      if (!phoneNumberChangeRequest || isOtpExpired("phone") === false) {
-        showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.", "info");
+      if (!phoneNumberChangeRequest || Date.now() - phoneNumberChangeRequest.otpIssuedAt < 30000) {
+        showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.","info");
         return;
       }
-      if (!currentUserData || !currentUserData.nomor) {
-        showNotification("Nomor telepon lama tidak ditemukan.", "error");
-        return;
-      }
-
-      try {
-        setLoading(resendPhoneChangeOtpBtn, true);
-        const response = await fetch("/get/otp-change-nomor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nomorLama: currentUserData.nomor }),
-          credentials: "include",
+      const oldNomor=currentUserData?.nomor || phoneNumberInput.value || "";
+      try{
+        setLoading(resendPhoneChangeOtpBtn,true);
+        const response=await fetch("/get/otp-change-nomor",{
+          method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",
+          body:JSON.stringify({nomorLama:oldNomor,nomorBaru:phoneNumberChangeRequest.newNomor})
         });
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.success) {
-          showNotification(normalizeApiMessage(data, "Gagal mengirim ulang OTP."), "error");
-          return;
-        }
-
-        phoneNumberChangeRequest.otpIssuedAt = Date.now();
-        resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
-        startOtpTimer("phone", phoneChangeOtpTimer, resendPhoneChangeOtpBtn);
-
-        // Ambil notif/message dari response Fonnte/backend.
-        showNotification(normalizeApiMessage(data, "OTP baru berhasil dikirim."), "success");
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok || !data.success) throw new Error(normalizeApiMessage(data,"Gagal mengirim ulang OTP."));
+        phoneNumberChangeRequest.otpIssuedAt=Date.now();
+        resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError);
+        startOtpTimer("phone",phoneChangeOtpTimer,resendPhoneChangeOtpBtn);
+        showNotification(normalizeApiMessage(data,"OTP baru berhasil dikirim ke nomor lama."),"success");
         phoneChangeOtpInputs[0]?.focus();
-      } catch (error) {
-        console.error("Error resending OTP:", error);
-        showNotification(error.message || "Gagal mengirim ulang OTP.", "error");
-      } finally {
-        setLoading(resendPhoneChangeOtpBtn, false);
-        resendPhoneChangeOtpBtn.disabled = !isOtpExpired("phone");
-      }
+      }catch(error){
+        showNotification(error.message || "Gagal mengirim ulang OTP.","error");
+      }finally{setLoading(resendPhoneChangeOtpBtn,false);}
     });
 
     cancelChangesBtn.addEventListener("click", () => {
