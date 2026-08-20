@@ -596,17 +596,19 @@ app.get("/api/history/order", requireLogin, async (req, res) => {
   }
 });
 
-// Upload foto profil ke Catbox menggunakan memory storage.
-// Batas 5 MB dan hanya menerima JPEG/PNG/GIF agar request lebih aman/stabil.
+// Upload foto profil. Frontend lama mengirim field "photo" dan juga fallback "file".
+// Jangan gunakan .single("photo") karena field "file" akan dianggap unexpected field
+// oleh Multer dan upload langsung gagal. Terima keduanya, lalu pilih file yang tersedia.
 const uploadMemory = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024,
+    files: 2,
   },
   fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/png", "image/gif"];
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowed.includes(file.mimetype)) {
-      return cb(new Error("Format foto harus JPG, PNG, atau GIF."));
+      return cb(new Error("Format foto harus JPG, PNG, GIF, atau WEBP."));
     }
     cb(null, true);
   },
@@ -623,7 +625,7 @@ async function CatBox(buffer, originalname) {
   data.append("userhash", "");
   data.append("fileToUpload", buffer, { filename: safeName });
 
-  const response = await axios.post(
+  const api = await axios.post(
     "https://catbox.moe/user/api.php",
     data,
     {
@@ -634,25 +636,19 @@ async function CatBox(buffer, originalname) {
         Accept: "text/plain, */*",
       },
       timeout: 30000,
-      maxContentLength: 2 * 1024 * 1024,
       maxBodyLength: 6 * 1024 * 1024,
+      maxContentLength: 2 * 1024 * 1024,
       validateStatus: () => true,
     }
   );
 
-  const raw = typeof response.data === "string"
-    ? response.data.trim()
-    : String(response.data ?? "").trim();
-
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`Catbox HTTP ${response.status}: ${raw || "upload ditolak"}`);
+  const raw = String(api.data ?? "").trim();
+  if (api.status < 200 || api.status >= 300) {
+    throw new Error(`Catbox HTTP ${api.status}: ${raw || "upload ditolak"}`);
   }
 
-  // Catbox mengembalikan URL sebagai plain text. Jangan simpan response
-  // mentah jika ternyata yang dikembalikan bukan URL.
   const match = raw.match(/https?:\/\/[^\s]+/i);
   const uploadedUrl = match ? match[0].replace(/[\r\n]+/g, "").trim() : "";
-
   if (!/^https?:\/\/\S+$/i.test(uploadedUrl)) {
     throw new Error(`Catbox tidak mengembalikan URL gambar yang valid: ${raw.slice(0, 200)}`);
   }
@@ -664,7 +660,10 @@ app.post(
   "/profile/update-photo",
   requireLogin,
   (req, res, next) => {
-    uploadMemory.single("photo")(req, res, (err) => {
+    uploadMemory.fields([
+      { name: "photo", maxCount: 1 },
+      { name: "file", maxCount: 1 },
+    ])(req, res, (err) => {
       if (!err) return next();
 
       console.error("Upload middleware error:", err);
@@ -681,7 +680,6 @@ app.post(
   },
   async (req, res) => {
     try {
-      // Custom admin tidak memakai User MongoDB biasa.
       if (req.session.userId === "custom-admin") {
         return res.status(400).json({
           success: false,
@@ -689,54 +687,47 @@ app.post(
         });
       }
 
-      if (!mongoose.Types.ObjectId.isValid(req.session.userId)) {
-        return res.status(401).json({
-          success: false,
-          message: "Session pengguna tidak valid",
-        });
-      }
+      // Prioritaskan field "photo", fallback ke "file".
+      const file =
+        req.files?.photo?.[0] ||
+        req.files?.file?.[0] ||
+        null;
 
-      const file = req.file;
       if (!file) {
         return res.status(400).json({
           success: false,
-          message: "Foto belum dipilih. Field upload harus bernama 'photo'.",
+          message: "Foto tidak ditemukan. Gunakan field multipart 'photo'.",
         });
       }
 
-      // Upload dulu ke hosting gambar.
-      const uploadedUrl = await CatBox(file.buffer, file.originalname);
-
-      // Pastikan user benar-benar ada sebelum menyimpan URL.
-      const updatedUser = await User.findByIdAndUpdate(
-        req.session.userId,
-        { $set: { profileUrl: uploadedUrl } },
-        { new: true, runValidators: true, projection: { profileUrl: 1, _id: 1 } }
-      );
-
-      if (!updatedUser) {
+      const user = await User.findById(req.session.userId);
+      if (!user) {
         return res.status(404).json({
           success: false,
-          message: "User tidak ditemukan, URL gambar tidak disimpan.",
+          message: "User tidak ditemukan.",
         });
       }
 
-      console.log(`✅ Foto profil ${req.session.userId} diperbarui: ${uploadedUrl}`);
+      const uploadedUrl = await CatBox(file.buffer, file.originalname);
+
+      user.profileUrl = uploadedUrl;
+      await user.save();
+
+      console.log(`✅ Foto profil ${user.username} berhasil diupload: ${uploadedUrl}`);
 
       return res.status(200).json({
         success: true,
-        message: "Foto profil berhasil diperbarui",
+        message: "Foto profil berhasil diperbarui.",
         profileUrl: uploadedUrl,
         user: {
           profileUrl: uploadedUrl,
         },
       });
     } catch (error) {
-      console.error("❌ Error update profile photo:", error?.response?.data || error);
-
+      console.error("❌ Error update profile photo:", error.response?.data || error.message || error);
       return res.status(500).json({
         success: false,
-        message: error?.message || "Gagal memperbarui foto profil",
+        message: error.message || "Gagal memperbarui foto profil.",
       });
     }
   }
