@@ -708,81 +708,142 @@
            margin-top: 16px;
        }
   
-/* ===== Xiao-Gateaway Comic Upgrade ===== */
-body::before{
- content:none!important;
-}
-.main-header{
- padding:6px 10px !important;
-}
-.tab-button{
- font-size:10px !important;
- padding:10px 12px !important;
-}
-.section-title{
- font-size:18px !important;
- line-height:1.5;
-}
-.sidebar,.main-content,.tab-content,.card,.stats-card,.order-card,.payment-card{
- background:linear-gradient(145deg,#ffffff,#ecfdf5)!important;
-}
-.profile-image-container{
- border:3px solid #111827;
- border-radius:50%;
- padding:5px;
- background:#22c55e;
- box-shadow:5px 5px 0 #111827;
-}
-.profile-image{
- border:0!important;
-}
-.edit-photo-button{
- border:2px solid #111827!important;
- box-shadow:3px 3px 0 #111827;
-}
-.notification{
- border:2px solid #111827!important;
- box-shadow:4px 4px 0 #111827;
-}
 
+    /* ===== Precision comic layout ===== */
+    html, body { overflow-x: hidden; }
+    .container {
+      width: min(1200px, calc(100% - 24px));
+      max-width: 1200px;
+      box-sizing: border-box;
+      align-items: start;
+    }
+    .sidebar, .main-content, .tab-content { min-width: 0; box-sizing: border-box; }
+    .tab-navigation {
+      gap: 14px;
+      padding: 8px 10px 12px;
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: auto;
+      justify-content: flex-start;
+    }
+    .tab-button {
+      flex: 0 0 auto;
+      min-width: max-content;
+      box-sizing: border-box;
+      border: 2px solid var(--ink) !important;
+      border-radius: 14px !important;
+      margin: 0;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .tab-button[aria-selected="true"] { transform: translate(-1px, -1px); }
+    .sidebar { width: 100%; }
+    .main-content { width: 100%; }
+    .tab-content { width: 100%; max-width: 100%; }
+    .overflow-x-auto { width: 100%; overflow-x: auto; }
+    .details-table { min-width: 560px; }
+    @media (max-width: 768px) {
+      .container { width: calc(100% - 16px); margin: 12px auto 24px; padding: 0; }
+      .sidebar { width: 100%; padding: 18px; }
+      .main-header { padding: 8px 6px; }
+      .header-content { width: 100%; }
+      .tab-navigation { gap: 12px; padding: 6px 8px 12px; }
+      .tab-button { padding: 10px 16px; font-size: 11px; }
+      .tab-content { padding: 18px; }
+      .section-title { font-size: 18px !important; line-height: 1.4; }
+      .username-display { font-size: 18px; }
+    }
 
-/* ===== Final Header Fix ===== */
-.main-header{
- overflow:hidden!important;
- padding:10px 14px!important;
-}
-.header-content{
- width:100%!important;
- overflow:hidden!important;
-}
-.tab-navigation{
- display:flex!important;
- gap:12px!important;
- padding:4px 2px!important;
- overflow-x:auto!important;
- justify-content:flex-start!important;
-}
-.tab-button{
- flex:0 0 auto!important;
- margin:0!important;
- border-radius:14px!important;
- padding:12px 18px!important;
- font-size:10px!important;
-}
-.container{
- overflow-x:hidden!important;
- padding-left:14px!important;
- padding-right:14px!important;
-}
-.sidebar,.main-content{
- min-width:0!important;
- max-width:100%!important;
-}
-@media(max-width:768px){
- .tab-navigation{gap:10px!important;}
- .tab-button{padding:10px 14px!important;}
-}
-</style>
+    /* ===== Profile photo cropper ===== */
+    .cropper-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, .72);
+      backdrop-filter: blur(5px);
+    }
+    .cropper-modal.show { display: flex; }
+    .cropper-card {
+      width: min(520px, 100%);
+      max-height: min(92vh, 760px);
+      overflow: auto;
+      background: #fff;
+      border: 3px solid var(--ink);
+      border-radius: 20px;
+      box-shadow: 10px 10px 0 var(--ink);
+      padding: 18px;
+    }
+    .cropper-title {
+      margin: 0 0 6px;
+      font-family: "Press Start 2P", "Pixelify Sans", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .cropper-subtitle { margin: 0 0 14px; color: #6b7280; font-size: 13px; }
+    .cropper-stage {
+      position: relative;
+      width: min(420px, 100%);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 16px;
+      border: 3px solid var(--ink);
+      border-radius: 16px;
+      overflow: hidden;
+      background:
+        linear-gradient(45deg, #f0fdf4 25%, #dcfce7 25%, #dcfce7 50%, #f0fdf4 50%, #f0fdf4 75%, #dcfce7 75%);
+      background-size: 28px 28px;
+      touch-action: none;
+      cursor: grab;
+      box-shadow: 6px 6px 0 var(--ink);
+    }
+    .cropper-stage.dragging { cursor: grabbing; }
+    #cropperImage {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      max-width: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      transform-origin: center center;
+      pointer-events: none;
+    }
+    .cropper-mask {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 999px solid rgba(0,0,0,.34);
+      border-radius: 0;
+      box-sizing: border-box;
+    }
+    .cropper-guide {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 72%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border: 3px solid #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 4px 0 rgba(17,24,39,.85);
+      pointer-events: none;
+    }
+    .cropper-controls { display: grid; gap: 10px; margin-bottom: 14px; }
+    .cropper-range-row { display: flex; align-items: center; gap: 10px; }
+    .cropper-range-row label { font-weight: 700; font-size: 13px; min-width: 66px; }
+    #cropperZoom { flex: 1; accent-color: #22c55e; }
+    .cropper-range-value { width: 54px; text-align: right; font-weight: 700; font-size: 12px; }
+    .cropper-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .cropper-actions .button { flex: 1 1 160px; }
+    @media (max-width: 480px) {
+      .cropper-modal { padding: 8px; }
+      .cropper-card { padding: 14px; box-shadow: 6px 6px 0 var(--ink); }
+      .cropper-stage { width: 100%; }
+      .cropper-title { font-size: 12px; }
+    }
+
+  </style>
 </head>
 <body>
   <header class="main-header">
@@ -829,7 +890,7 @@ body::before{
         <p class="email-display" id="emailDisplay">Memuat...!</p>
       </div>
       <div class="file-upload-info">
-        <input accept="image/jpeg,image/png,image/gif" class="hidden" id="photoUpload" type="file"/>
+        <input accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" id="photoUpload" type="file"/>
         <p>Hanya JPG, GIF atau PNG yang diizinkan.</p>
       </div>
       <div class="divider"></div>
@@ -1174,6 +1235,32 @@ body::before{
 
     </main>
   </div>
+
+
+  <!-- Crop photo modal -->
+  <div class="cropper-modal" id="cropperModal" aria-hidden="true">
+    <div class="cropper-card" role="dialog" aria-modal="true" aria-labelledby="cropperTitle">
+      <h2 class="cropper-title" id="cropperTitle">Atur Foto Profil</h2>
+      <p class="cropper-subtitle">Geser foto untuk mengatur posisi, lalu gunakan zoom sampai wajah/objek berada tepat di dalam lingkaran.</p>
+      <div class="cropper-stage" id="cropperStage">
+        <img id="cropperImage" alt="Pratinjau foto profil">
+        <div class="cropper-mask"></div>
+        <div class="cropper-guide"></div>
+      </div>
+      <div class="cropper-controls">
+        <div class="cropper-range-row">
+          <label for="cropperZoom">Zoom</label>
+          <input id="cropperZoom" type="range" min="1" max="3.5" step="0.01" value="1">
+          <span class="cropper-range-value" id="cropperZoomValue">100%</span>
+        </div>
+      </div>
+      <div class="cropper-actions">
+        <button class="button button-secondary" type="button" id="cropperCancel">Batal</button>
+        <button class="button button-primary" type="button" id="cropperSave"><i class="fas fa-check"></i> Gunakan Foto</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentUserData = null;
     let phoneNumberChangeRequest = null;
@@ -1201,6 +1288,13 @@ body::before{
     const profileImage = document.getElementById("profileImage");
     const photoUpload = document.getElementById("photoUpload");
     const editPhotoBtn = document.getElementById("editPhotoBtn");
+    const cropperModal = document.getElementById("cropperModal");
+    const cropperStage = document.getElementById("cropperStage");
+    const cropperImage = document.getElementById("cropperImage");
+    const cropperZoom = document.getElementById("cropperZoom");
+    const cropperZoomValue = document.getElementById("cropperZoomValue");
+    const cropperCancel = document.getElementById("cropperCancel");
+    const cropperSave = document.getElementById("cropperSave");
     const backToDashboardBtn = document.getElementById("backToDashboard");
 
     const profileForm = document.getElementById("profileForm");
@@ -1431,29 +1525,163 @@ body::before{
     tabButtons.coinExchange.addEventListener("click", () => switchTab("coinExchange"));
     tabButtons.upgradeReseller.addEventListener("click", () => switchTab("upgradeReseller"));
 
-    editPhotoBtn.addEventListener("click", () => photoUpload.click());
-    photoUpload.addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    // ===== Photo cropper + upload =====
+    let cropperObjectUrl = null;
+    let cropperNaturalWidth = 0;
+    let cropperNaturalHeight = 0;
+    let cropperBaseScale = 1;
+    let cropperZoomLevel = 1;
+    let cropperOffsetX = 0;
+    let cropperOffsetY = 0;
+    let cropperDragging = false;
+    let cropperDragStartX = 0;
+    let cropperDragStartY = 0;
+    let cropperStartOffsetX = 0;
+    let cropperStartOffsetY = 0;
 
-      if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
-        showNotification("Hanya file JPG, PNG, atau GIF yang diizinkan", "error");
-        return;
+    function openCropper(file) {
+      if (cropperObjectUrl) URL.revokeObjectURL(cropperObjectUrl);
+      cropperObjectUrl = URL.createObjectURL(file);
+      cropperImage.src = cropperObjectUrl;
+      cropperZoom.value = "1";
+      cropperZoomLevel = 1;
+      cropperOffsetX = 0;
+      cropperOffsetY = 0;
+      cropperZoomValue.textContent = "100%";
+      cropperModal.classList.add("show");
+      cropperModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeCropper() {
+      cropperModal.classList.remove("show");
+      cropperModal.setAttribute("aria-hidden", "true");
+      cropperImage.removeAttribute("src");
+      if (cropperObjectUrl) {
+        URL.revokeObjectURL(cropperObjectUrl);
+        cropperObjectUrl = null;
       }
+      photoUpload.value = "";
+    }
 
-      // simpan gambar lama (biar bisa rollback kalau gagal)
+    function updateCropperImage() {
+      const stageW = cropperStage.clientWidth;
+      const stageH = cropperStage.clientHeight;
+      if (!cropperNaturalWidth || !cropperNaturalHeight || !stageW || !stageH) return;
+
+      cropperBaseScale = Math.max(stageW / cropperNaturalWidth, stageH / cropperNaturalHeight);
+      const scale = cropperBaseScale * cropperZoomLevel;
+      const drawW = cropperNaturalWidth * scale;
+      const drawH = cropperNaturalHeight * scale;
+      cropperImage.style.width = drawW + "px";
+      cropperImage.style.height = drawH + "px";
+      cropperImage.style.transform = `translate(calc(-50% + ${cropperOffsetX}px), calc(-50% + ${cropperOffsetY}px))`;
+    }
+
+    cropperImage.addEventListener("load", () => {
+      cropperNaturalWidth = cropperImage.naturalWidth;
+      cropperNaturalHeight = cropperImage.naturalHeight;
+      requestAnimationFrame(updateCropperImage);
+    });
+
+    cropperZoom.addEventListener("input", () => {
+      cropperZoomLevel = Number(cropperZoom.value);
+      cropperZoomValue.textContent = Math.round(cropperZoomLevel * 100) + "%";
+      updateCropperImage();
+    });
+
+    cropperStage.addEventListener("pointerdown", (event) => {
+      cropperDragging = true;
+      cropperStage.classList.add("dragging");
+      cropperDragStartX = event.clientX;
+      cropperDragStartY = event.clientY;
+      cropperStartOffsetX = cropperOffsetX;
+      cropperStartOffsetY = cropperOffsetY;
+      cropperStage.setPointerCapture?.(event.pointerId);
+    });
+
+    cropperStage.addEventListener("pointermove", (event) => {
+      if (!cropperDragging) return;
+      cropperOffsetX = cropperStartOffsetX + (event.clientX - cropperDragStartX);
+      cropperOffsetY = cropperStartOffsetY + (event.clientY - cropperDragStartY);
+      updateCropperImage();
+    });
+
+    function stopCropperDrag() {
+      cropperDragging = false;
+      cropperStage.classList.remove("dragging");
+    }
+    cropperStage.addEventListener("pointerup", stopCropperDrag);
+    cropperStage.addEventListener("pointercancel", stopCropperDrag);
+    cropperStage.addEventListener("pointerleave", stopCropperDrag);
+
+    cropperStage.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -0.08 : 0.08;
+      cropperZoomLevel = Math.max(1, Math.min(3.5, cropperZoomLevel + delta));
+      cropperZoom.value = cropperZoomLevel.toFixed(2);
+      cropperZoomValue.textContent = Math.round(cropperZoomLevel * 100) + "%";
+      updateCropperImage();
+    }, { passive: false });
+
+    window.addEventListener("resize", updateCropperImage);
+    cropperCancel.addEventListener("click", closeCropper);
+    cropperModal.addEventListener("click", (event) => {
+      if (event.target === cropperModal) closeCropper();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && cropperModal.classList.contains("show")) closeCropper();
+    });
+
+    function exportCroppedPhoto() {
+      const stageSize = cropperStage.clientWidth;
+      const guideSize = stageSize * 0.72;
+      const stageCenterX = stageSize / 2;
+      const stageCenterY = stageSize / 2;
+
+      const scale = cropperBaseScale * cropperZoomLevel;
+      const displayedW = cropperNaturalWidth * scale;
+      const displayedH = cropperNaturalHeight * scale;
+      const imageLeft = stageCenterX - displayedW / 2 + cropperOffsetX;
+      const imageTop = stageCenterY - displayedH / 2 + cropperOffsetY;
+      const cropLeft = stageCenterX - guideSize / 2;
+      const cropTop = stageCenterY - guideSize / 2;
+
+      const sourceX = (cropLeft - imageLeft) / scale;
+      const sourceY = (cropTop - imageTop) / scale;
+      const sourceSize = guideSize / scale;
+
+      const sx = Math.max(0, Math.min(cropperNaturalWidth - sourceSize, sourceX));
+      const sy = Math.max(0, Math.min(cropperNaturalHeight - sourceSize, sourceY));
+      const safeSize = Math.min(sourceSize, cropperNaturalWidth - sx, cropperNaturalHeight - sy);
+
+      const canvas = document.createElement("canvas");
+      const outputSize = 720;
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, outputSize, outputSize);
+      ctx.drawImage(cropperImage, sx, sy, safeSize, safeSize, 0, 0, outputSize, outputSize);
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("Gagal memproses foto."));
+          resolve(blob);
+        }, "image/jpeg", 0.92);
+      });
+    }
+
+    async function uploadCroppedPhoto(blob) {
       const oldImage = profileImage.src;
-
-      // preview dulu (UX lebih enak)
-      const previewURL = URL.createObjectURL(file);
+      const previewURL = URL.createObjectURL(blob);
       profileImage.src = previewURL;
+      profileImage.style.opacity = "0.5";
+      setLoading(cropperSave, true);
 
       try {
-        profileImage.style.opacity = '0.5';
-
         const formData = new FormData();
-        formData.append("photo", file);
-        formData.append("file", file); // fallback key (kadang backend pakai ini)
+        const croppedFile = new File([blob], "profile-photo.jpg", { type: "image/jpeg" });
+        formData.append("photo", croppedFile);
 
         const response = await fetch("/profile/update-photo", {
           method: "POST",
@@ -1461,37 +1689,57 @@ body::before{
           credentials: "include",
         });
 
-        if (!response.ok) {
-          throw new Error("HTTP error " + response.status);
+        const text = await response.text();
+        let data = {};
+        try { data = JSON.parse(text); } catch (_) {}
+
+        if (!response.ok || !data.success || !data.profileUrl) {
+          throw new Error(data.message || `Upload gagal (HTTP ${response.status})`);
         }
 
-        const data = await response.json();
-
-        const uploadedUrl = data.profileUrl || data.photoUrl || data.url || data.image;
-        if ((data.success || response.ok) && uploadedUrl) {
-          // pakai cache buster biar gambar langsung update
-          const finalUrl = uploadedUrl + (uploadedUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
-          profileImage.src = finalUrl;
-
-          if (currentUserData) {
-            currentUserData.profileUrl = finalUrl;
-          }
-
-          showNotification("Foto profil berhasil diperbarui", "success");
-        } else {
-          throw new Error(data.message || "Upload gagal");
-        }
-
+        const finalUrl = `${data.profileUrl}${data.profileUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+        profileImage.src = finalUrl;
+        if (currentUserData) currentUserData.profileUrl = finalUrl;
+        showNotification("Foto profil berhasil diperbarui", "success");
+        closeCropper();
       } catch (error) {
-        console.error("Upload error:", error);
-
-        // rollback ke gambar lama
+        console.error("Upload cropped photo error:", error);
         profileImage.src = oldImage;
-
-        showNotification("Gagal memperbarui foto profil. Cek endpoint upload foto.", "error");
+        showNotification(error.message || "Gagal memperbarui foto profil", "error");
       } finally {
-        profileImage.style.opacity = '1';
+        profileImage.style.opacity = "1";
         URL.revokeObjectURL(previewURL);
+        setLoading(cropperSave, false);
+      }
+    }
+
+    editPhotoBtn.addEventListener("click", () => photoUpload.click());
+    photoUpload.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+      if (!allowed.includes(file.type)) {
+        photoUpload.value = "";
+        showNotification("Format foto harus JPG, PNG, GIF, atau WEBP.", "error");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        photoUpload.value = "";
+        showNotification("Ukuran foto maksimal 5 MB.", "error");
+        return;
+      }
+
+      openCropper(file);
+    });
+
+    cropperSave.addEventListener("click", async () => {
+      try {
+        const blob = await exportCroppedPhoto();
+        await uploadCroppedPhoto(blob);
+      } catch (error) {
+        console.error("Crop error:", error);
+        showNotification(error.message || "Gagal memproses foto.", "error");
       }
     });
 
@@ -1651,164 +1899,150 @@ body::before{
     }
 
     profileForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        setLoading(saveChangesBtn, true);
+      e.preventDefault();
+      setLoading(saveChangesBtn, true);
 
-        const firstName = firstNameInput.value.trim();
-        const lastName = lastNameInput.value.trim();
-        const newFullname = `${firstName}${lastName ? " " + lastName : ""}`;
-        const newPhoneNumber = phoneNumberInput.value.trim();
-        const username = usernameInput.value.trim();
-        const newEmail = emailInput.value.trim();
+      const firstName = firstNameInput.value.trim();
+      const lastName = lastNameInput.value.trim();
+      const newFullname = `${firstName}${lastName ? " " + lastName : ""}`.trim();
+      const newPhoneNumber = phoneNumberInput.value.trim();
+      const newUsername = usernameInput.value.trim();
+      const newEmail = emailInput.value.trim();
 
-        const oldPhoneNumber = currentUserData ? currentUserData.nomor : '';
-        const oldEmail = currentUserData ? currentUserData.email : '';
-        const oldFullname = currentUserData ? currentUserData.fullname : '';
-        const oldUsername = currentUserData ? currentUserData.username : '';
+      const oldPhoneNumber = currentUserData?.nomor || "";
+      const oldEmail = currentUserData?.email || "";
+      const oldFullname = currentUserData?.fullname || "";
+      const oldUsername = currentUserData?.username || "";
 
-        if (phoneNumberChangeRequest && newPhoneNumber === phoneNumberChangeRequest.newNomor) {
-            try {
-                const otp = phoneChangeOtpField.value;
-                if (!otp || otp.length !== 6) {
-                    phoneChangeOtpError.textContent = "Masukkan 6 digit OTP yang valid.";
-                    phoneChangeOtpError.classList.remove("hidden");
-                    setLoading(saveChangesBtn, false);
-                    return;
-                }
-                phoneChangeOtpError.classList.add("hidden"); 
+      if (!firstName) {
+        showNotification("Nama depan wajib diisi.", "error");
+        setLoading(saveChangesBtn, false);
+        return;
+      }
+      if (!newUsername) {
+        showNotification("Username wajib diisi.", "error");
+        setLoading(saveChangesBtn, false);
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+        showNotification("Format email tidak valid.", "error");
+        setLoading(saveChangesBtn, false);
+        return;
+      }
 
-                const response = await fetch("/auth/change-number", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nomorLama: oldPhoneNumber, otp, nomorBaru: newPhoneNumber }),
-                    credentials: "include",
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showNotification("Nomor telepon berhasil diubah.", "success");
-                    phoneChangeOtpSection.classList.add("hidden");
-                    phoneNumberChangeRequest = null;
-                    await loadUserData();
-                } else {
-                    phoneChangeOtpError.textContent = data.message || "OTP tidak valid atau kadaluarsa.";
-                    phoneChangeOtpError.classList.remove("hidden");
-                    for (const input of phoneChangeOtpInputs) {
-                        input.classList.add('border-red-500');
-                        setTimeout(() => input.classList.remove('border-red-500'), 1500);
-                    }
-                }
-            } catch (error) {
-                console.error("Error confirming phone change:", error);
-                showNotification("Gagal mengubah nomor telepon.", "error");
-            } finally {
-                setLoading(saveChangesBtn, false);
-            }
-            return;
-        }
-
+      try {
+        // Jika nomor telepon berubah, minta OTP terlebih dahulu.
         if (newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest) {
-            const phoneRegex = /^[0-9]{10,15}$/;
-            if (!phoneRegex.test(newPhoneNumber)) {
-                showNotification("Format nomor baru tidak valid. Minimum 10, maksimum 15 digit, dan hanya angka.", "error");
-                setLoading(saveChangesBtn, false);
-                return;
-            }
-            try {
-                const response = await fetch("/get/otp-change-nomor", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ nomorLama: oldPhoneNumber }),
-                    credentials: "include",
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showNotification("OTP telah dikirim ke nomor telepon lama Anda. Masukkan di bawah untuk konfirmasi.", "success");
-                    phoneNumberChangeRequest = { newNomor: newPhoneNumber };
-                    phoneChangeOtpSection.classList.remove("hidden");
-                    phoneChangeOtpInputs[0].focus();
-                    phoneChangeOtpInputs[0].classList.add('pulse');
-                    setTimeout(() => phoneChangeOtpInputs[0].classList.remove('pulse'), 1500);
-                } else {
-                    showNotification(data.message || "Gagal meminta OTP perubahan nomor telepon.", "error");
-                }
-            } catch (error) {
-                console.error("Error requesting phone change OTP:", error);
-                showNotification("Gagal meminta OTP perubahan nomor telepon.", "error");
-            } finally {
-                setLoading(saveChangesBtn, false);
-            }
-            return;
-        }
-
-        if (newEmail && newEmail !== oldEmail) {
-            try {
-                const response = await fetch("/profile/request-email-change", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ newEmail: newEmail }),
-                    credentials: "include",
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showNotification("Email berhasil diubah.", "success");
-                    await loadUserData();
-                } else {
-                    emailInput.value = oldEmail; 
-                    showNotification(data.message || "Gagal mengubah email.", "error");
-                }
-            } catch (error) {
-                console.error("Error changing email:", error);
-                emailInput.value = oldEmail;
-                showNotification("Gagal mengubah email.", "error");
-            } finally {
-                setLoading(saveChangesBtn, false);
-            }
-            return;
-        }
-
-        let changesMade = false;
-
-        try {
-            if (newFullname !== oldFullname) {
-                const fullnameRes = await fetch("/profile/change-fullname", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ newFullname: newFullname }),
-                    credentials: "include",
-                });
-                const fullnameData = await fullnameRes.json();
-                if (!fullnameData.success) {
-                    throw new Error(fullnameData.message || "Gagal mengubah nama lengkap.");
-                }
-                changesMade = true;
-            }
-
-            if (username !== oldUsername) {
-                const usernameRes = await fetch("/profile/change-username", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ newUsername: username }),
-                    credentials: "include",
-                });
-                const usernameData = await usernameRes.json();
-                if (!usernameData.success) {
-                    throw new Error(usernameData.message || "Gagal mengubah username.");
-                }
-                changesMade = true;
-            }
-
-            if (changesMade) {
-                showNotification("Profil berhasil diperbarui.", "success");
-                await loadUserData();
-            } else {
-                showNotification("Tidak ada perubahan yang terdeteksi pada informasi profil.", "info");
-            }
-        } catch (error) {
-            console.error("Error updating general profile:", error);
-            showNotification(error.message || "Gagal memperbarui profil.", "error");
-        } finally {
+          if (!/^\d{10,15}$/.test(newPhoneNumber)) {
+            showNotification("Nomor telepon harus 10-15 digit angka.", "error");
             setLoading(saveChangesBtn, false);
+            return;
+          }
+
+          const otpResponse = await fetch("/get/otp-change-nomor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nomorLama: oldPhoneNumber }),
+            credentials: "include",
+          });
+          const otpData = await otpResponse.json();
+
+          if (!otpResponse.ok || !otpData.success) {
+            throw new Error(otpData.message || "Gagal meminta OTP perubahan nomor telepon.");
+          }
+
+          phoneNumberChangeRequest = { newNomor: newPhoneNumber };
+          phoneChangeOtpSection.classList.remove("hidden");
+          phoneChangeOtpInputs.forEach(input => input.value = "");
+          phoneChangeOtpField.value = "";
+          phoneChangeOtpError.classList.add("hidden");
+          phoneChangeOtpInputs[0]?.focus();
+          showNotification("OTP sudah dikirim. Masukkan OTP untuk menyimpan nomor baru.", "success");
+          setLoading(saveChangesBtn, false);
+          return;
         }
+
+        // Jika OTP perubahan nomor sudah aktif, verifikasi nomor dahulu.
+        if (phoneNumberChangeRequest && newPhoneNumber === phoneNumberChangeRequest.newNomor) {
+          const otp = phoneChangeOtpField.value.trim();
+          if (!/^\d{6}$/.test(otp)) {
+            phoneChangeOtpError.textContent = "Masukkan 6 digit OTP yang valid.";
+            phoneChangeOtpError.classList.remove("hidden");
+            setLoading(saveChangesBtn, false);
+            return;
+          }
+
+          const changePhoneResponse = await fetch("/auth/change-number", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nomorLama: oldPhoneNumber, otp, nomorBaru: newPhoneNumber }),
+            credentials: "include",
+          });
+          const changePhoneData = await changePhoneResponse.json();
+
+          if (!changePhoneResponse.ok || !changePhoneData.success) {
+            phoneChangeOtpError.textContent = changePhoneData.message || "OTP tidak valid atau kadaluarsa.";
+            phoneChangeOtpError.classList.remove("hidden");
+            setLoading(saveChangesBtn, false);
+            return;
+          }
+
+          phoneChangeOtpSection.classList.add("hidden");
+          phoneNumberChangeRequest = null;
+          phoneChangeOtpField.value = "";
+          phoneChangeOtpInputs.forEach(input => input.value = "");
+        }
+
+        const requests = [];
+
+        if (newFullname !== oldFullname) {
+          requests.push(fetch("/profile/change-fullname", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ newFullname }),
+            credentials: "include",
+          }).then(async r => ({ type: "Nama", response: r, data: await r.json() })));
+        }
+
+        if (newUsername !== oldUsername) {
+          requests.push(fetch("/profile/change-username", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ newUsername }),
+            credentials: "include",
+          }).then(async r => ({ type: "Username", response: r, data: await r.json() })));
+        }
+
+        if (newEmail !== oldEmail) {
+          requests.push(fetch("/profile/request-email-change", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ newEmail }),
+            credentials: "include",
+          }).then(async r => ({ type: "Email", response: r, data: await r.json() })));
+        }
+
+        const results = await Promise.all(requests);
+        const failed = results.find(item => !item.response.ok || !item.data.success);
+        if (failed) {
+          throw new Error(failed.data.message || `Gagal mengubah ${failed.type}.`);
+        }
+
+        const phoneChanged = !!(currentUserData && newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest);
+        const anythingChanged = phoneChanged || results.length > 0;
+
+        if (anythingChanged) {
+          await loadUserData();
+          showNotification("Perubahan profil berhasil disimpan.", "success");
+        } else {
+          showNotification("Tidak ada perubahan yang terdeteksi.", "info");
+        }
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        showNotification(error.message || "Gagal memperbarui profil.", "error");
+      } finally {
+        setLoading(saveChangesBtn, false);
+      }
     });
 
     cancelPhoneChangeBtn.addEventListener("click", () => {
