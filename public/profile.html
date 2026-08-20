@@ -1312,6 +1312,9 @@
     const phoneChangeOtpError = document.getElementById("phoneChangeOtpError");
     const cancelPhoneChangeBtn = document.getElementById("cancelPhoneChange");
     const resendPhoneChangeOtpBtn = document.getElementById("resendPhoneChangeOtp");
+    const phoneChangeOtpTimer = document.getElementById("phoneChangeOtpTimer");
+
+    const emailOtpTimer = document.getElementById("emailOtpTimer");
 
     const currentPasswordInput = document.getElementById("currentPassword");
     const newPasswordInput = document.getElementById("newPassword");
@@ -1420,6 +1423,120 @@
         hour: "2-digit",
         minute: "2-digit",
       });
+    }
+
+    const OTP_LIFETIME_MS = 30 * 1000;
+    const otpState = {
+      phone: { expiresAt: 0, interval: null },
+      email: { expiresAt: 0, interval: null }
+    };
+
+    function clearOtpTimer(kind) {
+      if (otpState[kind]?.interval) {
+        clearInterval(otpState[kind].interval);
+        otpState[kind].interval = null;
+      }
+    }
+
+    function startOtpTimer(kind, timerElement, resendButton) {
+      clearOtpTimer(kind);
+      otpState[kind].expiresAt = Date.now() + OTP_LIFETIME_MS;
+      if (resendButton) resendButton.disabled = true;
+
+      const render = () => {
+        const remaining = Math.max(0, otpState[kind].expiresAt - Date.now());
+        const seconds = Math.ceil(remaining / 1000);
+
+        if (seconds <= 0) {
+          clearOtpTimer(kind);
+          if (timerElement) {
+            timerElement.textContent = "OTP sudah kedaluwarsa. Silakan kirim ulang.";
+          }
+          if (resendButton) resendButton.disabled = false;
+          return;
+        }
+
+        if (timerElement) {
+          timerElement.textContent = `OTP berlaku ${seconds} detik. Kirim ulang tersedia dalam ${seconds} detik.`;
+        }
+        if (resendButton) resendButton.disabled = true;
+      };
+
+      render();
+      otpState[kind].interval = setInterval(render, 250);
+    }
+
+    function isOtpExpired(kind) {
+      return !otpState[kind]?.expiresAt || Date.now() >= otpState[kind].expiresAt;
+    }
+
+    function resetOtpFields(inputs, hiddenField, errorField) {
+      inputs.forEach(input => {
+        input.value = "";
+        input.classList.remove("border-red-500");
+      });
+      hiddenField.value = "";
+      errorField?.classList.add("hidden");
+      if (errorField) errorField.textContent = "";
+    }
+
+    // Endpoint opsional untuk cek ketersediaan data secara langsung di DB.
+    // Endpoint perubahan di server tetap menjadi validasi final.
+    async function checkProfileAvailability({ username, email, nomor }) {
+      const values = {
+        username: String(username || "").trim(),
+        email: String(email || "").trim().toLowerCase(),
+        nomor: String(nomor || "").trim()
+      };
+
+      try {
+        const response = await fetch("/profile/check-availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(values)
+        });
+
+        if (response.status === 404) {
+          // Backend lama belum memiliki endpoint check-availability.
+          // Validasi final tetap dilakukan oleh endpoint perubahan.
+          return { supported: false, available: true };
+        }
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          return {
+            supported: true,
+            available: false,
+            message: data.message || "Gagal mengecek ketersediaan data."
+          };
+        }
+
+        return {
+          supported: true,
+          available: data.available !== false,
+          usernameAvailable: data.usernameAvailable,
+          emailAvailable: data.emailAvailable,
+          nomorAvailable: data.nomorAvailable,
+          message: data.message || ""
+        };
+      } catch (error) {
+        console.error("Availability check error:", error);
+        // Jangan memblokir profil jika server belum menyediakan endpoint ini.
+        return { supported: false, available: true };
+      }
+    }
+
+    function normalizeApiMessage(data, fallback) {
+      // Ambil message dari backend/Fonnte agar notif yang tampil sama dengan response server.
+      return data?.message || data?.msg || data?.status_message || fallback;
+    }
+
+    function showApiResultNotification(data, fallbackSuccess, fallbackError = "Permintaan gagal.") {
+      showNotification(
+        normalizeApiMessage(data, data?.success ? fallbackSuccess : fallbackError),
+        data?.success ? "success" : "error"
+      );
     }
 
     function setupOtpInputs(inputs, hiddenField, errorField) {
@@ -1907,10 +2024,10 @@
       const newFullname = `${firstName}${lastName ? " " + lastName : ""}`.trim();
       const newPhoneNumber = phoneNumberInput.value.trim();
       const newUsername = usernameInput.value.trim();
-      const newEmail = emailInput.value.trim();
+      const newEmail = emailInput.value.trim().toLowerCase();
 
       const oldPhoneNumber = currentUserData?.nomor || "";
-      const oldEmail = currentUserData?.email || "";
+      const oldEmail = (currentUserData?.email || "").toLowerCase();
       const oldFullname = currentUserData?.fullname || "";
       const oldUsername = currentUserData?.username || "";
 
@@ -1924,46 +2041,88 @@
         setLoading(saveChangesBtn, false);
         return;
       }
+      if (!/^[a-zA-Z0-9._-]{3,32}$/.test(newUsername)) {
+        showNotification("Username harus 3-32 karakter dan hanya boleh huruf, angka, titik, underscore, atau strip.", "error");
+        setLoading(saveChangesBtn, false);
+        return;
+      }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
         showNotification("Format email tidak valid.", "error");
         setLoading(saveChangesBtn, false);
         return;
       }
+      if (newPhoneNumber && !/^\d{10,15}$/.test(newPhoneNumber)) {
+        showNotification("Nomor telepon harus 10-15 digit angka.", "error");
+        setLoading(saveChangesBtn, false);
+        return;
+      }
 
       try {
-        // Jika nomor telepon berubah, minta OTP terlebih dahulu.
-        if (newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest) {
-          if (!/^\d{10,15}$/.test(newPhoneNumber)) {
-            showNotification("Nomor telepon harus 10-15 digit angka.", "error");
-            setLoading(saveChangesBtn, false);
-            return;
-          }
+        // Cek DB terlebih dahulu jika backend menyediakan endpoint check-availability.
+        const needsAvailabilityCheck =
+          newUsername !== oldUsername ||
+          newEmail !== oldEmail ||
+          (newPhoneNumber && newPhoneNumber !== oldPhoneNumber);
 
+        if (needsAvailabilityCheck) {
+          const availability = await checkProfileAvailability({
+            username: newUsername,
+            email: newEmail,
+            nomor: newPhoneNumber
+          });
+
+          if (availability.supported) {
+            const conflicts = [];
+            if (availability.usernameAvailable === false) conflicts.push("username");
+            if (availability.emailAvailable === false) conflicts.push("email");
+            if (availability.nomorAvailable === false) conflicts.push("nomor telepon");
+            if (availability.available === false && conflicts.length === 0) {
+              throw new Error(availability.message || "Data tersebut sudah digunakan.");
+            }
+            if (conflicts.length) {
+              throw new Error(`${conflicts.join(", ")} sudah terdaftar di DB.`);
+            }
+          }
+        }
+
+        // Jika nomor telepon berubah, OTP dikirim ke nomor lama.
+        if (newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest) {
           const otpResponse = await fetch("/get/otp-change-nomor", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ nomorLama: oldPhoneNumber }),
             credentials: "include",
           });
-          const otpData = await otpResponse.json();
+          const otpData = await otpResponse.json().catch(() => ({}));
 
           if (!otpResponse.ok || !otpData.success) {
-            throw new Error(otpData.message || "Gagal meminta OTP perubahan nomor telepon.");
+            throw new Error(normalizeApiMessage(otpData, "Gagal meminta OTP perubahan nomor telepon."));
           }
 
-          phoneNumberChangeRequest = { newNomor: newPhoneNumber };
+          phoneNumberChangeRequest = {
+            newNomor: newPhoneNumber,
+            otpIssuedAt: Date.now()
+          };
+          resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
           phoneChangeOtpSection.classList.remove("hidden");
-          phoneChangeOtpInputs.forEach(input => input.value = "");
-          phoneChangeOtpField.value = "";
-          phoneChangeOtpError.classList.add("hidden");
+          startOtpTimer("phone", phoneChangeOtpTimer, resendPhoneChangeOtpBtn);
           phoneChangeOtpInputs[0]?.focus();
-          showNotification("OTP sudah dikirim. Masukkan OTP untuk menyimpan nomor baru.", "success");
+
+          // Gunakan message dari endpoint/Fonnte persis seperti response server.
+          showNotification(normalizeApiMessage(otpData, "Kode OTP berhasil dikirim."), "success");
           setLoading(saveChangesBtn, false);
           return;
         }
 
-        // Jika OTP perubahan nomor sudah aktif, verifikasi nomor dahulu.
+        // Verifikasi OTP nomor hanya jika request masih aktif dan belum 30 detik.
         if (phoneNumberChangeRequest && newPhoneNumber === phoneNumberChangeRequest.newNomor) {
+          if (isOtpExpired("phone")) {
+            phoneChangeOtpError.textContent = "OTP sudah kedaluwarsa setelah 30 detik. Silakan kirim ulang OTP.";
+            phoneChangeOtpError.classList.remove("hidden");
+            setLoading(saveChangesBtn, false);
+            return;
+          }
+
           const otp = phoneChangeOtpField.value.trim();
           if (!/^\d{6}$/.test(otp)) {
             phoneChangeOtpError.textContent = "Masukkan 6 digit OTP yang valid.";
@@ -1978,63 +2137,71 @@
             body: JSON.stringify({ nomorLama: oldPhoneNumber, otp, nomorBaru: newPhoneNumber }),
             credentials: "include",
           });
-          const changePhoneData = await changePhoneResponse.json();
+          const changePhoneData = await changePhoneResponse.json().catch(() => ({}));
 
           if (!changePhoneResponse.ok || !changePhoneData.success) {
-            phoneChangeOtpError.textContent = changePhoneData.message || "OTP tidak valid atau kadaluarsa.";
+            phoneChangeOtpError.textContent = normalizeApiMessage(changePhoneData, "OTP tidak valid atau kadaluarsa.");
             phoneChangeOtpError.classList.remove("hidden");
             setLoading(saveChangesBtn, false);
             return;
           }
 
+          showNotification(normalizeApiMessage(changePhoneData, "Nomor telepon berhasil diperbarui."), "success");
+          clearOtpTimer("phone");
           phoneChangeOtpSection.classList.add("hidden");
           phoneNumberChangeRequest = null;
-          phoneChangeOtpField.value = "";
-          phoneChangeOtpInputs.forEach(input => input.value = "");
+          resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
         }
 
         const requests = [];
 
         if (newFullname !== oldFullname) {
-          requests.push(fetch("/profile/change-fullname", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ newFullname }),
-            credentials: "include",
-          }).then(async r => ({ type: "Nama", response: r, data: await r.json() })));
+          requests.push(
+            fetch("/profile/change-fullname", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ newFullname }),
+              credentials: "include",
+            }).then(async r => ({ type: "Nama", response: r, data: await r.json().catch(() => ({})) }))
+          );
         }
 
         if (newUsername !== oldUsername) {
-          requests.push(fetch("/profile/change-username", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ newUsername }),
-            credentials: "include",
-          }).then(async r => ({ type: "Username", response: r, data: await r.json() })));
+          requests.push(
+            fetch("/profile/change-username", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ newUsername }),
+              credentials: "include",
+            }).then(async r => ({ type: "Username", response: r, data: await r.json().catch(() => ({})) }))
+          );
         }
 
         if (newEmail !== oldEmail) {
-          requests.push(fetch("/profile/request-email-change", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ newEmail }),
-            credentials: "include",
-          }).then(async r => ({ type: "Email", response: r, data: await r.json() })));
+          requests.push(
+            fetch("/profile/request-email-change", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ newEmail }),
+              credentials: "include",
+            }).then(async r => ({ type: "Email", response: r, data: await r.json().catch(() => ({})) }))
+          );
         }
 
         const results = await Promise.all(requests);
         const failed = results.find(item => !item.response.ok || !item.data.success);
         if (failed) {
-          throw new Error(failed.data.message || `Gagal mengubah ${failed.type}.`);
+          throw new Error(normalizeApiMessage(failed.data, `Gagal mengubah ${failed.type}.`));
         }
 
-        const phoneChanged = !!(currentUserData && newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest);
-        const anythingChanged = phoneChanged || results.length > 0;
+        if (results.length > 0) {
+          const serverMessages = results
+            .map(item => normalizeApiMessage(item.data, ""))
+            .filter(Boolean);
 
-        if (anythingChanged) {
           await loadUserData();
-          showNotification("Perubahan profil berhasil disimpan.", "success");
-        } else {
+          showNotification(serverMessages.join(" • ") || "Perubahan profil berhasil disimpan.", "success");
+        } else if (!newPhoneNumber || newPhoneNumber === oldPhoneNumber) {
           showNotification("Tidak ada perubahan yang terdeteksi.", "info");
         }
       } catch (error) {
@@ -2046,44 +2213,55 @@
     });
 
     cancelPhoneChangeBtn.addEventListener("click", () => {
-        phoneChangeOtpSection.classList.add("hidden");
-        phoneNumberChangeRequest = null;
-        if(currentUserData) phoneNumberInput.value = currentUserData.nomor;
-        for (const input of phoneChangeOtpInputs) input.value = '';
-        phoneChangeOtpField.value = '';
-        phoneChangeOtpError.classList.add("hidden");
-        showNotification("Perubahan nomor telepon dibatalkan", "info");
+      clearOtpTimer("phone");
+      phoneChangeOtpSection.classList.add("hidden");
+      phoneNumberChangeRequest = null;
+      if (currentUserData) phoneNumberInput.value = currentUserData.nomor;
+      resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
+      resendPhoneChangeOtpBtn.disabled = true;
+      phoneChangeOtpTimer.textContent = "OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
+      showNotification("Perubahan nomor telepon dibatalkan", "info");
     });
 
     resendPhoneChangeOtpBtn.addEventListener("click", async () => {
-        if (!currentUserData || !currentUserData.nomor) {
-            showNotification("Tidak dapat mengirim ulang OTP, nomor telepon saat ini tidak ditemukan.", "error");
-            return;
+      if (!phoneNumberChangeRequest || isOtpExpired("phone") === false) {
+        showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.", "info");
+        return;
+      }
+      if (!currentUserData || !currentUserData.nomor) {
+        showNotification("Nomor telepon lama tidak ditemukan.", "error");
+        return;
+      }
+
+      try {
+        setLoading(resendPhoneChangeOtpBtn, true);
+        const response = await fetch("/get/otp-change-nomor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nomorLama: currentUserData.nomor }),
+          credentials: "include",
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          showNotification(normalizeApiMessage(data, "Gagal mengirim ulang OTP."), "error");
+          return;
         }
-        try {
-            setLoading(resendPhoneChangeOtpBtn, true);
-            const response = await fetch("/get/otp-change-nomor", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ nomorLama: currentUserData.nomor }),
-                credentials: "include",
-            });
-            const data = await response.json();
-            if (data.success) {
-                showNotification("OTP baru dikirim ke nomor telepon lama Anda", "success");
-                for (const input of phoneChangeOtpInputs) input.value = '';
-                phoneChangeOtpField.value = '';
-                phoneChangeOtpInputs[0].focus();
-                phoneChangeOtpError.classList.add("hidden");
-            } else {
-                showNotification(data.message || "Gagal mengirim ulang OTP", "error");
-            }
-        } catch (error) {
-            console.error("Error resending OTP:", error);
-            showNotification("Gagal mengirim ulang OTP", "error");
-        } finally {
-            setLoading(resendPhoneChangeOtpBtn, false);
-        }
+
+        phoneNumberChangeRequest.otpIssuedAt = Date.now();
+        resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
+        startOtpTimer("phone", phoneChangeOtpTimer, resendPhoneChangeOtpBtn);
+
+        // Ambil notif/message dari response Fonnte/backend.
+        showNotification(normalizeApiMessage(data, "OTP baru berhasil dikirim."), "success");
+        phoneChangeOtpInputs[0]?.focus();
+      } catch (error) {
+        console.error("Error resending OTP:", error);
+        showNotification(error.message || "Gagal mengirim ulang OTP.", "error");
+      } finally {
+        setLoading(resendPhoneChangeOtpBtn, false);
+        resendPhoneChangeOtpBtn.disabled = !isOtpExpired("phone");
+      }
     });
 
     cancelChangesBtn.addEventListener("click", () => {
@@ -2212,16 +2390,22 @@
           method: "POST",
           credentials: "include",
         });
-        const data = await response.json();
-        if (data.success) {
-          showNotification("OTP dikirim ke email Anda", "success");
-          otpInlineForm.classList.remove("hidden");
-          otpInputs[0].focus();
-          otpInputs[0].classList.add('pulse');
-          setTimeout(() => otpInputs[0].classList.remove('pulse'), 1500);
-        } else {
-          showNotification(data.message || "Gagal mengirim OTP", "error");
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          showNotification(normalizeApiMessage(data, "Gagal mengirim OTP."), "error");
+          return;
         }
+
+        resetOtpFields(otpInputs, otpInlineInput, otpInlineError);
+        otpInlineForm.classList.remove("hidden");
+        startOtpTimer("email", emailOtpTimer, resendOtpBtn);
+        otpInputs[0]?.focus();
+        otpInputs[0]?.classList.add("pulse");
+        setTimeout(() => otpInputs[0]?.classList.remove("pulse"), 1500);
+
+        // Tampilkan notif dari response backend/Fonnte.
+        showNotification(normalizeApiMessage(data, "Kode verifikasi berhasil dikirim."), "success");
       } catch (error) {
         console.error("Error sending OTP:", error);
         showNotification("Gagal mengirim OTP", "error");
@@ -2231,40 +2415,55 @@
     });
 
     resendOtpBtn.addEventListener("click", async () => {
+      if (!isOtpExpired("email")) {
+        showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.", "info");
+        return;
+      }
+
       try {
         setLoading(resendOtpBtn, true);
         const response = await fetch("/profile/send-verification-otp", {
           method: "POST",
           credentials: "include",
         });
-        const data = await response.json();
-        if (data.success) {
-          showNotification("OTP baru dikirim ke email Anda", "success");
-          for (const input of otpInputs) input.value = '';
-          otpInlineInput.value = '';
-          otpInputs[0].focus();
-          otpInlineError.classList.add("hidden");
-        } else {
-          showNotification(data.message || "Gagal mengirim ulang OTP", "error");
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          showNotification(normalizeApiMessage(data, "Gagal mengirim ulang OTP."), "error");
+          return;
         }
+
+        resetOtpFields(otpInputs, otpInlineInput, otpInlineError);
+        startOtpTimer("email", emailOtpTimer, resendOtpBtn);
+        otpInputs[0]?.focus();
+
+        showNotification(normalizeApiMessage(data, "OTP baru berhasil dikirim."), "success");
       } catch (error) {
         console.error("Error resending OTP:", error);
         showNotification("Gagal mengirim ulang OTP", "error");
       } finally {
         setLoading(resendOtpBtn, false);
+        resendOtpBtn.disabled = !isOtpExpired("email");
       }
     });
 
     otpInlineCancelBtn.addEventListener("click", () => {
+      clearOtpTimer("email");
       otpInlineForm.classList.add("hidden");
-      otpInlineInput.value = "";
-      for (const input of otpInputs) input.value = '';
-      otpInlineError.classList.add("hidden");
+      resetOtpFields(otpInputs, otpInlineInput, otpInlineError);
+      resendOtpBtn.disabled = true;
+      emailOtpTimer.textContent = "OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
     });
 
     otpInlineForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const otp = otpInlineInput.value.trim();
+      if (isOtpExpired("email")) {
+        otpInlineError.textContent = "OTP sudah kedaluwarsa setelah 30 detik. Silakan kirim ulang OTP.";
+        otpInlineError.classList.remove("hidden");
+        resendOtpBtn.disabled = false;
+        return;
+      }
       if (!/^\d{6}$/.test(otp)) {
         otpInlineError.classList.remove("hidden");
         otpInputs[0].focus();
