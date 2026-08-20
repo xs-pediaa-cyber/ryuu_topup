@@ -596,57 +596,147 @@ app.get("/api/history/order", requireLogin, async (req, res) => {
   }
 });
 
-const uploadMemory = multer({ storage: multer.memoryStorage() }); 
+// Upload foto profil ke Catbox menggunakan memory storage.
+// Batas 5 MB dan hanya menerima JPEG/PNG/GIF agar request lebih aman/stabil.
+const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/gif"];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(new Error("Format foto harus JPG, PNG, atau GIF."));
+    }
+    cb(null, true);
+  },
+});
 
 async function CatBox(buffer, originalname) {
+  if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) {
+    throw new Error("File foto kosong atau tidak valid.");
+  }
+
+  const safeName = path.basename(originalname || "profile.jpg");
   const data = new FormData();
   data.append("reqtype", "fileupload");
   data.append("userhash", "");
-  data.append("fileToUpload", buffer, { filename: originalname });
-  const config = {
-    method: "POST",
-    url: "https://catbox.moe/user/api.php",
-    headers: {
-      ...data.getHeaders(),
-      "User-Agent":
-        "Mozilla/5.0 (Android 10; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
-    },
-    data: data,
-  };
-  const api = await axios.request(config);
-  return api.data;
+  data.append("fileToUpload", buffer, { filename: safeName });
+
+  const response = await axios.post(
+    "https://catbox.moe/user/api.php",
+    data,
+    {
+      headers: {
+        ...data.getHeaders(),
+        "User-Agent":
+          "Mozilla/5.0 (Android 10; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
+        Accept: "text/plain, */*",
+      },
+      timeout: 30000,
+      maxContentLength: 2 * 1024 * 1024,
+      maxBodyLength: 6 * 1024 * 1024,
+      validateStatus: () => true,
+    }
+  );
+
+  const raw = typeof response.data === "string"
+    ? response.data.trim()
+    : String(response.data ?? "").trim();
+
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Catbox HTTP ${response.status}: ${raw || "upload ditolak"}`);
+  }
+
+  // Catbox mengembalikan URL sebagai plain text. Jangan simpan response
+  // mentah jika ternyata yang dikembalikan bukan URL.
+  const match = raw.match(/https?:\/\/[^\s]+/i);
+  const uploadedUrl = match ? match[0].replace(/[\r\n]+/g, "").trim() : "";
+
+  if (!/^https?:\/\/\S+$/i.test(uploadedUrl)) {
+    throw new Error(`Catbox tidak mengembalikan URL gambar yang valid: ${raw.slice(0, 200)}`);
+  }
+
+  return uploadedUrl;
 }
 
-app.post("/profile/update-photo",requireLogin, uploadMemory.single("photo"), async (req, res) => {
+app.post(
+  "/profile/update-photo",
+  requireLogin,
+  (req, res, next) => {
+    uploadMemory.single("photo")(req, res, (err) => {
+      if (!err) return next();
+
+      console.error("Upload middleware error:", err);
+      const message =
+        err.code === "LIMIT_FILE_SIZE"
+          ? "Ukuran foto maksimal 5 MB."
+          : err.message || "Upload foto gagal.";
+
+      return res.status(400).json({
+        success: false,
+        message,
+      });
+    });
+  },
+  async (req, res) => {
     try {
-      // Skip untuk custom admin
+      // Custom admin tidak memakai User MongoDB biasa.
       if (req.session.userId === "custom-admin") {
         return res.status(400).json({
           success: false,
           message: "Admin tidak dapat mengubah foto profil",
         });
       }
-      
+
+      if (!mongoose.Types.ObjectId.isValid(req.session.userId)) {
+        return res.status(401).json({
+          success: false,
+          message: "Session pengguna tidak valid",
+        });
+      }
+
       const file = req.file;
       if (!file) {
-        return res
-          .status(400)
-          .json({ success: false, message: "No file uploaded" });
+        return res.status(400).json({
+          success: false,
+          message: "Foto belum dipilih. Field upload harus bernama 'photo'.",
+        });
       }
+
+      // Upload dulu ke hosting gambar.
       const uploadedUrl = await CatBox(file.buffer, file.originalname);
-      await User.findByIdAndUpdate(req.session.userId, {
-        profileUrl: uploadedUrl,
-      });
+
+      // Pastikan user benar-benar ada sebelum menyimpan URL.
+      const updatedUser = await User.findByIdAndUpdate(
+        req.session.userId,
+        { $set: { profileUrl: uploadedUrl } },
+        { new: true, runValidators: true, projection: { profileUrl: 1, _id: 1 } }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          success: false,
+          message: "User tidak ditemukan, URL gambar tidak disimpan.",
+        });
+      }
+
+      console.log(`✅ Foto profil ${req.session.userId} diperbarui: ${uploadedUrl}`);
+
       return res.status(200).json({
         success: true,
-        message: "Profile photo updated successfully",
+        message: "Foto profil berhasil diperbarui",
         profileUrl: uploadedUrl,
+        user: {
+          profileUrl: uploadedUrl,
+        },
       });
     } catch (error) {
-      console.error("Error update profile photo:", error);
+      console.error("❌ Error update profile photo:", error?.response?.data || error);
+
       return res.status(500).json({
         success: false,
-        message: "Failed to update profile photo",
+        message: error?.message || "Gagal memperbarui foto profil",
       });
     }
   }
