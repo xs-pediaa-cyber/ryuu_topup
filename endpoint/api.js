@@ -100,7 +100,7 @@ async function createQrisComposite({
   }
 
   const base = sharp(backgroundBuffer).rotate().resize({
-    width: 1000,
+    width: 800,
     fit: "inside",
     withoutEnlargement: false,
   });
@@ -121,7 +121,7 @@ async function createQrisComposite({
       background: { r: 255, g: 255, b: 255, alpha: 1 },
     })
     .extend({
-      top: 12,
+      top: 7,
       bottom: 12,
       left: 12,
       right: 12,
