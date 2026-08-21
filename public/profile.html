@@ -973,9 +973,25 @@
             <input id="lastName" name="lastName" placeholder="Nama belakang" type="text"/>
           </div>
           <div class="form-group">
-            <label for="phoneNumber">Nomor Telepon Baru</label>
-            <input id="phoneNumber" name="phoneNumber" placeholder="Masukkan nomor telepon baru (62xxxxxxxxxx)" inputmode="numeric" autocomplete="tel" type="text"/>
-            <div class="help-text">Isi hanya jika ingin mengganti nomor. OTP akan dikirim ke nomor lama untuk konfirmasi.</div>
+            <label>Nomor Telepon</label>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <input id="phoneNumber" name="phoneNumber" readonly placeholder="Nomor telepon" inputmode="numeric" autocomplete="tel" type="text" style="flex:1;min-width:220px;"/>
+              <button type="button" class="button button-secondary" id="openChangePhoneBtn"><i class="fas fa-phone"></i> Ubah Nomor</button>
+            </div>
+            <div class="help-text">Klik Ubah Nomor untuk memasukkan nomor baru. OTP baru dikirim ke nomor lama setelah nomor baru dikonfirmasi.</div>
+          </div>
+
+          <div id="changePhoneRequestSection" class="phone-change-otp-section hidden">
+            <h3>Masukkan Nomor Baru</h3>
+            <p>Masukkan nomor baru. Setelah dikonfirmasi, OTP akan dikirim ke <strong id="oldPhoneForRequest">nomor lama Anda</strong>.</p>
+            <div class="form-group" style="margin-bottom:12px;">
+              <label for="newPhoneNumberInput">Nomor Telepon Baru</label>
+              <input id="newPhoneNumberInput" type="text" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="62xxxxxxxxxx">
+            </div>
+            <div class="otp-form-actions">
+              <button type="button" id="cancelChangePhoneRequest" class="button button-secondary">Batal</button>
+              <button type="button" id="confirmChangePhoneRequest" class="button button-primary">Konfirmasi & Kirim OTP</button>
+            </div>
           </div>
           <div class="divider"></div>
           <div class="form-group">
@@ -1006,6 +1022,7 @@
               <p class="otp-error hidden" id="phoneChangeOtpError"></p>
               <div class="otp-form-actions">
                   <button type="button" id="cancelPhoneChange" class="button button-secondary">Batal</button>
+                  <button type="button" id="verifyPhoneChangeOtp" class="button button-primary">Verifikasi OTP & Simpan</button>
                   <button type="button" id="resendPhoneChangeOtp" class="button button-secondary" disabled>Kirim Ulang OTP</button>
               </div>
           </div>
@@ -1308,6 +1325,12 @@
     const firstNameInput = document.getElementById("firstName");
     const lastNameInput = document.getElementById("lastName");
     const phoneNumberInput = document.getElementById("phoneNumber");
+    const openChangePhoneBtn = document.getElementById("openChangePhoneBtn");
+    const changePhoneRequestSection = document.getElementById("changePhoneRequestSection");
+    const newPhoneNumberInput = document.getElementById("newPhoneNumberInput");
+    const oldPhoneForRequest = document.getElementById("oldPhoneForRequest");
+    const cancelChangePhoneRequestBtn = document.getElementById("cancelChangePhoneRequest");
+    const confirmChangePhoneRequestBtn = document.getElementById("confirmChangePhoneRequest");
     const usernameInput = document.getElementById("username");
     const emailInput = document.getElementById("email");
 
@@ -1317,8 +1340,8 @@
     const phoneChangeOtpError = document.getElementById("phoneChangeOtpError");
     const cancelPhoneChangeBtn = document.getElementById("cancelPhoneChange");
     const resendPhoneChangeOtpBtn = document.getElementById("resendPhoneChangeOtp");
+    const verifyPhoneChangeOtpBtn = document.getElementById("verifyPhoneChangeOtp");
     const phoneChangeOtpTimer = document.getElementById("phoneChangeOtpTimer");
-    const oldPhoneForOtp = document.getElementById("oldPhoneForOtp");
 
     const emailOtpTimer = document.getElementById("emailOtpTimer");
 
@@ -1946,14 +1969,13 @@
             apiKeyDate.textContent = "N/A";
         }
         
-        clearOtpTimer("phone");
-        phoneChangeOtpSection.classList.add("hidden");
-        phoneNumberChangeRequest = null;
-        for (const input of phoneChangeOtpInputs) input.value = '';
-        phoneChangeOtpField.value = '';
-        phoneChangeOtpError.classList.add("hidden");
-        resendPhoneChangeOtpBtn.disabled = true;
-        if (phoneChangeOtpTimer) phoneChangeOtpTimer.textContent = "OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
+        if (!phoneNumberChangeRequest) {
+          clearOtpTimer("phone");
+          phoneChangeOtpSection.classList.add("hidden");
+          resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
+          resendPhoneChangeOtpBtn.disabled = true;
+          if (phoneChangeOtpTimer) phoneChangeOtpTimer.textContent = "OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
+        }
 
         if (user.whitelistIp && Array.isArray(user.whitelistIp) && user.whitelistIp.length > 0) {
             ipWhitelistInput.value = user.whitelistIp.join(', ');
@@ -2027,293 +2049,112 @@
     profileForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       setLoading(saveChangesBtn, true);
-
       const firstName = firstNameInput.value.trim();
       const lastName = lastNameInput.value.trim();
       const newFullname = `${firstName}${lastName ? " " + lastName : ""}`.trim();
-      const newPhoneNumber = phoneNumberInput.value.trim();
       const newUsername = usernameInput.value.trim();
       const newEmail = emailInput.value.trim().toLowerCase();
-
-      const oldPhoneNumber = currentUserData?.nomor || "";
       const oldEmail = (currentUserData?.email || "").toLowerCase();
       const oldFullname = currentUserData?.fullname || "";
       const oldUsername = currentUserData?.username || "";
-
-      if (!firstName) {
-        showNotification("Nama depan wajib diisi.", "error");
-        setLoading(saveChangesBtn, false);
-        return;
-      }
-      if (!newUsername) {
-        showNotification("Username wajib diisi.", "error");
-        setLoading(saveChangesBtn, false);
-        return;
-      }
-      if (!/^[a-zA-Z0-9._-]{3,32}$/.test(newUsername)) {
-        showNotification("Username harus 3-32 karakter dan hanya boleh huruf, angka, titik, underscore, atau strip.", "error");
-        setLoading(saveChangesBtn, false);
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-        showNotification("Format email tidak valid.", "error");
-        setLoading(saveChangesBtn, false);
-        return;
-      }
-      if (newPhoneNumber && !/^\d{10,15}$/.test(newPhoneNumber)) {
-        showNotification("Nomor telepon harus 10-15 digit angka.", "error");
-        setLoading(saveChangesBtn, false);
-        return;
-      }
-
       try {
-        // Jika OTP sedang menunggu, nomor baru harus tetap sama dengan nomor yang diminta.
-        if (phoneNumberChangeRequest && newPhoneNumber !== phoneNumberChangeRequest.newNomor) {
-          throw new Error("Nomor baru berubah setelah OTP dikirim. Batalkan proses OTP lalu kirim ulang untuk nomor baru.");
-        }
-
-        // Cek DB terlebih dahulu jika backend menyediakan endpoint check-availability.
-        const needsAvailabilityCheck =
-          newUsername !== oldUsername ||
-          newEmail !== oldEmail ||
-          (newPhoneNumber && newPhoneNumber !== oldPhoneNumber);
-
-        if (needsAvailabilityCheck) {
-          const availability = await checkProfileAvailability({
-            username: newUsername,
-            email: newEmail,
-            nomor: newPhoneNumber
-          });
-
+        if (!firstName) throw new Error("Nama depan wajib diisi.");
+        if (!newUsername) throw new Error("Username wajib diisi.");
+        if (!/^[a-zA-Z0-9._-]{3,32}$/.test(newUsername)) throw new Error("Username harus 3-32 karakter dan hanya boleh huruf, angka, titik, underscore, atau strip.");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) throw new Error("Format email tidak valid.");
+        if (newUsername !== oldUsername || newEmail !== oldEmail) {
+          const availability = await checkProfileAvailability({username:newUsername,email:newEmail,nomor:currentUserData?.nomor||""});
           if (availability.supported) {
-            const conflicts = [];
-            if (availability.usernameAvailable === false) conflicts.push("username");
-            if (availability.emailAvailable === false) conflicts.push("email");
-            if (availability.nomorAvailable === false) conflicts.push("nomor telepon");
-            if (availability.available === false && conflicts.length === 0) {
-              throw new Error(availability.message || "Data tersebut sudah digunakan.");
-            }
-            if (conflicts.length) {
-              throw new Error(`${conflicts.join(", ")} sudah terdaftar di DB.`);
-            }
+            const conflicts=[];
+            if (availability.usernameAvailable===false) conflicts.push("username");
+            if (availability.emailAvailable===false) conflicts.push("email");
+            if (conflicts.length) throw new Error(`${conflicts.join(", ")} sudah terdaftar di DB.`);
           }
         }
-
-        // Jika nomor telepon berubah, wajib verifikasi OTP ke nomor LAMA.
-        // Nomor BARU belum disimpan sampai OTP berhasil diverifikasi.
-        if (newPhoneNumber && newPhoneNumber !== oldPhoneNumber && !phoneNumberChangeRequest) {
-          if (!oldPhoneNumber) {
-            throw new Error("Nomor telepon lama tidak ditemukan pada akun.");
-          }
-
-          const otpResponse = await fetch("/get/otp-change-nomor", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nomorLama: oldPhoneNumber }),
-            credentials: "include",
-          });
-          const otpData = await otpResponse.json().catch(() => ({}));
-
-          if (!otpResponse.ok || !otpData.success) {
-            throw new Error(normalizeApiMessage(otpData, "Gagal mengirim OTP ke nomor lama."));
-          }
-
-          phoneNumberChangeRequest = {
-            oldNomor: oldPhoneNumber,
-            newNomor: newPhoneNumber,
-            otpIssuedAt: Date.now()
-          };
-
-          if (oldPhoneForOtp) {
-            oldPhoneForOtp.textContent = oldPhoneNumber;
-          }
-
-          resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
-          phoneChangeOtpSection.classList.remove("hidden");
-          startOtpTimer("phone", phoneChangeOtpTimer, resendPhoneChangeOtpBtn);
-          phoneChangeOtpInputs[0]?.focus();
-
-          showNotification(
-            normalizeApiMessage(otpData, "OTP verifikasi sudah dikirim ke nomor lama Anda."),
-            "success"
-          );
-          setLoading(saveChangesBtn, false);
-          return;
-        }
-
-        // Verifikasi OTP nomor hanya jika request masih aktif dan belum 30 detik.
-        if (phoneNumberChangeRequest && newPhoneNumber === phoneNumberChangeRequest.newNomor) {
-          if (isOtpExpired("phone")) {
-            phoneChangeOtpError.textContent = "OTP sudah kedaluwarsa setelah 30 detik. Silakan kirim ulang OTP.";
-            phoneChangeOtpError.classList.remove("hidden");
-            setLoading(saveChangesBtn, false);
-            return;
-          }
-
-          const otp = phoneChangeOtpField.value.trim();
-          if (!/^\d{6}$/.test(otp)) {
-            phoneChangeOtpError.textContent = "Masukkan 6 digit OTP yang valid.";
-            phoneChangeOtpError.classList.remove("hidden");
-            setLoading(saveChangesBtn, false);
-            return;
-          }
-
-          // Cek lagi nomor BARU sebelum finalisasi agar tidak bentrok dengan akun lain
-          // yang mungkin mendaftarkan nomor tersebut setelah OTP pertama dikirim.
-          const finalAvailability = await checkProfileAvailability({
-            username: oldUsername,
-            email: oldEmail,
-            nomor: newPhoneNumber
-          });
-
-          if (finalAvailability.supported && finalAvailability.nomorAvailable === false) {
-            phoneChangeOtpError.textContent = "Nomor baru sudah terdaftar. Silakan gunakan nomor lain.";
-            phoneChangeOtpError.classList.remove("hidden");
-            setLoading(saveChangesBtn, false);
-            return;
-          }
-
-          const changePhoneResponse = await fetch("/auth/change-number", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              nomorLama: phoneNumberChangeRequest.oldNomor || oldPhoneNumber,
-              otp,
-              nomorBaru: newPhoneNumber
-            }),
-            credentials: "include",
-          });
-          const changePhoneData = await changePhoneResponse.json().catch(() => ({}));
-
-          if (!changePhoneResponse.ok || !changePhoneData.success) {
-            phoneChangeOtpError.textContent = normalizeApiMessage(changePhoneData, "OTP tidak valid atau kadaluarsa.");
-            phoneChangeOtpError.classList.remove("hidden");
-            setLoading(saveChangesBtn, false);
-            return;
-          }
-
-          showNotification(normalizeApiMessage(changePhoneData, "Nomor telepon berhasil diperbarui."), "success");
-          clearOtpTimer("phone");
-          phoneChangeOtpSection.classList.add("hidden");
-          phoneNumberChangeRequest = null;
-          resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
-          resendPhoneChangeOtpBtn.disabled = true;
-          if (oldPhoneForOtp) oldPhoneForOtp.textContent = "nomor lama Anda";
-        }
-
-        const requests = [];
-
-        if (newFullname !== oldFullname) {
-          requests.push(
-            fetch("/profile/change-fullname", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ newFullname }),
-              credentials: "include",
-            }).then(async r => ({ type: "Nama", response: r, data: await r.json().catch(() => ({})) }))
-          );
-        }
-
-        if (newUsername !== oldUsername) {
-          requests.push(
-            fetch("/profile/change-username", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ newUsername }),
-              credentials: "include",
-            }).then(async r => ({ type: "Username", response: r, data: await r.json().catch(() => ({})) }))
-          );
-        }
-
-        if (newEmail !== oldEmail) {
-          requests.push(
-            fetch("/profile/request-email-change", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ newEmail }),
-              credentials: "include",
-            }).then(async r => ({ type: "Email", response: r, data: await r.json().catch(() => ({})) }))
-          );
-        }
-
-        const results = await Promise.all(requests);
-        const failed = results.find(item => !item.response.ok || !item.data.success);
-        if (failed) {
-          throw new Error(normalizeApiMessage(failed.data, `Gagal mengubah ${failed.type}.`));
-        }
-
-        if (results.length > 0) {
-          const serverMessages = results
-            .map(item => normalizeApiMessage(item.data, ""))
-            .filter(Boolean);
-
-          await loadUserData();
-          showNotification(serverMessages.join(" • ") || "Perubahan profil berhasil disimpan.", "success");
-        } else if (!newPhoneNumber || newPhoneNumber === oldPhoneNumber) {
-          showNotification("Tidak ada perubahan yang terdeteksi.", "info");
-        }
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        showNotification(error.message || "Gagal memperbarui profil.", "error");
-      } finally {
-        setLoading(saveChangesBtn, false);
-      }
+        const requests=[];
+        if (newFullname!==oldFullname) requests.push(fetch("/profile/change-fullname",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({newFullname}),credentials:"include"}).then(async r=>({type:"Nama",response:r,data:await r.json().catch(()=>({}))})));
+        if (newUsername!==oldUsername) requests.push(fetch("/profile/change-username",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({newUsername}),credentials:"include"}).then(async r=>({type:"Username",response:r,data:await r.json().catch(()=>({}))})));
+        if (newEmail!==oldEmail) requests.push(fetch("/profile/request-email-change",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({newEmail}),credentials:"include"}).then(async r=>({type:"Email",response:r,data:await r.json().catch(()=>({}))})));
+        const results=await Promise.all(requests);
+        const failed=results.find(x=>!x.response.ok||!x.data.success);
+        if(failed) throw new Error(normalizeApiMessage(failed.data,`Gagal mengubah ${failed.type}.`));
+        if(results.length){ await loadUserData(); showNotification(results.map(x=>normalizeApiMessage(x.data,"")).filter(Boolean).join(" • ")||"Perubahan profil berhasil disimpan.","success"); }
+        else showNotification("Tidak ada perubahan profil yang perlu disimpan.","info");
+      } catch(error){ console.error("Error updating profile:",error); showNotification(error.message||"Gagal memperbarui profil.","error"); }
+      finally{ setLoading(saveChangesBtn,false); }
     });
 
-    cancelPhoneChangeBtn.addEventListener("click", () => {
-      clearOtpTimer("phone");
-      phoneChangeOtpSection.classList.add("hidden");
-      phoneNumberChangeRequest = null;
-      if (currentUserData) phoneNumberInput.value = currentUserData.nomor;
-      resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
-      resendPhoneChangeOtpBtn.disabled = true;
-      if (phoneChangeOtpTimer) {
-        phoneChangeOtpTimer.textContent = "OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
-      }
-      if (oldPhoneForOtp) oldPhoneForOtp.textContent = "nomor lama Anda";
-      showNotification("Perubahan nomor telepon dibatalkan", "info");
+    openChangePhoneBtn.addEventListener("click",()=>{
+      if(!currentUserData?.nomor){showNotification("Nomor telepon lama tidak ditemukan.","error");return;}
+      oldPhoneForRequest.textContent=currentUserData.nomor;
+      newPhoneNumberInput.value="";
+      changePhoneRequestSection.classList.remove("hidden");
+      newPhoneNumberInput.focus();
     });
+    cancelChangePhoneRequestBtn.addEventListener("click",()=>{newPhoneNumberInput.value="";changePhoneRequestSection.classList.add("hidden");});
 
-    resendPhoneChangeOtpBtn.addEventListener("click", async () => {
-      if (!phoneNumberChangeRequest || isOtpExpired("phone") === false) {
-        showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.", "info");
-        return;
-      }
-      const oldNomor = phoneNumberChangeRequest?.oldNomor || currentUserData?.nomor || "";
-      if (!oldNomor) {
-        showNotification("Nomor telepon lama tidak ditemukan.", "error");
-        return;
-      }
-
-      try {
-        setLoading(resendPhoneChangeOtpBtn, true);
-        const response = await fetch("/get/otp-change-nomor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nomorLama: oldNomor }),
-          credentials: "include",
-        });
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.success) {
-          showNotification(normalizeApiMessage(data, "Gagal mengirim ulang OTP."), "error");
-          return;
-        }
-
-        phoneNumberChangeRequest.otpIssuedAt = Date.now();
-        resetOtpFields(phoneChangeOtpInputs, phoneChangeOtpField, phoneChangeOtpError);
-        startOtpTimer("phone", phoneChangeOtpTimer, resendPhoneChangeOtpBtn);
-
-        // Ambil notif/message dari response Fonnte/backend.
-        showNotification(normalizeApiMessage(data, "OTP baru berhasil dikirim."), "success");
+    confirmChangePhoneRequestBtn.addEventListener("click",async()=>{
+      const oldNomor=String(currentUserData?.nomor||"").trim();
+      const newNomor=String(newPhoneNumberInput.value||"").trim();
+      if(!oldNomor){showNotification("Nomor telepon lama tidak ditemukan.","error");return;}
+      if(!/^\d{10,15}$/.test(newNomor)){showNotification("Nomor baru harus 10-15 digit angka.","error");return;}
+      if(newNomor===oldNomor){showNotification("Nomor baru tidak boleh sama dengan nomor lama.","error");return;}
+      try{
+        setLoading(confirmChangePhoneRequestBtn,true);
+        const availability=await checkProfileAvailability({username:currentUserData?.username||"",email:currentUserData?.email||"",nomor:newNomor});
+        if(availability.supported && availability.nomorAvailable===false){showNotification("Nomor tersebut sudah terdaftar. Silakan gunakan nomor lain.","error");return;}
+        // OTP baru dikirim HANYA setelah nomor baru dikonfirmasi.
+        const response=await fetch("/get/otp-change-nomor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomorLama:oldNomor,nomorBaru:newNomor}),credentials:"include"});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||!data.success) throw new Error(normalizeApiMessage(data,"Gagal mengirim OTP ke nomor lama."));
+        phoneNumberChangeRequest={oldNomor,newNomor,otpIssuedAt:Date.now()};
+        phoneNumberInput.value=oldNomor;
+        changePhoneRequestSection.classList.add("hidden");
+        resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError);
+        phoneChangeOtpSection.classList.remove("hidden");
+        startOtpTimer("phone",phoneChangeOtpTimer,resendPhoneChangeOtpBtn);
         phoneChangeOtpInputs[0]?.focus();
-      } catch (error) {
-        console.error("Error resending OTP:", error);
-        showNotification(error.message || "Gagal mengirim ulang OTP.", "error");
-      } finally {
-        setLoading(resendPhoneChangeOtpBtn, false);
-        resendPhoneChangeOtpBtn.disabled = !isOtpExpired("phone");
-      }
+        showNotification(normalizeApiMessage(data,"OTP berhasil dikirim ke nomor lama Anda."),"success");
+      }catch(error){console.error("Error requesting phone OTP:",error);showNotification(error.message||"Gagal mengirim OTP ke nomor lama.","error");}
+      finally{setLoading(confirmChangePhoneRequestBtn,false);}
+    });
+
+    verifyPhoneChangeOtpBtn.addEventListener("click",async()=>{
+      if(!phoneNumberChangeRequest){showNotification("Tidak ada proses perubahan nomor yang aktif.","error");return;}
+      if(isOtpExpired("phone")){phoneChangeOtpError.textContent="OTP sudah kedaluwarsa. Silakan kirim ulang OTP.";phoneChangeOtpError.classList.remove("hidden");return;}
+      const otp=phoneChangeOtpField.value.trim();
+      if(!/^\d{6}$/.test(otp)){phoneChangeOtpError.textContent="Masukkan 6 digit OTP yang valid.";phoneChangeOtpError.classList.remove("hidden");return;}
+      try{
+        setLoading(verifyPhoneChangeOtpBtn,true);
+        const availability=await checkProfileAvailability({username:currentUserData?.username||"",email:currentUserData?.email||"",nomor:phoneNumberChangeRequest.newNomor});
+        if(availability.supported&&availability.nomorAvailable===false) throw new Error("Nomor baru sudah terdaftar. Silakan gunakan nomor lain.");
+        const response=await fetch("/auth/change-number",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomorLama:phoneNumberChangeRequest.oldNomor,otp,nomorBaru:phoneNumberChangeRequest.newNomor}),credentials:"include"});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||!data.success) throw new Error(normalizeApiMessage(data,"OTP tidak valid atau sudah kedaluwarsa."));
+        const nomorBaru=phoneNumberChangeRequest.newNomor;
+        clearOtpTimer("phone"); phoneChangeOtpSection.classList.add("hidden"); phoneNumberChangeRequest=null; resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError); resendPhoneChangeOtpBtn.disabled=true;
+        await loadUserData();
+        showNotification(normalizeApiMessage(data,"Nomor telepon berhasil diperbarui."),"success");
+      }catch(error){phoneChangeOtpError.textContent=error.message||"Gagal memverifikasi OTP.";phoneChangeOtpError.classList.remove("hidden");}
+      finally{setLoading(verifyPhoneChangeOtpBtn,false);}
+    });
+
+    cancelPhoneChangeBtn.addEventListener("click",()=>{
+      clearOtpTimer("phone"); phoneChangeOtpSection.classList.add("hidden"); phoneNumberChangeRequest=null; resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError); resendPhoneChangeOtpBtn.disabled=true;
+      if(phoneChangeOtpTimer) phoneChangeOtpTimer.textContent="OTP berlaku 30 detik. Kirim ulang tersedia dalam 30 detik.";
+      showNotification("Perubahan nomor telepon dibatalkan","info");
+    });
+
+    resendPhoneChangeOtpBtn.addEventListener("click",async()=>{
+      if(!phoneNumberChangeRequest||!isOtpExpired("phone")){showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.","info");return;}
+      try{
+        setLoading(resendPhoneChangeOtpBtn,true);
+        const response=await fetch("/get/otp-change-nomor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomorLama:phoneNumberChangeRequest.oldNomor,nomorBaru:phoneNumberChangeRequest.newNomor}),credentials:"include"});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||!data.success) throw new Error(normalizeApiMessage(data,"Gagal mengirim ulang OTP."));
+        phoneNumberChangeRequest.otpIssuedAt=Date.now(); resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError); startOtpTimer("phone",phoneChangeOtpTimer,resendPhoneChangeOtpBtn); showNotification(normalizeApiMessage(data,"OTP baru berhasil dikirim ke nomor lama."),"success"); phoneChangeOtpInputs[0]?.focus();
+      }catch(error){showNotification(error.message||"Gagal mengirim ulang OTP.","error");}
+      finally{setLoading(resendPhoneChangeOtpBtn,false);}
     });
 
     cancelChangesBtn.addEventListener("click", () => {
