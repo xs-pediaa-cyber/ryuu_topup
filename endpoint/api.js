@@ -121,10 +121,10 @@ async function createQrisComposite({
   const qrSize = Math.min(
     700,
     Math.floor(width * 0.95),
-    Math.floor(height * 0.40)
+    Math.floor(height * 0.20)
   );
 
-  // Panel putih + quiet-zone besar.
+  // jPanel putih + quiet-zone besar.
   // QR tetap berada di atas background, tetapi area QR bersih.
   const qrPrepared = await sharp(qrBuffer)
     .rotate()
