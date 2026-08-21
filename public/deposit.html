@@ -1014,16 +1014,23 @@
 
         .qr-code-container {
             text-align: center;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
+            margin: 1.2rem auto;
+            padding: 18px;
+            border-radius: 22px;
+            border: 3px solid #000;
+            background: url("https://files.catbox.moe/sh2bcj.png") center/cover no-repeat;
+            box-shadow: 6px 6px 0 rgba(0,0,0,.7);
+            max-width: 340px;
         }
         .qr-code-container img {
-            max-width: 200px;
+            max-width: 230px;
+            width: 100%;
             height: auto;
-            border: 1px solid var(--vp-border-color);
-            border-radius: var(--vp-radius-sm);
-            padding: 5px;
-            background-color: white;
+            border: 3px solid #fff;
+            border-radius: 16px;
+            padding: 10px;
+            background: rgba(255,255,255,.95);
+            backdrop-filter: blur(4px);
         }
         .payment-actions {
             margin-top: 1.5rem;
