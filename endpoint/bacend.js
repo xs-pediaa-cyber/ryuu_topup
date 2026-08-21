@@ -85,6 +85,17 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(500).json({ success: false, message: "API Key Payinaja belum disetting di server." });
     }
 
+    // Fee ENV harus ikut masuk ke nominal yang dikirim ke provider supaya QR
+    // benar-benar meminta pembayaran sebesar total yang tampil di web.
+    // Contoh: deposit Rp500 + fee ENV Rp22 -> request ke provider Rp522.
+    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER);
+    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER);
+    const envPercent = user.role === "reseller"
+      ? (Number.isFinite(feePercentReseller) ? feePercentReseller : 2.5)
+      : (Number.isFinite(feePercentUser) ? feePercentUser : 5.5);
+    const additionalFee = Math.max(0, Math.ceil(parsedNominal * (envPercent / 100)));
+    const providerRequestAmount = parsedNominal + additionalFee;
+
     let response;
     try {
       response = await fetch("https://payinaja.com/api/v1/qris/create2", {
@@ -96,7 +107,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
           "x-api-key": API_KEY 
         },
         body: JSON.stringify({
-          amount: parsedNominal,
+          amount: providerRequestAmount,
           reference_id: `DEP-${Date.now()}`,
           customer_name: user.username || "User"
         })
@@ -118,39 +129,30 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const payData = result.data;
 
     // --- KALKULASI FEE ---
-    // Fee provider = biaya admin asli dari Payinaja.
-    // Fee ENV = pajak/biaya tambahan yang dibebankan ke pembayaran.
-    // Keduanya digabung lalu ditambahkan ke nominal. Saldo user tetap sebesar nominal deposit.
-    const nominalAsli = Number(payData.amount_requested) || parsedNominal;
-
-    const providerFeeRaw = Number(payData.fee);
+    // Nominal saldo yang diinginkan user tetap parsedNominal.
+    // Provider menerima parsedNominal + fee ENV, lalu menambahkan fee admin
+    // provider sendiri. Dengan begitu angka total pembayaran = angka yang
+    // benar-benar encoded di QRIS.
+    const nominalAsli = parsedNominal;
+    const providerRequestedAmount = Number(payData.amount_requested) || providerRequestAmount;
     const providerTotalRaw = Number(payData.total_amount);
-    const feeProvider = Number.isFinite(providerFeeRaw) && providerFeeRaw >= 0
-      ? Math.ceil(providerFeeRaw)
-      : (
-          Number.isFinite(providerTotalRaw) && providerTotalRaw > nominalAsli
-            ? Math.ceil(providerTotalRaw - nominalAsli)
-            : 0
-        );
+    const providerFeeRaw = Number(payData.fee);
 
-    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER);
-    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER);
-
-    let additionalFee = 0;
-    if (user.role === "reseller") {
-        const pct = Number.isFinite(feePercentReseller) ? feePercentReseller : 2.5;
-        additionalFee = Math.ceil(nominalAsli * (pct / 100));
-    } else {
-        const pct = Number.isFinite(feePercentUser) ? feePercentUser : 5.5;
-        additionalFee = Math.ceil(nominalAsli * (pct / 100));
+    let feeProvider = 0;
+    if (Number.isFinite(providerFeeRaw) && providerFeeRaw >= 0) {
+      feeProvider = Math.ceil(providerFeeRaw);
+    } else if (Number.isFinite(providerTotalRaw) && providerTotalRaw >= providerRequestedAmount) {
+      feeProvider = Math.ceil(providerTotalRaw - providerRequestedAmount);
     }
 
-    // Total biaya = admin provider + pajak/fee ENV.
-    // Total pembayaran = nominal deposit + seluruh fee.
-    // Saldo diterima = nominal deposit utuh.
-    const totalFee = Math.max(0, feeProvider + additionalFee);
-    const totalBayar = Math.max(0, Math.ceil(nominalAsli + totalFee));
-    const finalGetBalance = Math.max(0, Math.floor(nominalAsli));
+    const totalBayar = Number.isFinite(providerTotalRaw) && providerTotalRaw > 0
+      ? Math.ceil(providerTotalRaw)
+      : Math.ceil(providerRequestedAmount + feeProvider);
+
+    // Fee yang ditampilkan ke user adalah selisih antara yang dibayar dan
+    // saldo nominal yang diterima, sehingga fee provider + fee ENV tergabung.
+    const totalFee = Math.max(0, totalBayar - nominalAsli);
+    const finalGetBalance = nominalAsli;
 
     // Menggunakan URL background baru dari Catbox secara aman
     const customBgUrl = "https://files.catbox.moe/sh2bcj.png";
@@ -158,7 +160,9 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const historyDataForDb = {
       id: payData.payinaja_trx_id,
       nominal: nominalAsli,
+      tambahan: additionalFee,
       fee: totalFee,
+      total_amount: totalBayar,
       get_balance: finalGetBalance,
       metode: "QRIS",
       status: "pending",
@@ -262,7 +266,9 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
           trx_id: id,
           reff_id: localData.reff_id || "-",
           nominal: Number(localData.nominal) || 0,
-          total_amount: Math.max(0, (Number(localData.nominal) || 0) + (Number(localData.fee) || 0)),
+          total_amount: Number(localData.total_amount) > 0
+            ? Number(localData.total_amount)
+            : Math.max(0, (Number(localData.nominal) || 0) + (Number(localData.fee) || 0)),
           fee: Number(localData.fee) || 0,
           get_balance: Number(localData.get_balance) || 0,
           status: localStatus,
@@ -318,7 +324,9 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
         trx_id: id,
         reff_id: localData.reff_id || "-",
         nominal: nominal,
-        total_amount: Math.max(0, nominal + fee),
+        total_amount: Number(localData.total_amount) > 0
+          ? Number(localData.total_amount)
+          : Math.max(0, nominal + fee),
         fee: fee,
         get_balance: Number(localData.get_balance) || 0,
         status: effectiveStatus,
