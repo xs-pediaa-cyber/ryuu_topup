@@ -264,7 +264,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { nominal } = req.query;
 
   // ==============================
-  // VALIDASI USER & NOMINAL
+  // VALIDASI USER
   // ==============================
   if (!user?._id) {
     return res.status(401).json({
@@ -273,6 +273,9 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     });
   }
 
+  // ==============================
+  // VALIDASI NOMINAL
+  // ==============================
   if (!nominal || isNaN(nominal)) {
     return res.status(400).json({
       success: false,
@@ -327,12 +330,12 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       Math.ceil(parsedNominal * (envPercent / 100))
     );
 
-    // Nominal yang benar-benar dikirim ke Payinaja
+    // Nominal yang dikirim ke Payinaja
     const providerRequestAmount =
       parsedNominal + additionalFee;
 
     // ==============================
-    // CREATE QRIS PAYINAJA
+    // CREATE QRIS
     // ==============================
     let response;
 
@@ -356,10 +359,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         }
       );
     } catch (fetchError) {
-      console.error(
-        "Payinaja Fetch Error:",
-        fetchError
-      );
+      console.error("Fetch API Error:", fetchError);
 
       return res.status(502).json({
         success: false,
@@ -369,7 +369,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     }
 
     // ==============================
-    // CEK RESPONSE HTTP
+    // PARSE RESPONSE
     // ==============================
     const responseText = await response.text();
 
@@ -379,14 +379,13 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       result = JSON.parse(responseText);
     } catch (jsonError) {
       console.error(
-        "Payinaja Response bukan JSON:",
+        "Response Payinaja bukan JSON:",
         responseText
       );
 
       return res.status(502).json({
         success: false,
-        message:
-          "Response dari Payinaja tidak valid.",
+        message: "Response dari Payinaja tidak valid.",
       });
     }
 
@@ -405,18 +404,18 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       });
     }
 
-    // ==============================
-    // DATA PAYINAJA
-    // ==============================
     const payData = result.data || {};
 
+    // ==============================
+    // TRANSACTION ID
+    // ==============================
     const trxId = payData.payinaja_trx_id;
 
     if (!trxId) {
       return res.status(502).json({
         success: false,
         message:
-          "Payinaja tidak mengembalikan ID transaksi.",
+          "Provider tidak mengembalikan ID transaksi.",
       });
     }
 
@@ -464,13 +463,13 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       totalBayar - nominalAsli
     );
 
-    // Saldo yang masuk tetap nominal asli
+    // Saldo yang diterima member
     const finalGetBalance = nominalAsli;
 
     // ==============================
-    // QRIS DATA
+    // DATA QRIS
     // ==============================
-    const qrImage =
+    const rawQrImage =
       payData.qris_image_url || "";
 
     const qrisString =
@@ -478,28 +477,75 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       payData.qris ||
       "";
 
-    const customBgUrl =
+    // ==============================
+    // BACKGROUND QRIS
+    // ==============================
+    const bgUrl =
+      DEFAULT_BG_URL ||
       "https://files.catbox.moe/sh2bcj.png";
 
     // ==============================
-    // SIMPAN HISTORY
+    // COMPOSITE QRIS
+    // ==============================
+    // QR asli Payinaja akan digabungkan
+    // dengan background seperti sistem web.
+    let compositeQrUrl = rawQrImage;
+
+    try {
+      const generated = await createQrisComposite({
+        trxId,
+        qrisImageUrl: rawQrImage,
+        qrisString,
+      });
+
+      if (generated?.filename) {
+        compositeQrUrl =
+          `${req.protocol}://${req.get(
+            "host"
+          )}/media/generated-qris/${generated.filename}`;
+      }
+    } catch (imageError) {
+      console.error(
+        "QR Composite Error:",
+        imageError?.message || imageError
+      );
+
+      // Kalau composite gagal,
+      // QR asli Payinaja tetap digunakan.
+      compositeQrUrl = rawQrImage;
+    }
+
+    // ==============================
+    // HISTORY DEPOSIT
     // ==============================
     const historyDataForDb = {
       id: trxId,
+
       nominal: nominalAsli,
+
       tambahan: additionalFee,
+
       fee: totalFee,
+
       total_amount: totalBayar,
+
       get_balance: finalGetBalance,
+
       metode: "QRIS",
+
       status: "pending",
 
-      // QR asli Payinaja
-      qr_image: qrImage,
+      // QR hasil composite
+      qr_image: compositeQrUrl,
 
+      // QR asli provider
+      qr_image_raw: rawQrImage,
+
+      // QR string
       qris_string: qrisString,
 
-      bg_image: customBgUrl,
+      // Background
+      bg_image: bgUrl,
 
       created_at: new Date(),
     };
@@ -510,14 +556,16 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     );
 
     // ==============================
-    // RESPONSE KE MEMBER API
+    // RESPONSE API MEMBER
     // ==============================
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
+
       message: "QRIS berhasil dibuat.",
 
       data: {
         id: trxId,
+
         trx_id: trxId,
 
         metode: "QRIS",
@@ -525,6 +573,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         nominal: nominalAsli,
 
         fee: totalFee,
+
         fee_env: additionalFee,
 
         fee_provider: Math.max(
@@ -536,16 +585,18 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
 
         get_balance: finalGetBalance,
 
-        // QRIS asli Payinaja
-        qr_image: qrImage,
+        // QR utama = sudah digabung dengan background
+        qr_image: compositeQrUrl,
 
-        // Alias agar kompatibel dengan API lama
-        qr_image_raw: qrImage,
-        qr_image_combined: qrImage,
+        qr_image_combined: compositeQrUrl,
+
+        // QR asli Payinaja
+        qr_image_raw: rawQrImage,
 
         qris_string: qrisString,
 
-        bg_image: customBgUrl,
+        // Background
+        bg_image: bgUrl,
 
         status: "pending",
 
@@ -555,7 +606,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     });
 
     // ==============================
-    // POLLING STATUS
+    // POLLING OTOMATIS
     // ==============================
     const intervalId = setInterval(async () => {
       try {
@@ -589,14 +640,14 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         }
 
         // ==============================
-        // CEK TRANSAKSI PAYINAJA
+        // CEK STATUS PAYINAJA
         // ==============================
         const checkRes = await fetch(
           `https://payinaja.com/api/v1/transaction/${trxId}`,
           {
             method: "GET",
             headers: {
-              "Accept": "application/json",
+              Accept: "application/json",
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
               "x-api-key": API_KEY,
@@ -681,19 +732,20 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         }
       } catch (error) {
         console.error(
-          "Polling Payinaja Error:",
+          "Polling API Error:",
           error.message
         );
 
-        // Jangan langsung clear interval karena
-        // error sementara tidak berarti transaksi gagal.
+        // Error sementara tidak langsung
+        // membuat transaksi dianggap gagal.
       }
     }, 60000);
 
-    // Pengaman agar polling tidak hidup selamanya
+    // Hentikan polling maksimal 30 menit
     setTimeout(() => {
       clearInterval(intervalId);
     }, 30 * 60 * 1000);
+
   } catch (error) {
     console.error(
       "API Deposit Create Error:",
