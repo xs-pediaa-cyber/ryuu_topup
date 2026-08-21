@@ -72,21 +72,20 @@ async function createQrisComposite({
   await fs.promises.mkdir(QR_OUTPUT_DIR, { recursive: true });
 
   let backgroundBuffer;
-
   try {
     backgroundBuffer = await fs.promises.readFile(backgroundPath);
   } catch {
     backgroundBuffer = await fetchBuffer(backgroundUrl);
   }
 
-  // ==========================================
-  // AMBIL QRIS
-  // ==========================================
+  // PENTING: gunakan QR IMAGE ASLI dari Payinaja terlebih dahulu.
+  // Jangan generate ulang dari qris_string jika image provider tersedia,
+  // karena image asli adalah QR yang sudah diterbitkan provider.
   let qrBuffer;
 
-  // qris_string diprioritaskan karena langsung mewakili
-  // payload QRIS transaksi dari provider.
-  if (qrisString) {
+  if (qrisImageUrl) {
+    qrBuffer = await fetchBuffer(qrisImageUrl);
+  } else if (qrisString) {
     qrBuffer = await QRCode.toBuffer(qrisString, {
       type: "png",
       width: 1200,
@@ -97,17 +96,11 @@ async function createQrisComposite({
         light: "#FFFFFF",
       },
     });
-  } else if (qrisImageUrl) {
-    qrBuffer = await fetchBuffer(qrisImageUrl);
   } else {
-    throw new Error(
-      "QRIS image/string dari provider tidak tersedia."
-    );
+    throw new Error("QRIS image/string dari provider tidak tersedia.");
   }
 
-  // ==========================================
-  // SIAPKAN BACKGROUND
-  // ==========================================
+  // Background tetap proporsional dan menjadi RGB/PNG penuh.
   const baseBuffer = await sharp(backgroundBuffer)
     .rotate()
     .resize({
@@ -115,6 +108,7 @@ async function createQrisComposite({
       fit: "inside",
       withoutEnlargement: false,
     })
+    .flatten({ background: "#FFFFFF" })
     .png()
     .toBuffer();
 
@@ -123,112 +117,71 @@ async function createQrisComposite({
   const width = meta.width || 1200;
   const height = meta.height || 1200;
 
-  // ==========================================
-  // UKURAN QR
-  // ==========================================
-  // QR dibuat besar supaya mudah discan.
-  // Tidak terlalu dekat dengan tepi background.
-  const maxQrWidth = Math.floor(width * 0.72);
-  const maxQrHeight = Math.floor(height * 0.42);
-
-  const qrSize = Math.max(
-    420,
-    Math.min(
-      820,
-      maxQrWidth,
-      maxQrHeight
-    )
+  // QR dibuat cukup besar agar mudah dideteksi kamera.
+  const qrSize = Math.min(
+    760,
+    Math.floor(width * 0.68),
+    Math.floor(height * 0.34)
   );
 
-  // ==========================================
-  // QR DENGAN WHITE QUIET-ZONE / PANEL
-  // ==========================================
-  // QR tidak ditempel langsung ke background.
-  // Dibuat area putih cukup besar agar finder pattern
-  // dan quiet zone tetap terbaca kamera.
-  const qrWithPadding = await sharp(qrBuffer)
+  // Panel putih + quiet-zone besar.
+  // QR tetap berada di atas background, tetapi area QR bersih.
+  const qrPrepared = await sharp(qrBuffer)
+    .rotate()
+    .flatten({ background: "#FFFFFF" })
     .resize({
       width: qrSize,
       height: qrSize,
       fit: "contain",
-      background: {
-        r: 255,
-        g: 255,
-        b: 255,
-        alpha: 1,
-      },
+      background: "#FFFFFF",
     })
     .extend({
-      top: 40,
-      bottom: 40,
-      left: 40,
-      right: 40,
-      background: {
-        r: 255,
-        g: 255,
-        b: 255,
-        alpha: 1,
-      },
+      top: 55,
+      bottom: 55,
+      left: 55,
+      right: 55,
+      background: "#FFFFFF",
     })
     .png()
     .toBuffer();
 
-  const qrMeta = await sharp(qrWithPadding).metadata();
+  const qrMeta = await sharp(qrPrepared).metadata();
 
-  const qrWidth =
-    qrMeta.width || qrSize + 80;
+  const qrWidth = qrMeta.width || qrSize + 110;
+  const qrHeight = qrMeta.height || qrSize + 110;
 
-  const qrHeight =
-    qrMeta.height || qrSize + 80;
-
-  // ==========================================
-  // POSISI QR
-  // ==========================================
-  // Diletakkan di tengah dan agak ke bawah.
-  // Tidak dipaksakan terlalu bawah supaya tidak
-  // terpotong pada background portrait.
+  // Posisi di tengah bagian bawah, seluruh QR harus tetap terlihat.
   const left = Math.max(
     0,
     Math.floor((width - qrWidth) / 2)
   );
 
-  const preferredTop =
-    Math.floor(height * 0.50);
-
   const top = Math.max(
     0,
     Math.min(
-      height - qrHeight,
-      preferredTop
+      height - qrHeight - 20,
+      Math.floor(height * 0.52)
     )
   );
 
-  // ==========================================
-  // COMPOSITE
-  // ==========================================
   const filename =
-    `${String(trxId).replace(
-      /[^a-zA-Z0-9_-]/g,
-      "_"
-    )}.png`;
+    `${String(trxId).replace(/[^a-zA-Z0-9_-]/g, "_")}.png`;
 
   const outputPath =
-    path.join(
-      QR_OUTPUT_DIR,
-      filename
-    );
+    path.join(QR_OUTPUT_DIR, filename);
 
   await sharp(baseBuffer)
     .composite([
       {
-        input: qrWithPadding,
+        input: qrPrepared,
         left,
         top,
         blend: "over",
       },
     ])
+    .flatten({ background: "#FFFFFF" })
     .png({
-      compressionLevel: 9,
+      compressionLevel: 6,
       adaptiveFiltering: true,
       force: true,
     })
