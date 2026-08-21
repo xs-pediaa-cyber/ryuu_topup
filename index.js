@@ -596,143 +596,309 @@ app.get("/api/history/order", requireLogin, async (req, res) => {
   }
 });
 
-// Upload foto profil. Frontend lama mengirim field "photo" dan juga fallback "file".
-// Jangan gunakan .single("photo") karena field "file" akan dianggap unexpected field
-// oleh Multer dan upload langsung gagal. Terima keduanya, lalu pilih file yang tersedia.
-const uploadMemory = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-    files: 2,
-  },
-  fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowed.includes(file.mimetype)) {
-      return cb(new Error("Format foto harus JPG, PNG, GIF, atau WEBP."));
-    }
-    cb(null, true);
-  },
-});
+const uploadMemory = multer({ storage: multer.memoryStorage() }); 
 
 async function CatBox(buffer, originalname) {
-  if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) {
-    throw new Error("File foto kosong atau tidak valid.");
-  }
-
-  const safeName = path.basename(originalname || "profile.jpg");
   const data = new FormData();
   data.append("reqtype", "fileupload");
   data.append("userhash", "");
-  data.append("fileToUpload", buffer, { filename: safeName });
-
-  const api = await axios.post(
-    "https://catbox.moe/user/api.php",
-    data,
-    {
-      headers: {
-        ...data.getHeaders(),
-        "User-Agent":
-          "Mozilla/5.0 (Android 10; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
-        Accept: "text/plain, */*",
-      },
-      timeout: 30000,
-      maxBodyLength: 6 * 1024 * 1024,
-      maxContentLength: 2 * 1024 * 1024,
-      validateStatus: () => true,
-    }
-  );
-
-  const raw = String(api.data ?? "").trim();
-  if (api.status < 200 || api.status >= 300) {
-    throw new Error(`Catbox HTTP ${api.status}: ${raw || "upload ditolak"}`);
-  }
-
-  const match = raw.match(/https?:\/\/[^\s]+/i);
-  const uploadedUrl = match ? match[0].replace(/[\r\n]+/g, "").trim() : "";
-  if (!/^https?:\/\/\S+$/i.test(uploadedUrl)) {
-    throw new Error(`Catbox tidak mengembalikan URL gambar yang valid: ${raw.slice(0, 200)}`);
-  }
-
-  return uploadedUrl;
+  data.append("fileToUpload", buffer, { filename: originalname });
+  const config = {
+    method: "POST",
+    url: "https://catbox.moe/user/api.php",
+    headers: {
+      ...data.getHeaders(),
+      "User-Agent":
+        "Mozilla/5.0 (Android 10; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0",
+    },
+    data: data,
+  };
+  const api = await axios.request(config);
+  return api.data;
 }
 
-app.post(
-  "/profile/update-photo",
-  requireLogin,
-  (req, res, next) => {
-    uploadMemory.fields([
-      { name: "photo", maxCount: 1 },
-      { name: "file", maxCount: 1 },
-    ])(req, res, (err) => {
-      if (!err) return next();
-
-      console.error("Upload middleware error:", err);
-      const message =
-        err.code === "LIMIT_FILE_SIZE"
-          ? "Ukuran foto maksimal 5 MB."
-          : err.message || "Upload foto gagal.";
-
-      return res.status(400).json({
-        success: false,
-        message,
-      });
-    });
-  },
-  async (req, res) => {
+app.post("/profile/update-photo",requireLogin, uploadMemory.single("photo"), async (req, res) => {
     try {
+      // Skip untuk custom admin
       if (req.session.userId === "custom-admin") {
         return res.status(400).json({
           success: false,
           message: "Admin tidak dapat mengubah foto profil",
         });
       }
-
-      // Prioritaskan field "photo", fallback ke "file".
-      const file =
-        req.files?.photo?.[0] ||
-        req.files?.file?.[0] ||
-        null;
-
+      
+      const file = req.file;
       if (!file) {
-        return res.status(400).json({
-          success: false,
-          message: "Foto tidak ditemukan. Gunakan field multipart 'photo'.",
-        });
+        return res
+          .status(400)
+          .json({ success: false, message: "No file uploaded" });
       }
-
-      const user = await User.findById(req.session.userId);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User tidak ditemukan.",
-        });
-      }
-
       const uploadedUrl = await CatBox(file.buffer, file.originalname);
-
-      user.profileUrl = uploadedUrl;
-      await user.save();
-
-      console.log(`✅ Foto profil ${user.username} berhasil diupload: ${uploadedUrl}`);
-
+      await User.findByIdAndUpdate(req.session.userId, {
+        profileUrl: uploadedUrl,
+      });
       return res.status(200).json({
         success: true,
-        message: "Foto profil berhasil diperbarui.",
+        message: "Profile photo updated successfully",
         profileUrl: uploadedUrl,
-        user: {
-          profileUrl: uploadedUrl,
-        },
       });
     } catch (error) {
-      console.error("❌ Error update profile photo:", error.response?.data || error.message || error);
+      console.error("Error update profile photo:", error);
       return res.status(500).json({
         success: false,
-        message: error.message || "Gagal memperbarui foto profil.",
+        message: "Failed to update profile photo",
       });
     }
   }
 );
+// Tambahkan setelah middleware JSON/auth kamu.
+// Endpoint ini KHUSUS untuk perubahan nomor telepon.
 
+const normalizeNomor = (nomor) => {
+  const value = String(nomor || '').trim().replace(/\s+/g, '');
+  if (!value) return '';
+  return value.startsWith('62') ? value : value.startsWith('0') ? `62${value.slice(1)}` : value;
+};
+
+// ============================================================
+// CEK USERNAME / EMAIL / NOMOR - WAJIB CEK DB SEBELUM SIMPAN
+// ============================================================
+app.post('/profile/check-availability', async (req, res) => {
+  try {
+    const username = String(req.body.username || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const nomor = normalizeNomor(req.body.nomor);
+
+    // Sesuaikan dengan sistem auth kamu bila nama property user berbeda.
+    const currentUserId = req.user?.id || req.user?._id || req.session?.userId || req.session?.user?._id || null;
+
+    const makeFilter = (field, value) => {
+      const filter = { [field]: value };
+      if (currentUserId) {
+        filter._id = { $ne: currentUserId };
+      }
+      return filter;
+    };
+
+    const [usernameOwner, emailOwner, nomorOwner] = await Promise.all([
+      username ? User.findOne(makeFilter('username', username)).select('_id').lean() : null,
+      email ? User.findOne(makeFilter('email', email)).select('_id').lean() : null,
+      nomor ? User.findOne(makeFilter('nomor', nomor)).select('_id').lean() : null,
+    ]);
+
+    const usernameAvailable = !usernameOwner;
+    const emailAvailable = !emailOwner;
+    const nomorAvailable = !nomorOwner;
+    const available = usernameAvailable && emailAvailable && nomorAvailable;
+
+    return res.json({
+      success: true,
+      available,
+      usernameAvailable,
+      emailAvailable,
+      nomorAvailable,
+      message: available ? 'Data tersedia' : 'Username, email, atau nomor telepon sudah terdaftar'
+    });
+  } catch (error) {
+    console.error('check-profile-availability:', error);
+    return res.status(500).json({
+      success: false,
+      available: false,
+      message: 'Gagal mengecek ketersediaan data'
+    });
+  }
+});
+
+// ============================================================
+// KIRIM OTP KHUSUS PERUBAHAN NOMOR
+// Pesan TIDAK menggunakan teks reset password.
+// OTP disimpan di field terpisah dari OTP reset password.
+// ============================================================
+app.post('/get/otp-change-nomor', async (req, res) => {
+  const nomorLama = normalizeNomor(req.body.nomorLama);
+  const nomorBaru = normalizeNomor(req.body.nomorBaru);
+
+  if (!nomorLama || !nomorBaru) {
+    return res.status(400).json({
+      success: false,
+      message: 'Nomor lama dan nomor baru wajib diisi'
+    });
+  }
+
+  if (nomorLama === nomorBaru) {
+    return res.status(400).json({
+      success: false,
+      message: 'Nomor baru tidak boleh sama dengan nomor lama'
+    });
+  }
+
+  if (!/^62\d{9,13}$/.test(nomorBaru)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Format nomor baru tidak valid'
+    });
+  }
+
+  try {
+    // Cari user berdasarkan nomor lama.
+    const user = await User.findOne({ nomor: nomorLama });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nomor lama tidak ditemukan'
+      });
+    }
+
+    // CEK DB SEKALI LAGI DI BACKEND sebelum OTP dikirim.
+    const nomorSudahDipakai = await User.findOne({
+      nomor: nomorBaru,
+      _id: { $ne: user._id }
+    }).select('_id').lean();
+
+    if (nomorSudahDipakai) {
+      return res.status(409).json({
+        success: false,
+        field: 'nomor',
+        message: 'Nomor baru sudah terdaftar. Silakan gunakan nomor lain.'
+      });
+    }
+
+    // OTP khusus ubah nomor, terpisah dari otpCode reset password.
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    user.phoneChangeOtp = otpCode;
+    user.phoneChangeOtpExpired = otpExpiry;
+    user.phoneChangeTarget = nomorBaru;
+    user.aktifitas = 'Konfirmasi Ubah Nomor';
+    await user.save();
+
+    const axios = require('axios');
+
+    const send = await axios.post(
+      'https://api.fonnte.com/send',
+      {
+        target: nomorLama,
+        message:
+          `Halo ${user.fullname || user.username || 'Pengguna'},\n\n` +
+          `Kami menerima permintaan untuk mengubah nomor telepon akun Anda.\n` +
+          `Kode OTP konfirmasi perubahan nomor Anda adalah: ${otpCode}\n\n` +
+          `Nomor baru: ${nomorBaru}\n` +
+          `OTP berlaku selama 5 menit.\n\n` +
+          `Jika Anda tidak melakukan perubahan ini, abaikan pesan ini.`
+      },
+      {
+        headers: {
+          Authorization: process.env.FONNTE_TOKEN
+        }
+      }
+    );
+
+    console.log('OTP ubah nomor dikirim ke:', nomorLama);
+    console.log('Target nomor baru:', nomorBaru);
+    console.log('Respon Fonnte:', send.data);
+
+    return res.json({
+      success: true,
+      message: 'OTP konfirmasi perubahan nomor berhasil dikirim ke nomor lama'
+    });
+  } catch (error) {
+    console.error('Error otp-change-nomor:', error.response?.data || error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengirim OTP konfirmasi perubahan nomor'
+    });
+  }
+});
+
+// ============================================================
+// VERIFIKASI OTP + SIMPAN NOMOR BARU
+// ============================================================
+app.post('/auth/change-number', async (req, res) => {
+  const nomorLama = normalizeNomor(req.body.nomorLama);
+  const nomorBaru = normalizeNomor(req.body.nomorBaru);
+  const otp = String(req.body.otp || '').trim();
+
+  if (!nomorLama || !nomorBaru || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Data perubahan nomor tidak lengkap atau OTP tidak valid'
+    });
+  }
+
+  try {
+    const user = await User.findOne({ nomor: nomorLama });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User dengan nomor lama tidak ditemukan'
+      });
+    }
+
+    if (!user.phoneChangeOtp || !user.phoneChangeOtpExpired) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada OTP perubahan nomor yang aktif. Silakan minta OTP baru.'
+      });
+    }
+
+    if (user.phoneChangeOtpExpired <= new Date()) {
+      user.phoneChangeOtp = null;
+      user.phoneChangeOtpExpired = null;
+      user.phoneChangeTarget = null;
+      await user.save();
+      return res.status(400).json({
+        success: false,
+        message: 'OTP perubahan nomor sudah kedaluwarsa'
+      });
+    }
+
+    if (user.phoneChangeTarget !== nomorBaru) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nomor tujuan tidak sesuai dengan permintaan OTP terakhir'
+      });
+    }
+
+    if (user.phoneChangeOtp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP perubahan nomor salah'
+      });
+    }
+
+    // Cek DB sekali lagi tepat sebelum update.
+    const nomorSudahDipakai = await User.findOne({
+      nomor: nomorBaru,
+      _id: { $ne: user._id }
+    }).select('_id').lean();
+
+    if (nomorSudahDipakai) {
+      return res.status(409).json({
+        success: false,
+        message: 'Nomor baru sudah terdaftar. Silakan gunakan nomor lain.'
+      });
+    }
+
+    user.nomor = nomorBaru;
+    user.phoneChangeOtp = null;
+    user.phoneChangeOtpExpired = null;
+    user.phoneChangeTarget = null;
+    user.aktifitas = 'Berhasil Ubah Nomor';
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Nomor telepon berhasil diperbarui'
+    });
+  } catch (error) {
+    console.error('Error change-number:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengubah nomor telepon'
+    });
+  }
+});
 app.post("/get/forgot-password", async (req, res) => {
   const { nomor } = req.body;
 
