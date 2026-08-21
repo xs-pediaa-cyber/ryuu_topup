@@ -117,24 +117,40 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     const payData = result.data;
 
-    // --- FIX KALKULASI & ROUNDING BERBASIS .ENV ---
+    // --- KALKULASI FEE ---
+    // Fee provider = biaya admin asli dari Payinaja.
+    // Fee ENV = pajak/biaya tambahan yang dibebankan ke pembayaran.
+    // Keduanya digabung lalu ditambahkan ke nominal. Saldo user tetap sebesar nominal deposit.
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
-    const feePayinaja = Number(payData.fee) || 0;
-    
-    // Ambil persentase dari .env (default: user 5.5%, reseller 2.5%)
-    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER) || 5.5;
-    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER) || 2.5;
+
+    const providerFeeRaw = Number(payData.fee);
+    const providerTotalRaw = Number(payData.total_amount);
+    const feeProvider = Number.isFinite(providerFeeRaw) && providerFeeRaw >= 0
+      ? Math.ceil(providerFeeRaw)
+      : (
+          Number.isFinite(providerTotalRaw) && providerTotalRaw > nominalAsli
+            ? Math.ceil(providerTotalRaw - nominalAsli)
+            : 0
+        );
+
+    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER);
+    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER);
 
     let additionalFee = 0;
-    if (user.role === "user") {
-        additionalFee = Math.ceil(nominalAsli * (feePercentUser / 100));
-    } else if (user.role === "reseller") {
-        additionalFee = Math.ceil(nominalAsli * (feePercentReseller / 100));
+    if (user.role === "reseller") {
+        const pct = Number.isFinite(feePercentReseller) ? feePercentReseller : 2.5;
+        additionalFee = Math.ceil(nominalAsli * (pct / 100));
+    } else {
+        const pct = Number.isFinite(feePercentUser) ? feePercentUser : 5.5;
+        additionalFee = Math.ceil(nominalAsli * (pct / 100));
     }
 
-    const totalBayar = Math.ceil(Number(payData.total_amount) || (nominalAsli + feePayinaja));
-    const totalFee = feePayinaja + additionalFee;
-    const finalGetBalance = nominalAsli - additionalFee;
+    // Total biaya = admin provider + pajak/fee ENV.
+    // Total pembayaran = nominal deposit + seluruh fee.
+    // Saldo diterima = nominal deposit utuh.
+    const totalFee = Math.max(0, feeProvider + additionalFee);
+    const totalBayar = Math.max(0, Math.ceil(nominalAsli + totalFee));
+    const finalGetBalance = Math.max(0, Math.floor(nominalAsli));
 
     // Menggunakan URL background baru dari Catbox secara aman
     const customBgUrl = "https://files.catbox.moe/sh2bcj.png";
@@ -184,12 +200,25 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         });
         const checkData = await checkRes.json();
         
-        if (checkData?.success && checkData.data?.status.toLowerCase() === "success") {
+        const latestHistory = await User.findOne(
+          { _id: user._id, "historyDeposit.id": payData.payinaja_trx_id },
+          { "historyDeposit.$": 1 }
+        );
+        const latestDeposit = latestHistory?.historyDeposit?.[0];
+
+        // Status terminal lokal (terutama "cancel") tidak boleh ditimpa provider.
+        if (!latestDeposit || !["pending", "processing"].includes(String(latestDeposit.status || "").toLowerCase())) {
+          clearInterval(intervalId);
+          return;
+        }
+
+        const providerStatus = String(checkData?.data?.status || "").toLowerCase();
+        if (checkData?.success && providerStatus === "success") {
           await editHistoryDeposit(user._id, payData.payinaja_trx_id, "success");
           await User.findByIdAndUpdate(user._id, { $inc: { saldo: finalGetBalance } });
           clearInterval(intervalId);
-        } else if (checkData?.data && ["failed", "expired", "cancel"].includes(checkData.data.status.toLowerCase())) {
-          await editHistoryDeposit(user._id, payData.payinaja_trx_id, checkData.data.status.toLowerCase());
+        } else if (["failed", "expired", "cancel"].includes(providerStatus)) {
+          await editHistoryDeposit(user._id, payData.payinaja_trx_id, providerStatus);
           clearInterval(intervalId);
         }
       } catch (e) { 
@@ -220,39 +249,82 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
       return res.status(404).json({ success: false, message: "Data tidak ditemukan." });
     }
 
-    const localData = userWithHistory.historyDeposit[0];
-    const API_KEY = process.env.PAYINAJA_API_KEY;
+    let localData = userWithHistory.historyDeposit[0];
+    const localStatus = String(localData.status || "pending").toLowerCase();
 
+    // Status terminal yang sudah disimpan di DB adalah sumber kebenaran.
+    // Ini mencegah "cancel" berubah kembali menjadi "pending" karena provider belum sync.
+    if (!["pending", "processing"].includes(localStatus)) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          id: id,
+          trx_id: id,
+          reff_id: localData.reff_id || "-",
+          nominal: Number(localData.nominal) || 0,
+          total_amount: Math.max(0, (Number(localData.nominal) || 0) + (Number(localData.fee) || 0)),
+          fee: Number(localData.fee) || 0,
+          get_balance: Number(localData.get_balance) || 0,
+          status: localStatus,
+          metode: localData.metode || "QRIS",
+          qr_image: localData.qr_image || null,
+          created_at: localData.created_at || null
+        }
+      });
+    }
+
+    const API_KEY = process.env.PAYINAJA_API_KEY;
     const response = await fetch(`https://payinaja.com/api/v1/transaction/${id}`, {
         method: "GET",
         headers: { "x-api-key": API_KEY }
     });
-    
-    const result = await response.json();
-    const statusProvider = result?.data?.status?.toLowerCase() || localData.status;
 
-    if (statusProvider === "success" && localData.status === "pending") {
+    const result = await response.json();
+    const providerStatus = String(result?.data?.status || localStatus).toLowerCase();
+    let effectiveStatus = localStatus;
+
+    if (providerStatus === "success" && ["pending", "processing"].includes(localStatus)) {
         await User.updateOne(
             { _id: user._id, "historyDeposit.id": id },
-            { 
+            {
                 $set: { "historyDeposit.$.status": "success" },
                 $inc: { saldo: Number(localData.get_balance) || 0 }
             }
         );
+        effectiveStatus = "success";
+    } else if (["failed", "expired", "cancel"].includes(providerStatus)) {
+        await User.updateOne(
+            { _id: user._id, "historyDeposit.id": id },
+            { $set: { "historyDeposit.$.status": providerStatus } }
+        );
+        effectiveStatus = providerStatus;
     }
+
+    // Ambil ulang history agar status dan tanggal yang dikembalikan selalu yang terbaru.
+    const refreshedUser = await User.findOne(
+      { _id: user._id, "historyDeposit.id": id },
+      { "historyDeposit.$": 1 }
+    );
+    localData = refreshedUser?.historyDeposit?.[0] || localData;
+    effectiveStatus = String(localData.status || effectiveStatus).toLowerCase();
+
+    const nominal = Number(localData.nominal) || Number(result?.data?.amount_requested) || 0;
+    const fee = Number(localData.fee) || 0;
 
     return res.status(200).json({
       success: true,
       data: {
         id: id,
         trx_id: id,
-        nominal: Number(result?.data?.amount_requested) || Number(localData.nominal) || 0,
-        total_amount: Number(result?.data?.total_amount) || (Number(localData.nominal) + Number(localData.fee)) || 0,
-        fee: Number(localData.fee) || 0,
+        reff_id: localData.reff_id || "-",
+        nominal: nominal,
+        total_amount: Math.max(0, nominal + fee),
+        fee: fee,
         get_balance: Number(localData.get_balance) || 0,
-        status: statusProvider,
+        status: effectiveStatus,
         metode: localData.metode || "QRIS",
-        qr_image: localData.qr_image || result?.data?.qris_image_url
+        qr_image: localData.qr_image || result?.data?.qris_image_url || null,
+        created_at: localData.created_at || null
       }
     });
 
