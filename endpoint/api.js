@@ -72,22 +72,26 @@ async function createQrisComposite({
   await fs.promises.mkdir(QR_OUTPUT_DIR, { recursive: true });
 
   let backgroundBuffer;
+
   try {
     backgroundBuffer = await fs.promises.readFile(backgroundPath);
   } catch {
     backgroundBuffer = await fetchBuffer(backgroundUrl);
   }
 
+  // ==========================================
+  // AMBIL QRIS
+  // ==========================================
   let qrBuffer;
 
-  // Prioritaskan qris_string supaya QR hasil generate mengikuti payload
-  // pembayaran yang diterbitkan provider.
+  // qris_string diprioritaskan karena langsung mewakili
+  // payload QRIS transaksi dari provider.
   if (qrisString) {
     qrBuffer = await QRCode.toBuffer(qrisString, {
       type: "png",
-      width: 700,
-      margin: 2,
-      errorCorrectionLevel: "M",
+      width: 1200,
+      margin: 4,
+      errorCorrectionLevel: "H",
       color: {
         dark: "#000000",
         light: "#FFFFFF",
@@ -96,63 +100,138 @@ async function createQrisComposite({
   } else if (qrisImageUrl) {
     qrBuffer = await fetchBuffer(qrisImageUrl);
   } else {
-    throw new Error("QRIS image/string dari provider tidak tersedia.");
+    throw new Error(
+      "QRIS image/string dari provider tidak tersedia."
+    );
   }
 
-  const base = sharp(backgroundBuffer).rotate().resize({
-    width: 1000,
-    fit: "inside",
-    withoutEnlargement: false,
-  });
-
-  const baseBuffer = await base.png().toBuffer();
-  const meta = await sharp(baseBuffer).metadata();
-
-  const width = meta.width || 1000;
-  const height = meta.height || 1000;
-
-  // QR ditempatkan di bagian bawah-tengah background.
-  const qrSize = Math.max(220, Math.min(560, Math.floor(width * 0.95), Math.floor(height * 0.25)));
-  const qrPrepared = await sharp(qrBuffer)
+  // ==========================================
+  // SIAPKAN BACKGROUND
+  // ==========================================
+  const baseBuffer = await sharp(backgroundBuffer)
+    .rotate()
     .resize({
-      width: qrSize,
-      height: qrSize,
-      fit: "contain",
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
-    })
-    .extend({
-      top: 12,
-      bottom: 12,
-      left: 12,
-      right: 12,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      width: 1200,
+      fit: "inside",
+      withoutEnlargement: false,
     })
     .png()
     .toBuffer();
 
-  const qrMeta = await sharp(qrPrepared).metadata();
-  const qrWidth = qrMeta.width || qrSize + 24;
-  const qrHeight = qrMeta.height || qrSize + 24;
+  const meta = await sharp(baseBuffer).metadata();
 
-  const left = Math.max(0, Math.floor((width - qrWidth) / 2));
+  const width = meta.width || 1200;
+  const height = meta.height || 1200;
+
+  // ==========================================
+  // UKURAN QR
+  // ==========================================
+  // QR dibuat besar supaya mudah discan.
+  // Tidak terlalu dekat dengan tepi background.
+  const maxQrWidth = Math.floor(width * 0.72);
+  const maxQrHeight = Math.floor(height * 0.42);
+
+  const qrSize = Math.max(
+    420,
+    Math.min(
+      820,
+      maxQrWidth,
+      maxQrHeight
+    )
+  );
+
+  // ==========================================
+  // QR DENGAN WHITE QUIET-ZONE / PANEL
+  // ==========================================
+  // QR tidak ditempel langsung ke background.
+  // Dibuat area putih cukup besar agar finder pattern
+  // dan quiet zone tetap terbaca kamera.
+  const qrWithPadding = await sharp(qrBuffer)
+    .resize({
+      width: qrSize,
+      height: qrSize,
+      fit: "contain",
+      background: {
+        r: 255,
+        g: 255,
+        b: 255,
+        alpha: 1,
+      },
+    })
+    .extend({
+      top: 40,
+      bottom: 40,
+      left: 40,
+      right: 40,
+      background: {
+        r: 255,
+        g: 255,
+        b: 255,
+        alpha: 1,
+      },
+    })
+    .png()
+    .toBuffer();
+
+  const qrMeta = await sharp(qrWithPadding).metadata();
+
+  const qrWidth =
+    qrMeta.width || qrSize + 80;
+
+  const qrHeight =
+    qrMeta.height || qrSize + 80;
+
+  // ==========================================
+  // POSISI QR
+  // ==========================================
+  // Diletakkan di tengah dan agak ke bawah.
+  // Tidak dipaksakan terlalu bawah supaya tidak
+  // terpotong pada background portrait.
+  const left = Math.max(
+    0,
+    Math.floor((width - qrWidth) / 2)
+  );
+
+  const preferredTop =
+    Math.floor(height * 0.50);
+
   const top = Math.max(
     0,
     Math.min(
       height - qrHeight,
-      Math.floor(height * 0.40)
+      preferredTop
     )
   );
 
-  const filename = `${String(trxId).replace(/[^a-zA-Z0-9_-]/g, "_")}.png`;
-  const outputPath = path.join(QR_OUTPUT_DIR, filename);
+  // ==========================================
+  // COMPOSITE
+  // ==========================================
+  const filename =
+    `${String(trxId).replace(
+      /[^a-zA-Z0-9_-]/g,
+      "_"
+    )}.png`;
+
+  const outputPath =
+    path.join(
+      QR_OUTPUT_DIR,
+      filename
+    );
 
   await sharp(baseBuffer)
-    .composite([{
-      input: qrPrepared,
-      left,
-      top,
-    }])
-    .png()
+    .composite([
+      {
+        input: qrWithPadding,
+        left,
+        top,
+        blend: "over",
+      },
+    ])
+    .png({
+      compressionLevel: 9,
+      adaptiveFiltering: true,
+      force: true,
+    })
     .toFile(outputPath);
 
   return {
@@ -263,19 +342,6 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   const { user } = req;
   const { nominal } = req.query;
 
-  // ==============================
-  // VALIDASI USER
-  // ==============================
-  if (!user?._id) {
-    return res.status(401).json({
-      success: false,
-      message: "User API tidak valid.",
-    });
-  }
-
-  // ==============================
-  // VALIDASI NOMINAL
-  // ==============================
   if (!nominal || isNaN(nominal)) {
     return res.status(400).json({
       success: false,
@@ -284,7 +350,6 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
   }
 
   const parsedNominal = parseInt(nominal, 10);
-
   if (!Number.isInteger(parsedNominal) || parsedNominal < 500) {
     return res.status(400).json({
       success: false,
@@ -292,205 +357,107 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     });
   }
 
-  // ==============================
-  // API KEY PAYINAJA
-  // ==============================
-  const API_KEY = process.env.PAYINAJA_API_KEY;
+  if (!user?._id) {
+    return res.status(401).json({
+      success: false,
+      message: "User API tidak valid.",
+    });
+  }
 
+  const API_KEY = process.env.PAYINAJA_API_KEY;
   if (!API_KEY) {
     return res.status(500).json({
       success: false,
-      message: "API Key Payinaja belum disetting di server.",
+      message: "API Key Payinaja belum disetting.",
     });
   }
 
   try {
-    // ==============================
-    // FEE ENV
-    // ==============================
-    const feePercentUser = parseFloat(
-      process.env.FEE_PERCENT_USER
-    );
-
-    const feePercentReseller = parseFloat(
-      process.env.FEE_PERCENT_RESELLER
-    );
-
-    const envPercent =
-      user.role === "reseller"
-        ? Number.isFinite(feePercentReseller)
-          ? feePercentReseller
-          : 2.5
-        : Number.isFinite(feePercentUser)
-          ? feePercentUser
-          : 5.5;
-
+    // Fee ENV harus dimasukkan ke amount yang dikirim ke provider.
+    // Contoh deposit Rp500 + fee ENV Rp22 => request provider Rp522.
+    const envPercent = getFeePercentForRole(user.role);
     const additionalFee = Math.max(
       0,
       Math.ceil(parsedNominal * (envPercent / 100))
     );
+    const providerRequestAmount = parsedNominal + additionalFee;
 
-    // Nominal yang dikirim ke Payinaja
-    const providerRequestAmount =
-      parsedNominal + additionalFee;
-
-    // ==============================
-    // CREATE QRIS
-    // ==============================
     let response;
-
     try {
-      response = await fetch(
-        "https://payinaja.com/api/v1/qris/create2",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-            "x-api-key": API_KEY,
-          },
-          body: JSON.stringify({
-            amount: providerRequestAmount,
-            reference_id: `DEP-${Date.now()}-${user._id}`,
-            customer_name: user.username || "User",
-          }),
-        }
-      );
+      response = await fetch(`${PAYINAJA_BASE_URL}/qris/create2`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+          "x-api-key": API_KEY,
+        },
+        body: JSON.stringify({
+          amount: providerRequestAmount,
+          reference_id: `DEP-${Date.now()}`,
+          customer_name: user.username || "Pelanggan",
+        }),
+      });
     } catch (fetchError) {
       console.error("Fetch API Error:", fetchError);
-
       return res.status(502).json({
         success: false,
-        message:
-          "Koneksi server ke Payinaja gagal/diblokir.",
+        message: "Koneksi server ke Payinaja gagal/diblokir.",
       });
     }
 
-    // ==============================
-    // PARSE RESPONSE
-    // ==============================
-    const responseText = await response.text();
+    const result = await response.json();
 
-    let result;
-
-    try {
-      result = JSON.parse(responseText);
-    } catch (jsonError) {
-      console.error(
-        "Response Payinaja bukan JSON:",
-        responseText
-      );
-
+    if (!result || !result.success) {
       return res.status(502).json({
         success: false,
-        message: "Response dari Payinaja tidak valid.",
-      });
-    }
-
-    console.log(
-      "Payinaja Create QRIS:",
-      JSON.stringify(result, null, 2)
-    );
-
-    if (!response.ok || !result?.success) {
-      return res.status(502).json({
-        success: false,
-        message:
-          result?.message ||
-          "Gagal membuat QRIS di Payinaja.",
-        provider_response: result,
+        message: result?.message || "Gagal membuat QRIS.",
       });
     }
 
     const payData = result.data || {};
-
-    // ==============================
-    // TRANSACTION ID
-    // ==============================
     const trxId = payData.payinaja_trx_id;
-
     if (!trxId) {
       return res.status(502).json({
         success: false,
-        message:
-          "Provider tidak mengembalikan ID transaksi.",
+        message: "Provider tidak mengembalikan ID transaksi.",
       });
     }
 
-    // ==============================
-    // KALKULASI FEE
-    // ==============================
     const nominalAsli = parsedNominal;
-
     const providerRequestedAmount =
-      Number(payData.amount_requested) ||
-      providerRequestAmount;
-
-    const providerTotalRaw =
-      Number(payData.total_amount);
-
-    const providerFeeRaw =
-      Number(payData.fee);
+      Number(payData.amount_requested) || providerRequestAmount;
+    const providerTotalRaw = Number(payData.total_amount);
+    const providerFeeRaw = Number(payData.fee);
 
     let feeProvider = 0;
-
-    if (
-      Number.isFinite(providerFeeRaw) &&
-      providerFeeRaw >= 0
-    ) {
+    if (Number.isFinite(providerFeeRaw) && providerFeeRaw >= 0) {
       feeProvider = Math.ceil(providerFeeRaw);
     } else if (
       Number.isFinite(providerTotalRaw) &&
       providerTotalRaw >= providerRequestedAmount
     ) {
-      feeProvider = Math.ceil(
-        providerTotalRaw - providerRequestedAmount
-      );
+      feeProvider = Math.ceil(providerTotalRaw - providerRequestedAmount);
     }
 
     const totalBayar =
-      Number.isFinite(providerTotalRaw) &&
-      providerTotalRaw > 0
+      Number.isFinite(providerTotalRaw) && providerTotalRaw > 0
         ? Math.ceil(providerTotalRaw)
-        : Math.ceil(
-            providerRequestedAmount + feeProvider
-          );
+        : Math.ceil(providerRequestedAmount + feeProvider);
 
-    const totalFee = Math.max(
-      0,
-      totalBayar - nominalAsli
-    );
+    // Gabungan fee provider + fee ENV.
+    const totalFee = Math.max(0, totalBayar - nominalAsli);
 
-    // Saldo yang diterima member
-    const finalGetBalance = nominalAsli;
+    // Saldo member tetap sesuai nominal deposit.
+    const finalBalance = nominalAsli;
 
-    // ==============================
-    // DATA QRIS
-    // ==============================
-    const rawQrImage =
-      payData.qris_image_url || "";
+    const rawQrImage = payData.qris_image_url || "";
+    const qrisString = payData.qris_string || payData.qris || "";
+    const bgUrl = DEFAULT_BG_URL;
 
-    const qrisString =
-      payData.qris_string ||
-      payData.qris ||
-      "";
-
-    // ==============================
-    // BACKGROUND QRIS
-    // ==============================
-    const bgUrl =
-      DEFAULT_BG_URL ||
-      "https://files.catbox.moe/sh2bcj.png";
-
-    // ==============================
-    // COMPOSITE QRIS
-    // ==============================
-    // QR asli Payinaja akan digabungkan
-    // dengan background seperti sistem web.
+    // Buat gambar final background + QR agar API consumer tinggal memakai 1 URL.
     let compositeQrUrl = rawQrImage;
-
     try {
       const generated = await createQrisComposite({
         trxId,
@@ -498,156 +465,83 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
         qrisString,
       });
 
-      if (generated?.filename) {
-        compositeQrUrl =
-          `${req.protocol}://${req.get(
-            "host"
-          )}/media/generated-qris/${generated.filename}`;
-      }
+      compositeQrUrl =
+        `${req.protocol}://${req.get("host")}/media/generated-qris/${generated.filename}`;
     } catch (imageError) {
-      console.error(
-        "QR Composite Error:",
-        imageError?.message || imageError
-      );
-
-      // Kalau composite gagal,
-      // QR asli Payinaja tetap digunakan.
-      compositeQrUrl = rawQrImage;
+      console.error("QR Composite Error:", imageError.message);
+      // Fallback ke QR asli provider agar transaksi tetap berhasil dibuat.
     }
 
-    // ==============================
-    // HISTORY DEPOSIT
-    // ==============================
-    const historyDataForDb = {
+    const history = {
       id: trxId,
-
       nominal: nominalAsli,
-
       tambahan: additionalFee,
-
       fee: totalFee,
-
       total_amount: totalBayar,
-
-      get_balance: finalGetBalance,
-
+      get_balance: finalBalance,
       metode: "QRIS",
-
       status: "pending",
-
-      // QR hasil composite
       qr_image: compositeQrUrl,
-
-      // QR asli provider
       qr_image_raw: rawQrImage,
-
-      // QR string
       qris_string: qrisString,
-
-      // Background
       bg_image: bgUrl,
-
       created_at: new Date(),
     };
 
-    await tambahHistoryDeposit(
-      user._id,
-      historyDataForDb
-    );
+    await tambahHistoryDeposit(user._id, history);
 
-    // ==============================
-    // RESPONSE API MEMBER
-    // ==============================
     res.status(200).json({
       success: true,
-
       message: "QRIS berhasil dibuat.",
-
       data: {
         id: trxId,
-
         trx_id: trxId,
-
         metode: "QRIS",
-
         nominal: nominalAsli,
-
         fee: totalFee,
-
         fee_env: additionalFee,
-
-        fee_provider: Math.max(
-          0,
-          totalFee - additionalFee
-        ),
-
+        fee_provider: Math.max(0, totalFee - additionalFee),
         total_amount: totalBayar,
+        get_balance: finalBalance,
 
-        get_balance: finalGetBalance,
-
-        // QR utama = sudah digabung dengan background
+        // QR utama = gambar final background + QR.
         qr_image: compositeQrUrl,
-
         qr_image_combined: compositeQrUrl,
 
-        // QR asli Payinaja
+        // URL/isi QR asli tetap disediakan sebagai fallback.
         qr_image_raw: rawQrImage,
-
         qris_string: qrisString,
 
-        // Background
+        // Background asli.
         bg_image: bgUrl,
 
         status: "pending",
-
-        created_at:
-          historyDataForDb.created_at,
+        created_at: history.created_at,
       },
     });
 
-    // ==============================
     // POLLING OTOMATIS
-    // ==============================
     const intervalId = setInterval(async () => {
       try {
-        const latestHistory =
-          await User.findOne(
-            {
-              _id: user._id,
-              "historyDeposit.id": trxId,
-            },
-            {
-              "historyDeposit.$": 1,
-            }
-          );
+        const latestHistory = await User.findOne(
+          { _id: user._id, "historyDeposit.id": trxId },
+          { "historyDeposit.$": 1 }
+        );
+        const latestDeposit = latestHistory?.historyDeposit?.[0];
+        const localStatus = String(latestDeposit?.status || "").toLowerCase();
 
-        const latestDeposit =
-          latestHistory?.historyDeposit?.[0];
-
-        const localStatus = String(
-          latestDeposit?.status || ""
-        ).toLowerCase();
-
-        // Jangan proses transaksi terminal
-        if (
-          !latestDeposit ||
-          !["pending", "processing"].includes(
-            localStatus
-          )
-        ) {
+        // Jangan biarkan provider menghidupkan kembali transaksi yang sudah cancel/terminal.
+        if (!latestDeposit || !["pending", "processing"].includes(localStatus)) {
           clearInterval(intervalId);
           return;
         }
 
-        // ==============================
-        // CEK STATUS PAYINAJA
-        // ==============================
         const checkRes = await fetch(
-          `https://payinaja.com/api/v1/transaction/${trxId}`,
+          `${PAYINAJA_BASE_URL}/transaction/${trxId}`,
           {
             method: "GET",
             headers: {
-              Accept: "application/json",
+              "Accept": "application/json",
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
               "x-api-key": API_KEY,
@@ -655,108 +549,33 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
           }
         );
 
-        const checkText =
-          await checkRes.text();
+        const statusData = await checkRes.json();
+        const apiStatus = String(
+          statusData?.data?.status || ""
+        ).toLowerCase();
 
-        let checkData;
-
-        try {
-          checkData =
-            JSON.parse(checkText);
-        } catch {
-          console.error(
-            "Polling response bukan JSON:",
-            checkText
-          );
-
-          return;
-        }
-
-        const providerStatus =
-          String(
-            checkData?.data?.status || ""
-          ).toLowerCase();
-
-        // ==============================
-        // BERHASIL
-        // ==============================
-        if (
-          checkData?.success &&
-          providerStatus === "success"
-        ) {
-          await editHistoryDeposit(
-            user._id,
-            trxId,
-            "success"
-          );
-
-          await User.findByIdAndUpdate(
-            user._id,
-            {
-              $inc: {
-                saldo: finalGetBalance,
-              },
-            }
-          );
-
+        if (statusData?.success && apiStatus === "success") {
+          await editHistoryDeposit(user._id, trxId, "success");
+          await User.findByIdAndUpdate(user._id, {
+            $inc: { saldo: finalBalance },
+          });
           clearInterval(intervalId);
-
-          console.log(
-            `Deposit ${trxId} berhasil. Saldo +${finalGetBalance}`
-          );
-
-          return;
-        }
-
-        // ==============================
-        // GAGAL / EXPIRED / CANCEL
-        // ==============================
-        if (
-          [
-            "failed",
-            "expired",
-            "cancel",
-          ].includes(providerStatus)
+        } else if (
+          ["failed", "expired", "cancel"].includes(apiStatus)
         ) {
-          await editHistoryDeposit(
-            user._id,
-            trxId,
-            providerStatus
-          );
-
+          await editHistoryDeposit(user._id, trxId, apiStatus);
           clearInterval(intervalId);
-
-          console.log(
-            `Deposit ${trxId} status: ${providerStatus}`
-          );
         }
-      } catch (error) {
-        console.error(
-          "Polling API Error:",
-          error.message
-        );
-
-        // Error sementara tidak langsung
-        // membuat transaksi dianggap gagal.
+      } catch (e) {
+        // Error sementara tidak langsung menghentikan polling.
+        console.error("Polling API Error:", e.message);
       }
-    }, 60000);
-
-    // Hentikan polling maksimal 30 menit
-    setTimeout(() => {
-      clearInterval(intervalId);
-    }, 30 * 60 * 1000);
-
+    }, 10000);
   } catch (error) {
-    console.error(
-      "API Deposit Create Error:",
-      error
-    );
-
+    console.error("API Deposit Create Error:", error);
     return res.status(500).json({
       success: false,
-      message:
-        error?.message ||
-        "Terjadi kesalahan pada server.",
+      message: error.message,
     });
   }
 });
