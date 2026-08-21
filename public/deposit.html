@@ -1013,73 +1013,85 @@
         .payment-detail-item .value.status-expired { color: var(--vp-danger); }
 
         .qr-code-container {
-            position: relative;
             text-align: center;
-            margin: 1.2rem auto;
-            max-width: 390px;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .qr-code-container img {
+            max-width: 200px;
+            height: auto;
+            border: 1px solid var(--vp-border-color);
+            border-radius: var(--vp-radius-sm);
+            padding: 5px;
+            background-color: white;
+        }
+
+        /* === QRIS FULL BACKGROUND COMPOSITE === */
+        .qris-composite-wrap {
+            width: min(100%, 560px);
+            margin: 1rem auto 0;
+            text-align: center;
         }
 
         .qris-composite {
-            width: min(100%, 360px);
-            /* Pertahankan bentuk portrait/panjang seperti background QRIS asli. */
-            aspect-ratio: 0.526 / 1;
-            margin: 0 auto;
-            padding: 0;
-            background: url("https://files.catbox.moe/sh2bcj.png") center / cover no-repeat;
-            border: 3px solid #000;
-            border-radius: 24px;
-            box-shadow: 6px 6px 0 rgba(0,0,0,.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1087 / 1536;
             overflow: hidden;
-            position: relative;
-        }
-
-        .qris-composite::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: rgba(255,255,255,.04);
-            pointer-events: none;
-        }
-
-        .qris-image-safe {
-            position: relative;
-            z-index: 2;
-            width: 30%;
-            max-width: 120px;
-            aspect-ratio: 1 / 1;
-            border: 2px solid #ddd;
-            border-radius: 16px;
-            padding: 8px;
-            background-color: rgba(255,255,255,.97);
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
-            box-shadow: 0 4px 14px rgba(0,0,0,.18);
+            border: 3px solid #000;
+            border-radius: 28px;
+            background: #fff url('https://files.catbox.moe/sh2bcj.png') center center / 100% 100% no-repeat;
+            box-shadow: 5px 5px 0 rgba(0,0,0,.85);
             user-select: none;
-            -webkit-user-drag: none;
+            -webkit-user-select: none;
             -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
+        }
+
+        .qris-composite .qris-overlay {
+            position: absolute;
+            left: 50%;
+            top: 53.2%;
+            width: 40%;
+            max-width: 420px;
+            aspect-ratio: 1 / 1;
+            transform: translate(-50%, -50%);
+            object-fit: contain;
+            display: block;
+            border: 0 !important;
+            border-radius: 14px !important;
+            padding: 0 !important;
+            background: #fff;
+            box-shadow: 0 8px 18px rgba(0,0,0,.22);
+            pointer-events: none;
+            -webkit-user-drag: none;
+            user-drag: none;
         }
 
         .qris-download-btn {
-            margin-top: 1rem;
-            border: 3px solid #000 !important;
-            box-shadow: 4px 4px 0 #000 !important;
+            width: 100%;
+            margin-top: 1.1rem;
             font-weight: 800;
-            text-transform: uppercase;
         }
 
         .qris-download-note {
-            margin-top: .65rem;
-            margin-bottom: 0;
-            font-size: .75rem;
+            margin: .6rem auto 0;
             color: var(--vp-text-muted);
+            font-size: .85rem;
+            line-height: 1.45;
         }
 
+        @media (max-width: 575.98px) {
+            .qris-composite-wrap {
+                width: 100%;
+            }
+            .qris-composite {
+                border-radius: 24px;
+            }
+            .qris-composite .qris-overlay {
+                width: 40%;
+                border-radius: 12px !important;
+            }
+        }
         .payment-actions {
             margin-top: 1.5rem;
             display: flex;
@@ -1693,30 +1705,27 @@ input,select{
             const date = new Date(dateString);
             return date.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
+        
 
         const QRIS_BACKGROUND_URL = 'https://files.catbox.moe/sh2bcj.png';
 
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function createQrisVisual(qrUrl, bgUrl = QRIS_BACKGROUND_URL, noteText = 'Berlaku selama 15 menit') {
-            const safeQr = escapeHtml(qrUrl);
-            const safeBg = escapeHtml(bgUrl || QRIS_BACKGROUND_URL);
+        function qrisCompositeHtml(qrUrl, suffix = '') {
+            const safeQrUrl = String(qrUrl || '').replace(/"/g, '&quot;');
+            const downloadName = `QRIS-${String(suffix || 'deposit').replace(/[^a-zA-Z0-9_-]/g, '_')}.png`;
+            const safeDownloadName = downloadName.replace(/'/g, "\\'");
             return `
-                <div class="qris-composite" style="background-image:url(&quot;${safeBg}&quot;);">
-                    <div class="qris-image-safe" role="img" aria-label="QR Code Pembayaran" style="background-image:url(&quot;${safeQr}&quot;);"></div>
-                </div>
-                <button type="button" class="btn btn-success qris-download-btn" onclick="downloadCompositeQris('${safeQr}', '${safeBg}', this)">
-                    <i class="bi bi-download me-2"></i>Download QRIS + Background
-                </button>
-                <p class="qris-download-note">QRIS akan diunduh bersama background agar menjadi satu gambar.</p>
-                <p class="mt-2 text-muted" style="font-size: 12px;">${escapeHtml(noteText)}</p>`;
+                <div class="qris-composite-wrap">
+                    <div class="qris-composite" aria-label="QRIS dengan background">
+                        <img class="qris-overlay" src="${safeQrUrl}" alt="QR Code Pembayaran" draggable="false" loading="eager">
+                    </div>
+                    <button type="button" class="btn btn-success qris-download-btn"
+                        onclick="downloadQRISWithBackground('${safeQrUrl}', '${safeDownloadName}')">
+                        <i class="bi bi-download me-2"></i>Download QRIS + Background
+                    </button>
+                    <div class="qris-download-note">
+                        QR Code akan menyatu dengan seluruh background asli saat diunduh.
+                    </div>
+                </div>`;
         }
 
         function loadImageForCanvas(url) {
@@ -1724,108 +1733,52 @@ input,select{
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error('Gagal memuat gambar: ' + url));
+                img.onerror = () => reject(new Error('Gagal memuat gambar untuk proses download.'));
                 img.src = url;
             });
         }
 
-        function drawCover(ctx, img, canvasW, canvasH) {
-            const scale = Math.max(canvasW / img.naturalWidth, canvasH / img.naturalHeight);
-            const w = img.naturalWidth * scale;
-            const h = img.naturalHeight * scale;
-            const x = (canvasW - w) / 2;
-            const y = (canvasH - h) / 2;
-            ctx.drawImage(img, x, y, w, h);
-        }
-
-        async function downloadCompositeQris(qrUrl, bgUrl, button) {
-            if (!qrUrl) return;
-            const original = button ? button.innerHTML : '';
-            if (button) {
-                button.disabled = true;
-                button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyiapkan QRIS...';
-            }
-
+        async function downloadQRISWithBackground(qrUrl, fileName = 'QRIS-deposit.png') {
             try {
                 const [bg, qr] = await Promise.all([
-                    loadImageForCanvas(bgUrl || QRIS_BACKGROUND_URL),
+                    loadImageForCanvas(QRIS_BACKGROUND_URL),
                     loadImageForCanvas(qrUrl)
                 ]);
 
-                // Gunakan rasio portrait yang sama dengan background agar hasil download
-                // tidak berubah menjadi gambar persegi.
-                const canvasW = 800;
-                const canvasH = Math.round(canvasW / 0.526);
-                const ctxCanvas = document.createElement('canvas');
-                ctxCanvas.width = canvasW;
-                ctxCanvas.height = canvasH;
-                const ctx = ctxCanvas.getContext('2d');
-                drawCover(ctx, bg, canvasW, canvasH);
+                const canvas = document.createElement('canvas');
+                canvas.width = 1087;
+                canvas.height = 1536;
 
-                // QR lebih kecil supaya desain/background panjang tetap terlihat jelas.
-                const qrSize = Math.round(canvasW * 0.30);
-                const qrX = Math.round((canvasW - qrSize) / 2);
-                const qrY = Math.round((canvasH - qrSize) * 0.50);
-                const pad = 32;
-                const box = qrSize;
-                const radius = 34;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bg, 0, 0, 1087, 1536);
+
+                // Area placeholder pada background asli: sekitar x=245..772, y=554..1081.
+                const qrSize = 420;
+                const qrX = (1087 - qrSize) / 2;
+                const qrY = 554 + ((527 - qrSize) / 2);
 
                 ctx.save();
-                ctx.fillStyle = 'rgba(255,255,255,0.98)';
-                ctx.shadowColor = 'rgba(0,0,0,0.18)';
-                ctx.shadowBlur = 22;
+                ctx.shadowColor = 'rgba(0,0,0,.22)';
+                ctx.shadowBlur = 18;
                 ctx.shadowOffsetY = 8;
-                ctx.beginPath();
-                ctx.moveTo(qrX + radius, qrY);
-                ctx.lineTo(qrX + box - radius, qrY);
-                ctx.quadraticCurveTo(qrX + box, qrY, qrX + box, qrY + radius);
-                ctx.lineTo(qrX + box, qrY + box - radius);
-                ctx.quadraticCurveTo(qrX + box, qrY + box, qrX + box - radius, qrY + box);
-                ctx.lineTo(qrX + radius, qrY + box);
-                ctx.quadraticCurveTo(qrX, qrY + box, qrX, qrY + box - radius);
-                ctx.lineTo(qrX, qrY + radius);
-                ctx.quadraticCurveTo(qrX, qrY, qrX + radius, qrY);
-                ctx.closePath();
-                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(qrX - 4, qrY - 4, qrSize + 8, qrSize + 8);
                 ctx.restore();
-                ctx.drawImage(qr, qrX + pad, qrY + pad, box - (pad * 2), box - (pad * 2));
 
-                const blob = await new Promise(resolve => ctxCanvas.toBlob(resolve, 'image/png', 1));
-                if (!blob) throw new Error('Gagal membuat PNG.');
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `QRIS-Xiao-Store-${Date.now()}.png`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 1500);
+                ctx.drawImage(qr, qrX, qrY, qrSize, qrSize);
+
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
             } catch (error) {
-                console.warn('PNG composite gagal, menggunakan fallback SVG:', error);
-                // Fallback tetap membuat background dan QR menjadi satu file.
-                const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1521" viewBox="0 0 800 1521">
-  <image href="${escapeHtml(bgUrl || QRIS_BACKGROUND_URL)}" x="0" y="0" width="800" height="1521" preserveAspectRatio="xMidYMid slice"/>
-  <rect x="280" y="601" width="240" height="240" rx="22" fill="white" fill-opacity="0.98"/>
-  <image href="${escapeHtml(qrUrl)}" x="300" y="621" width="200" height="200" preserveAspectRatio="xMidYMid meet"/>
-</svg>`;
-                const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `QRIS-Xiao-Store-${Date.now()}.svg`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 1500);
-            } finally {
-                if (button) {
-                    button.disabled = false;
-                    button.innerHTML = original;
-                }
+                console.error('Download QRIS composite error:', error);
+                alert('QRIS + background gagal diproses. Silakan coba lagi.');
             }
         }
-        
+
         function renderPaymentDetails(data, containerId) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -1886,7 +1839,8 @@ if (data && data.qr_image) {
         paymentInfoHtml += `
             <div class="qr-code-container">
                 <p class="mb-2" style="font-weight: bold;">Silakan scan QR Code di bawah ini:</p>
-                ${createQrisVisual(data.qr_image, data.bg_image || QRIS_BACKGROUND_URL, 'Berlaku selama 15 menit')}
+                ${qrisCompositeHtml(data.qr_image, data.id || 'deposit')}
+                <p class="mt-2 text-muted" style="font-size: 12px;">Berlaku selama 15 menit</p>
             </div>`;
     }
 }
@@ -2099,7 +2053,8 @@ if (depositData && depositData.qr_image) {
         contentHtml += `
             <div class="qr-code-container">
                 <p class="mb-2" style="font-weight: bold;">Silakan scan QR Code di bawah ini:</p>
-                ${createQrisVisual(depositData.qr_image, depositData.bg_image || QRIS_BACKGROUND_URL, 'Status: Menunggu Pembayaran')}
+                ${qrisCompositeHtml(depositData.qr_image, depositData.id || 'deposit')}
+                <p class="mt-2 text-muted" style="font-size: 11px;">Status: Menunggu Pembayaran</p>
             </div>`;
     }
 }
