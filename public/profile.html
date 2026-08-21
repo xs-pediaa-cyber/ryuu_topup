@@ -2104,7 +2104,7 @@
         const availability=await checkProfileAvailability({username:currentUserData?.username||"",email:currentUserData?.email||"",nomor:newNomor});
         if(availability.supported && availability.nomorAvailable===false){showNotification("Nomor tersebut sudah terdaftar. Silakan gunakan nomor lain.","error");return;}
         // OTP baru dikirim HANYA setelah nomor baru dikonfirmasi.
-        const response=await fetch("/get/otp-change-nomor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomorLama:oldNomor,nomorBaru:newNomor}),credentials:"include"});
+        const response=await fetch("/get/forgot-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomor:oldNomor}),credentials:"include"});
         const data=await response.json().catch(()=>({}));
         if(!response.ok||!data.success) throw new Error(normalizeApiMessage(data,"Gagal mengirim OTP ke nomor lama."));
         phoneNumberChangeRequest={oldNomor,newNomor,otpIssuedAt:Date.now()};
@@ -2149,7 +2149,7 @@
       if(!phoneNumberChangeRequest||!isOtpExpired("phone")){showNotification("Tunggu sampai 30 detik habis sebelum mengirim ulang OTP.","info");return;}
       try{
         setLoading(resendPhoneChangeOtpBtn,true);
-        const response=await fetch("/get/otp-change-nomor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomorLama:phoneNumberChangeRequest.oldNomor,nomorBaru:phoneNumberChangeRequest.newNomor}),credentials:"include"});
+        const response=await fetch("/get/forgot-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nomor:phoneNumberChangeRequest.oldNomor}),credentials:"include"});
         const data=await response.json().catch(()=>({}));
         if(!response.ok||!data.success) throw new Error(normalizeApiMessage(data,"Gagal mengirim ulang OTP."));
         phoneNumberChangeRequest.otpIssuedAt=Date.now(); resetOtpFields(phoneChangeOtpInputs,phoneChangeOtpField,phoneChangeOtpError); startOtpTimer("phone",phoneChangeOtpTimer,resendPhoneChangeOtpBtn); showNotification(normalizeApiMessage(data,"OTP baru berhasil dikirim ke nomor lama."),"success"); phoneChangeOtpInputs[0]?.focus();
