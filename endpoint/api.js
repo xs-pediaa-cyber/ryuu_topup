@@ -33,7 +33,7 @@ const cloudscraperHeaders = {
 // HELPER QRIS COMPOSITE (BACKGROUND + QR)
 // ==========================================
 const QR_OUTPUT_DIR = path.join(__dirname, "../media/generated-qris");
-const DEFAULT_BG_URL = "https://files.catbox.moe/sh2bcj.png";
+const DEFAULT_BG_URL = "https://files.catbox.moe/43lq1g.png";
 const DEFAULT_BG_PATH = path.join(__dirname, "../media/bg.jpg");
 
 function getFeePercentForRole(role) {
@@ -112,7 +112,7 @@ async function createQrisComposite({
   const height = meta.height || 1000;
 
   // QR ditempatkan di bagian bawah-tengah background.
-  const qrSize = Math.max(220, Math.min(560, Math.floor(width * 0.75), Math.floor(height * 0.50)));
+  const qrSize = Math.max(220, Math.min(560, Math.floor(width * 0.70), Math.floor(height * 0.46)));
   const qrPrepared = await sharp(qrBuffer)
     .resize({
       width: qrSize,
@@ -139,7 +139,7 @@ async function createQrisComposite({
     0,
     Math.min(
       height - qrHeight,
-      Math.floor(height * 0.40)
+      Math.floor(height * 0.38)
     )
   );
 
