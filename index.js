@@ -651,141 +651,251 @@ app.post("/profile/update-photo",requireLogin, uploadMemory.single("photo"), asy
     }
   }
 );
-// Tambahkan setelah middleware JSON/auth kamu.
-// Endpoint ini KHUSUS untuk perubahan nomor telepon.
+function normalizeNomor(nomor) {
+  const value = String(nomor || "").trim().replace(/\s+/g, "");
+  if (!value) return "";
+  return value.startsWith("62")
+    ? value
+    : value.startsWith("0")
+      ? "62" + value.substring(1)
+      : value;
+}
 
-const normalizeNomor = (nomor) => {
-  const value = String(nomor || '').trim().replace(/\s+/g, '');
-  if (!value) return '';
-  return value.startsWith('62') ? value : value.startsWith('0') ? `62${value.slice(1)}` : value;
-};
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function normalizeUsername(username) {
+  return String(username || "").trim();
+}
+
+function getChangedFields(user, nomorBaru, usernameBaru, emailBaru) {
+  const changes = [];
+  if (nomorBaru !== user.nomor) changes.push("Nomor Telepon");
+  if (usernameBaru !== user.username) changes.push("Username");
+  if (normalizeEmail(emailBaru) !== normalizeEmail(user.email)) changes.push("Email");
+  return changes;
+}
+
+/*
+ * PENTING:
+ * Pasang route ini setelah middleware auth/session kamu.
+ * Endpoint mencari user berdasarkan nomor lama agar OTP selalu dikirim
+ * ke WhatsApp nomor lama milik akun tersebut.
+ */
 
 // ============================================================
-// CEK USERNAME / EMAIL / NOMOR - WAJIB CEK DB SEBELUM SIMPAN
+// CEK KETERSEDIAAN NOMOR / USERNAME / EMAIL
 // ============================================================
-app.post('/profile/check-availability', async (req, res) => {
+app.post("/profile/check-availability", async (req, res) => {
   try {
-    const username = String(req.body.username || '').trim();
-    const email = String(req.body.email || '').trim().toLowerCase();
+    const username = normalizeUsername(req.body.username);
+    const email = normalizeEmail(req.body.email);
     const nomor = normalizeNomor(req.body.nomor);
 
-    // Sesuaikan dengan sistem auth kamu bila nama property user berbeda.
-    const currentUserId = req.user?.id || req.user?._id || req.session?.userId || req.session?.user?._id || null;
+    const currentUserId =
+      req.user?.id ||
+      req.user?._id ||
+      req.session?.userId ||
+      req.session?.user?._id ||
+      null;
 
-    const makeFilter = (field, value) => {
+    const withoutCurrentUser = (field, value) => {
       const filter = { [field]: value };
-      if (currentUserId) {
-        filter._id = { $ne: currentUserId };
-      }
+      if (currentUserId) filter._id = { $ne: currentUserId };
       return filter;
     };
 
     const [usernameOwner, emailOwner, nomorOwner] = await Promise.all([
-      username ? User.findOne(makeFilter('username', username)).select('_id').lean() : null,
-      email ? User.findOne(makeFilter('email', email)).select('_id').lean() : null,
-      nomor ? User.findOne(makeFilter('nomor', nomor)).select('_id').lean() : null,
+      username
+        ? User.findOne(withoutCurrentUser("username", username)).select("_id").lean()
+        : null,
+      email
+        ? User.findOne(withoutCurrentUser("email", email)).select("_id").lean()
+        : null,
+      nomor
+        ? User.findOne(withoutCurrentUser("nomor", nomor)).select("_id").lean()
+        : null
     ]);
 
     const usernameAvailable = !usernameOwner;
     const emailAvailable = !emailOwner;
     const nomorAvailable = !nomorOwner;
-    const available = usernameAvailable && emailAvailable && nomorAvailable;
 
     return res.json({
       success: true,
-      available,
+      available: usernameAvailable && emailAvailable && nomorAvailable,
       usernameAvailable,
       emailAvailable,
-      nomorAvailable,
-      message: available ? 'Data tersedia' : 'Username, email, atau nomor telepon sudah terdaftar'
+      nomorAvailable
     });
   } catch (error) {
-    console.error('check-profile-availability:', error);
+    console.error("profile/check-availability:", error);
     return res.status(500).json({
       success: false,
       available: false,
-      message: 'Gagal mengecek ketersediaan data'
+      message: "Gagal mengecek ketersediaan data."
     });
   }
 });
 
 // ============================================================
-// KIRIM OTP KHUSUS PERUBAHAN NOMOR
-// Pesan TIDAK menggunakan teks reset password.
-// OTP disimpan di field terpisah dari OTP reset password.
+// REQUEST OTP PERUBAHAN PROFIL
+// Nomor / Username / Email bisa berubah sekaligus.
+// OTP SELALU dikirim ke nomor lama.
 // ============================================================
-app.post('/get/otp-change-nomor', async (req, res) => {
+app.post("/get/otp-change-profile", async (req, res) => {
   const nomorLama = normalizeNomor(req.body.nomorLama);
-  const nomorBaru = normalizeNomor(req.body.nomorBaru);
+  const nomorBaru = normalizeNomor(req.body.nomorBaru || nomorLama);
+  const usernameBaru = normalizeUsername(req.body.usernameBaru);
+  const emailBaru = normalizeEmail(req.body.emailBaru);
 
-  if (!nomorLama || !nomorBaru) {
+  if (!nomorLama) {
     return res.status(400).json({
       success: false,
-      message: 'Nomor lama dan nomor baru wajib diisi'
-    });
-  }
-
-  if (nomorLama === nomorBaru) {
-    return res.status(400).json({
-      success: false,
-      message: 'Nomor baru tidak boleh sama dengan nomor lama'
-    });
-  }
-
-  if (!/^62\d{9,13}$/.test(nomorBaru)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Format nomor baru tidak valid'
+      message: "Nomor lama wajib diisi."
     });
   }
 
   try {
-    // Cari user berdasarkan nomor lama.
     const user = await User.findOne({ nomor: nomorLama });
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Nomor lama tidak ditemukan'
+        message: "User dengan nomor lama tidak ditemukan."
       });
     }
 
-    // CEK DB SEKALI LAGI DI BACKEND sebelum OTP dikirim.
-    const nomorSudahDipakai = await User.findOne({
-      nomor: nomorBaru,
-      _id: { $ne: user._id }
-    }).select('_id').lean();
-
-    if (nomorSudahDipakai) {
-      return res.status(409).json({
+    if (!usernameBaru) {
+      return res.status(400).json({
         success: false,
-        field: 'nomor',
-        message: 'Nomor baru sudah terdaftar. Silakan gunakan nomor lain.'
+        field: "username",
+        message: "Username baru wajib diisi."
       });
     }
 
-    // OTP khusus ubah nomor, terpisah dari otpCode reset password.
+    if (!/^[a-zA-Z0-9._-]{3,32}$/.test(usernameBaru)) {
+      return res.status(400).json({
+        success: false,
+        field: "username",
+        message: "Username harus 3-32 karakter dan hanya boleh huruf, angka, titik, underscore, atau strip."
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailBaru)) {
+      return res.status(400).json({
+        success: false,
+        field: "email",
+        message: "Format email tidak valid."
+      });
+    }
+
+    if (!/^\d{10,15}$/.test(nomorBaru)) {
+      return res.status(400).json({
+        success: false,
+        field: "nomor",
+        message: "Nomor telepon baru harus 10-15 digit."
+      });
+    }
+
+    // ========================================================
+    // CEK DB SEBELUM OTP DIKIRIM
+    // ========================================================
+    if (nomorBaru !== user.nomor) {
+      const nomorDipakai = await User.findOne({
+        nomor: nomorBaru,
+        _id: { $ne: user._id }
+      }).select("_id").lean();
+
+      if (nomorDipakai) {
+        return res.status(409).json({
+          success: false,
+          field: "nomor",
+          message: "Nomor telepon sudah terdaftar. Silakan ganti nomor lain."
+        });
+      }
+    }
+
+    if (usernameBaru !== user.username) {
+      const usernameDipakai = await User.findOne({
+        username: usernameBaru,
+        _id: { $ne: user._id }
+      }).select("_id").lean();
+
+      if (usernameDipakai) {
+        return res.status(409).json({
+          success: false,
+          field: "username",
+          message: "Username sudah terdaftar. Silakan ganti username lain."
+        });
+      }
+    }
+
+    if (normalizeEmail(emailBaru) !== normalizeEmail(user.email)) {
+      const emailDipakai = await User.findOne({
+        email: normalizeEmail(emailBaru),
+        _id: { $ne: user._id }
+      }).select("_id").lean();
+
+      if (emailDipakai) {
+        return res.status(409).json({
+          success: false,
+          field: "email",
+          message: "Email sudah terdaftar. Silakan ganti email lain."
+        });
+      }
+    }
+
+    const changedFields = getChangedFields(
+      user,
+      nomorBaru,
+      usernameBaru,
+      emailBaru
+    );
+
+    if (!changedFields.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Tidak ada perubahan nomor, username, atau email."
+      });
+    }
+
+    // ========================================================
+    // OTP KHUSUS PERUBAHAN PROFIL
+    // Tidak menggunakan otpCode reset password.
+    // ========================================================
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
-    user.phoneChangeOtp = otpCode;
-    user.phoneChangeOtpExpired = otpExpiry;
-    user.phoneChangeTarget = nomorBaru;
-    user.aktifitas = 'Konfirmasi Ubah Nomor';
+    user.profileChangeOtp = otpCode;
+    user.profileChangeOtpExpired = otpExpiry;
+    user.profileChangeTargetNomor = nomorBaru;
+    user.profileChangeTargetUsername = usernameBaru;
+    user.profileChangeTargetEmail = emailBaru;
+    user.aktifitas = "Konfirmasi Perubahan Profil";
+
     await user.save();
 
-    const axios = require('axios');
+    const changeText = changedFields.join(", ");
+
+    const message =
+      `Halo ${user.fullname || user.username || "Pengguna"} 👋\n\n` +
+      `Kami menerima permintaan untuk mengubah ${changeText} pada akun Anda.\n\n` +
+      `Kode OTP konfirmasi perubahan profil Anda:\n` +
+      `${otpCode}\n\n` +
+      `Perubahan yang diminta:\n` +
+      `Nomor: ${nomorBaru}\n` +
+      `Username: ${usernameBaru}\n` +
+      `Email: ${emailBaru}\n\n` +
+      `OTP berlaku selama 5 menit.\n` +
+      `Jika Anda tidak melakukan perubahan ini, abaikan pesan ini.`;
 
     const send = await axios.post(
-      'https://api.fonnte.com/send',
+      "https://api.fonnte.com/send",
       {
         target: nomorLama,
-        message:
-          `Halo ${user.fullname || user.username || 'Pengguna'},\n\n` +
-          `Kami menerima permintaan untuk mengubah nomor telepon akun Anda.\n` +
-          `Kode OTP konfirmasi perubahan nomor Anda adalah: ${otpCode}\n\n` +
-          `Nomor baru: ${nomorBaru}\n` +
-          `OTP berlaku selama 5 menit.\n\n` +
-          `Jika Anda tidak melakukan perubahan ini, abaikan pesan ini.`
+        message
       },
       {
         headers: {
@@ -794,108 +904,182 @@ app.post('/get/otp-change-nomor', async (req, res) => {
       }
     );
 
-    console.log('OTP ubah nomor dikirim ke:', nomorLama);
-    console.log('Target nomor baru:', nomorBaru);
-    console.log('Respon Fonnte:', send.data);
+    console.log("OTP perubahan profil dikirim ke:", nomorLama);
+    console.log("Perubahan:", changedFields);
+    console.log("Respon Fonnte:", send.data);
 
     return res.json({
       success: true,
-      message: 'OTP konfirmasi perubahan nomor berhasil dikirim ke nomor lama'
+      message: `OTP konfirmasi ${changeText} berhasil dikirim ke WhatsApp nomor lama.`
     });
   } catch (error) {
-    console.error('Error otp-change-nomor:', error.response?.data || error.message);
+    console.error(
+      "Error otp-change-profile:",
+      error.response?.data || error.message
+    );
+
     return res.status(500).json({
       success: false,
-      message: 'Gagal mengirim OTP konfirmasi perubahan nomor'
+      message: "Gagal mengirim OTP konfirmasi perubahan profil."
     });
   }
 });
 
 // ============================================================
-// VERIFIKASI OTP + SIMPAN NOMOR BARU
+// VERIFIKASI OTP + SIMPAN NOMOR / USERNAME / EMAIL
 // ============================================================
-app.post('/auth/change-number', async (req, res) => {
+app.post("/auth/confirm-profile-change", async (req, res) => {
   const nomorLama = normalizeNomor(req.body.nomorLama);
-  const nomorBaru = normalizeNomor(req.body.nomorBaru);
-  const otp = String(req.body.otp || '').trim();
+  const otp = String(req.body.otp || "").trim();
+  const nomorBaru = normalizeNomor(req.body.nomorBaru || nomorLama);
+  const usernameBaru = normalizeUsername(req.body.usernameBaru);
+  const emailBaru = normalizeEmail(req.body.emailBaru);
 
-  if (!nomorLama || !nomorBaru || !/^\d{6}$/.test(otp)) {
+  if (!nomorLama || !/^\d{6}$/.test(otp)) {
     return res.status(400).json({
       success: false,
-      message: 'Data perubahan nomor tidak lengkap atau OTP tidak valid'
+      message: "OTP tidak valid."
     });
   }
 
   try {
     const user = await User.findOne({ nomor: nomorLama });
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User dengan nomor lama tidak ditemukan'
+        message: "User dengan nomor lama tidak ditemukan."
       });
     }
 
-    if (!user.phoneChangeOtp || !user.phoneChangeOtpExpired) {
+    if (!user.profileChangeOtp || !user.profileChangeOtpExpired) {
       return res.status(400).json({
         success: false,
-        message: 'Tidak ada OTP perubahan nomor yang aktif. Silakan minta OTP baru.'
+        message: "Tidak ada OTP perubahan profil yang aktif. Silakan minta OTP baru."
       });
     }
 
-    if (user.phoneChangeOtpExpired <= new Date()) {
-      user.phoneChangeOtp = null;
-      user.phoneChangeOtpExpired = null;
-      user.phoneChangeTarget = null;
+    if (user.profileChangeOtpExpired <= new Date()) {
+      user.profileChangeOtp = null;
+      user.profileChangeOtpExpired = null;
+      user.profileChangeTargetNomor = null;
+      user.profileChangeTargetUsername = null;
+      user.profileChangeTargetEmail = null;
       await user.save();
+
       return res.status(400).json({
         success: false,
-        message: 'OTP perubahan nomor sudah kedaluwarsa'
+        message: "OTP perubahan profil sudah kedaluwarsa."
       });
     }
 
-    if (user.phoneChangeTarget !== nomorBaru) {
+    if (user.profileChangeOtp !== otp) {
       return res.status(400).json({
         success: false,
-        message: 'Nomor tujuan tidak sesuai dengan permintaan OTP terakhir'
+        message: "OTP perubahan profil salah."
       });
     }
 
-    if (user.phoneChangeOtp !== otp) {
+    // OTP hanya boleh digunakan untuk data yang sama dengan permintaan terakhir.
+    if (
+      user.profileChangeTargetNomor !== nomorBaru ||
+      user.profileChangeTargetUsername !== usernameBaru ||
+      normalizeEmail(user.profileChangeTargetEmail) !== emailBaru
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'OTP perubahan nomor salah'
+        message: "Data perubahan tidak sama dengan permintaan OTP terakhir."
       });
     }
 
-    // Cek DB sekali lagi tepat sebelum update.
-    const nomorSudahDipakai = await User.findOne({
-      nomor: nomorBaru,
-      _id: { $ne: user._id }
-    }).select('_id').lean();
+    // ========================================================
+    // CEK ULANG DB TEPAT SEBELUM SAVE
+    // ========================================================
+    if (nomorBaru !== user.nomor) {
+      const nomorDipakai = await User.findOne({
+        nomor: nomorBaru,
+        _id: { $ne: user._id }
+      }).select("_id").lean();
 
-    if (nomorSudahDipakai) {
-      return res.status(409).json({
+      if (nomorDipakai) {
+        return res.status(409).json({
+          success: false,
+          field: "nomor",
+          message: "Nomor telepon sudah terdaftar. Silakan ganti nomor lain."
+        });
+      }
+    }
+
+    if (usernameBaru !== user.username) {
+      const usernameDipakai = await User.findOne({
+        username: usernameBaru,
+        _id: { $ne: user._id }
+      }).select("_id").lean();
+
+      if (usernameDipakai) {
+        return res.status(409).json({
+          success: false,
+          field: "username",
+          message: "Username sudah terdaftar. Silakan ganti username lain."
+        });
+      }
+    }
+
+    if (emailBaru !== normalizeEmail(user.email)) {
+      const emailDipakai = await User.findOne({
+        email: emailBaru,
+        _id: { $ne: user._id }
+      }).select("_id").lean();
+
+      if (emailDipakai) {
+        return res.status(409).json({
+          success: false,
+          field: "email",
+          message: "Email sudah terdaftar. Silakan ganti email lain."
+        });
+      }
+    }
+
+    const changedFields = getChangedFields(
+      user,
+      nomorBaru,
+      usernameBaru,
+      emailBaru
+    );
+
+    if (!changedFields.length) {
+      return res.status(400).json({
         success: false,
-        message: 'Nomor baru sudah terdaftar. Silakan gunakan nomor lain.'
+        message: "Tidak ada perubahan profil."
       });
     }
 
+    // ========================================================
+    // SIMPAN SEMUA PERUBAHAN SEKALIGUS
+    // ========================================================
     user.nomor = nomorBaru;
-    user.phoneChangeOtp = null;
-    user.phoneChangeOtpExpired = null;
-    user.phoneChangeTarget = null;
-    user.aktifitas = 'Berhasil Ubah Nomor';
+    user.username = usernameBaru;
+    user.email = emailBaru;
+
+    // Bersihkan OTP setelah berhasil digunakan.
+    user.profileChangeOtp = null;
+    user.profileChangeOtpExpired = null;
+    user.profileChangeTargetNomor = null;
+    user.profileChangeTargetUsername = null;
+    user.profileChangeTargetEmail = null;
+    user.aktifitas = "Berhasil Mengubah Profil";
+
     await user.save();
 
     return res.json({
       success: true,
-      message: 'Nomor telepon berhasil diperbarui'
+      message: `${changedFields.join(", ")} berhasil diperbarui.`
     });
   } catch (error) {
-    console.error('Error change-number:', error);
+    console.error("Error confirm-profile-change:", error);
     return res.status(500).json({
       success: false,
-      message: 'Gagal mengubah nomor telepon'
+      message: "Gagal menyimpan perubahan profil."
     });
   }
 });
