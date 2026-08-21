@@ -119,9 +119,9 @@ async function createQrisComposite({
 
   // QR dibuat cukup besar agar mudah dideteksi kamera.
   const qrSize = Math.min(
-    760,
-    Math.floor(width * 0.68),
-    Math.floor(height * 0.34)
+    720,
+    Math.floor(width * 0.95),
+    Math.floor(height * 0.25)
   );
 
   // Panel putih + quiet-zone besar.
