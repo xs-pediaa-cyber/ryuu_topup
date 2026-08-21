@@ -1728,21 +1728,37 @@ input,select{
                 </div>`;
         }
 
-        function loadImageForCanvas(url) {
+        // Proxy gambar agar canvas tidak terkena CORS/tainted canvas saat download di Android/Chrome.
+        function getCanvasImageUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) throw new Error('URL gambar QRIS kosong.');
+            return `https://images.weserv.nl/?url=${encodeURIComponent(value)}&output=png`;
+        }
+
+        function loadImageForCanvas(url, useProxy = true) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => resolve(img);
                 img.onerror = () => reject(new Error('Gagal memuat gambar untuk proses download.'));
-                img.src = url;
+                img.src = useProxy ? getCanvasImageUrl(url) : url;
             });
         }
 
         async function downloadQRISWithBackground(qrUrl, fileName = 'QRIS-deposit.png') {
+            const button = document.activeElement;
+            const originalText = button && button.classList && button.classList.contains('qris-download-btn') ? button.innerHTML : '';
+
             try {
+                if (button && button.classList && button.classList.contains('qris-download-btn')) {
+                    button.disabled = true;
+                    button.innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>Memproses...';
+                }
+
+                // Background asli + QR diproses melalui proxy CORS-safe agar canvas bisa diekspor.
                 const [bg, qr] = await Promise.all([
-                    loadImageForCanvas(QRIS_BACKGROUND_URL),
-                    loadImageForCanvas(qrUrl)
+                    loadImageForCanvas(QRIS_BACKGROUND_URL, true),
+                    loadImageForCanvas(qrUrl, true)
                 ]);
 
                 const canvas = document.createElement('canvas');
@@ -1750,9 +1766,12 @@ input,select{
                 canvas.height = 1536;
 
                 const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Browser tidak mendukung Canvas.');
+
+                // Gambar seluruh background dalam ukuran asli 1087 x 1536.
                 ctx.drawImage(bg, 0, 0, 1087, 1536);
 
-                // Area placeholder pada background asli: sekitar x=245..772, y=554..1081.
+                // QR tetap berada di area kotak abu-abu pada background asli.
                 const qrSize = 420;
                 const qrX = (1087 - qrSize) / 2;
                 const qrY = 554 + ((527 - qrSize) / 2);
@@ -1767,15 +1786,33 @@ input,select{
 
                 ctx.drawImage(qr, qrX, qrY, qrSize, qrSize);
 
+                // Gunakan Blob + object URL supaya download lebih stabil di Android Chrome.
+                const blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((result) => {
+                        if (result) resolve(result);
+                        else reject(new Error('Gagal membuat file PNG.'));
+                    }, 'image/png', 1.0);
+                });
+
+                const blobUrl = URL.createObjectURL(blob);
                 const link = document.createElement('a');
-                link.download = fileName;
-                link.href = canvas.toDataURL('image/png');
+                link.href = blobUrl;
+                link.download = fileName || 'QRIS-deposit.png';
+                link.style.display = 'none';
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
+
+                // Beri waktu browser memulai download sebelum URL dihapus.
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
             } catch (error) {
                 console.error('Download QRIS composite error:', error);
-                alert('QRIS + background gagal diproses. Silakan coba lagi.');
+                alert('Download QRIS gagal diproses. Coba tekan tombol sekali lagi.');
+            } finally {
+                if (button && button.classList && button.classList.contains('qris-download-btn')) {
+                    button.disabled = false;
+                    button.innerHTML = originalText || '<i class=\"bi bi-download me-2\"></i>Download QRIS + Background';
+                }
             }
         }
 
