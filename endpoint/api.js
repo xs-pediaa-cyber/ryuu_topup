@@ -112,7 +112,7 @@ async function createQrisComposite({
   const height = meta.height || 1000;
 
   // QR ditempatkan di bagian bawah-tengah background.
-  const qrSize = Math.max(220, Math.min(560, Math.floor(width * 0.75), Math.floor(height * 0.56)));
+  const qrSize = Math.max(220, Math.min(560, Math.floor(width * 0.75), Math.floor(height * 0.50)));
   const qrPrepared = await sharp(qrBuffer)
     .resize({
       width: qrSize,
@@ -121,7 +121,7 @@ async function createQrisComposite({
       background: { r: 255, g: 255, b: 255, alpha: 1 },
     })
     .extend({
-      top: 7,
+      top: 12,
       bottom: 12,
       left: 12,
       right: 12,
@@ -139,7 +139,7 @@ async function createQrisComposite({
     0,
     Math.min(
       height - qrHeight,
-      Math.floor(height * 0.56)
+      Math.floor(height * 0.40)
     )
   );
 
