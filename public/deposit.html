@@ -1697,13 +1697,47 @@ input,select{
         }
 
         function formatCurrency(amount) {
-            return `Rp${parseInt(amount).toLocaleString('id-ID')}`;
+            const value = Number(amount);
+            return `Rp${(Number.isFinite(value) ? Math.round(value) : 0).toLocaleString('id-ID')}`;
+        }
+
+        function getDepositFee(data) {
+            const fee = Number(data?.fee);
+            return Number.isFinite(fee) && fee >= 0 ? Math.round(fee) : 0;
+        }
+
+        function getDepositTotal(data) {
+            const explicitTotal = Number(data?.total_amount);
+            if (Number.isFinite(explicitTotal) && explicitTotal > 0) {
+                return Math.round(explicitTotal);
+            }
+            const nominal = Number(data?.nominal) || 0;
+            return Math.round(nominal + getDepositFee(data));
+        }
+
+        function getDepositBalance(data) {
+            const balance = Number(data?.get_balance);
+            if (Number.isFinite(balance) && balance >= 0) {
+                return Math.round(balance);
+            }
+            return Math.max(Number(data?.nominal) || 0, 0);
+        }
+
+        function normalizeDepositStatus(status) {
+            return String(status || 'pending').trim().toLowerCase();
         }
 
         function formatDateTime(dateString) {
             if (!dateString) return '-';
             const date = new Date(dateString);
-            return date.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
         
 
@@ -1837,11 +1871,11 @@ input,select{
                     </div>
                     <div class="payment-detail-item">
                         <span class="label fw-bold">Total Pembayaran:</span>
-                        <span class="value fw-bold text-primary">${formatCurrency(data.nominal)}</span>
+                        <span class="value fw-bold text-primary">${formatCurrency(getDepositTotal(data))}</span>
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Saldo Diterima:</span>
-                        <span class="value">${formatCurrency(data.get_balance)}</span>
+                        <span class="value">${formatCurrency(getDepositBalance(data))}</span>
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Metode:</span>
@@ -1849,7 +1883,7 @@ input,select{
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Status:</span>
-                        <span class="value status-${data.status.toLowerCase()}">${data.status}</span>
+                        <span class="value status-${normalizeDepositStatus(data.status)}">${data.status || '-'}</span>
                     </div>`;
 
             if (data.tujuan) {
@@ -1893,7 +1927,7 @@ if (data && data.qr_image) {
             paymentInfoHtml += `</div>`;
             
             paymentInfoHtml += `<div class="payment-actions">`;
-            if (data.status === 'pending') {
+            if (normalizeDepositStatus(data.status) === 'pending') {
                 paymentInfoHtml += `<button class="btn btn-danger" onclick="cancelDeposit('${data.id}', true)">Batalkan Deposit</button>`;
             }
             paymentInfoHtml += `<button class="btn btn-info" onclick="checkDepositStatus('${data.id}', true)">Cek Status Pembayaran</button>`;
@@ -1972,15 +2006,16 @@ if (data && data.qr_image) {
 
                 depositHistoryBody.innerHTML = '';
                 data.historyDeposit.slice().reverse().forEach(tx => {
+                    const status = normalizeDepositStatus(tx.status);
                     const row = depositHistoryBody.insertRow();
                     row.innerHTML = `
                         <td data-label="ID Transaksi">${tx.id}</td>
                         <td data-label="Nominal">${formatCurrency(tx.nominal)}</td>
-                        <td data-label="Metode">${tx.metode}</td>
-                        <td data-label="Status"><span class="status-badge status-${tx.status.toLowerCase()}">${tx.status}</span></td>
+                        <td data-label="Metode">${tx.metode || '-'}</td>
+                        <td data-label="Status"><span class="status-badge status-${status}">${tx.status || '-'}</span></td>
                         <td data-label="Tanggal">${formatDateTime(tx.created_at)}</td>
                         <td data-label="Aksi">
-                            <button class="btn btn-sm btn-primary" onclick="showDepositDetail('${tx.id}', '${tx.status}')">
+                            <button class="btn btn-sm btn-primary" onclick="showDepositDetail('${tx.id}')">
                                 <i class="bi bi-eye-fill"></i> Detail
                             </button>
                         </td>
@@ -1991,41 +2026,46 @@ if (data && data.qr_image) {
                 console.error("Error fetching deposit history:", err);
             }
         }
-        
-        function showDepositDetail(depositId, status) {
+
+        async function showDepositDetail(depositId) {
             const modalBody = document.getElementById('depositDetailModalBody');
             const modalFooter = document.getElementById('depositDetailModalFooter');
             modalBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> <p class="mt-2">Memuat detail...</p></div>';
             modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>';
             depositDetailModal.show();
 
-            if (status === 'pending') {
-                 fetch('/api/history/deposit')
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success && data.historyDeposit) {
-                            const depositData = data.historyDeposit.find(d => d.id === depositId);
-                            if (depositData) {
-                                renderModalContent(depositData, false);
-                            } else {
-                                modalBody.innerHTML = '<p class="text-danger text-center">Detail deposit tidak ditemukan.</p>';
-                            }
-                        } else {
-                             modalBody.innerHTML = '<p class="text-danger text-center">Gagal memuat detail deposit dari riwayat.</p>';
-                        }
-                    })
-                    .catch(err => {
-                        modalBody.innerHTML = `<p class="text-danger text-center">Error: ${err.message}</p>`;
-                    });
-            } else {
-                checkDepositStatus(depositId, false, true); 
+            try {
+                const res = await fetch('/api/history/deposit');
+                const data = await res.json();
+
+                if (!data.success || !Array.isArray(data.historyDeposit)) {
+                    throw new Error(data.message || 'Gagal memuat riwayat deposit.');
+                }
+
+                const depositData = data.historyDeposit.find(d => d.id === depositId);
+                if (!depositData) {
+                    modalBody.innerHTML = '<p class="text-danger text-center">Detail deposit tidak ditemukan.</p>';
+                    return;
+                }
+
+                // Render data DB terlebih dahulu. Status cancel/terminal tidak akan
+                // tertimpa oleh status provider yang masih pending.
+                renderModalContent(depositData, false);
+
+                const localStatus = normalizeDepositStatus(depositData.status);
+                if (localStatus === 'pending' || localStatus === 'processing') {
+                    await checkDepositStatus(depositId, false, true);
+                }
+            } catch (err) {
+                modalBody.innerHTML = `<p class="text-danger text-center">Error: ${err.message}</p>`;
             }
         }
 
         function renderModalContent(depositData, isFromApiCheck = false) {
             const modalBody = document.getElementById('depositDetailModalBody');
             const modalFooter = document.getElementById('depositDetailModalFooter');
-            
+            const status = normalizeDepositStatus(depositData?.status);
+
             let contentHtml = `
                 <div class="payment-details-card">
                     <div class="payment-detail-item">
@@ -2042,15 +2082,15 @@ if (data && data.qr_image) {
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Biaya Admin:</span>
-                        <span class="value">${formatCurrency(depositData.fee)}</span>
+                        <span class="value">${formatCurrency(getDepositFee(depositData))}</span>
                     </div>
                     <div class="payment-detail-item">
                         <span class="label fw-bold">Total Pembayaran:</span>
-                        <span class="value fw-bold text-primary">${formatCurrency(depositData.nominal)}</span>
+                        <span class="value fw-bold text-primary">${formatCurrency(getDepositTotal(depositData))}</span>
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Saldo Diterima:</span>
-                        <span class="value">${formatCurrency(depositData.get_balance)}</span>
+                        <span class="value">${formatCurrency(getDepositBalance(depositData))}</span>
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Metode:</span>
@@ -2058,7 +2098,7 @@ if (data && data.qr_image) {
                     </div>
                     <div class="payment-detail-item">
                         <span class="label">Status:</span>
-                        <span class="value status-${depositData.status.toLowerCase()}">${depositData.status}</span>
+                        <span class="value status-${status}">${depositData.status || '-'}</span>
                     </div>
                      <div class="payment-detail-item">
                         <span class="label">Tanggal Dibuat:</span>
@@ -2080,23 +2120,16 @@ if (data && data.qr_image) {
                     </div>`;
             }
 
+            if (depositData && depositData.qr_image && status === 'pending') {
+                contentHtml += `
+                    <div class="qr-code-container">
+                        <p class="mb-2" style="font-weight: bold;">Silakan scan QR Code di bawah ini:</p>
+                        ${qrisCompositeHtml(depositData.qr_image, depositData.id || 'deposit')}
+                        <p class="mt-2 text-muted" style="font-size: 11px;">Status: Menunggu Pembayaran</p>
+                    </div>`;
+            }
 
-            // Cek apakah depositData dan qr_image ada sebelum memproses
-if (depositData && depositData.qr_image) {
-    // Ambil status dan ubah ke huruf kecil dengan aman (cegah error toLowerCase)
-    const currentStatus = depositData.status ? depositData.status.toString().toLowerCase() : '';
-    
-    if (currentStatus === 'pending') {
-        contentHtml += `
-            <div class="qr-code-container">
-                <p class="mb-2" style="font-weight: bold;">Silakan scan QR Code di bawah ini:</p>
-                ${qrisCompositeHtml(depositData.qr_image, depositData.id || 'deposit')}
-                <p class="mt-2 text-muted" style="font-size: 11px;">Status: Menunggu Pembayaran</p>
-            </div>`;
-    }
-}
-
-            if (depositData.expired_at && depositData.status === 'pending') {
+            if (depositData.expired_at && status === 'pending') {
                  contentHtml += `
                     <div class="payment-detail-item text-danger">
                         <span class="label">Bayar Sebelum:</span>
@@ -2107,10 +2140,10 @@ if (depositData && depositData.qr_image) {
             modalBody.innerHTML = contentHtml;
 
             let footerHtml = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>`;
-            if (depositData.status === 'pending' || depositData.status === 'processing') {
+            if (status === 'pending' || status === 'processing') {
                  footerHtml += `<button type="button" class="btn btn-info" id="modalCheckStatusBtn" onclick="checkDepositStatus('${depositData.id}', false, true)">Cek Status (API)</button>`;
             }
-            if (depositData.status === 'pending') {
+            if (status === 'pending') {
                  footerHtml += `<button type="button" class="btn btn-danger" id="modalCancelBtn" onclick="cancelDeposit('${depositData.id}', false)">Batalkan Deposit</button>`;
             }
             modalFooter.innerHTML = footerHtml;
@@ -2149,7 +2182,7 @@ if (depositData && depositData.qr_image) {
                     } else if (isFromModal) {
                         renderModalContent(result.data, true);
                     }
-                    if (result.data.status !== 'pending' && result.data.status !== 'processing') {
+                    if (normalizeDepositStatus(result.data.status) !== 'pending' && normalizeDepositStatus(result.data.status) !== 'processing') {
                          fetchDepositHistory(); 
                     }
                 } else {
