@@ -139,7 +139,7 @@ async function createQrisComposite({
     0,
     Math.min(
       height - qrHeight,
-      Math.floor(height * 0.35)
+      Math.floor(height * 0.30)
     )
   );
 
