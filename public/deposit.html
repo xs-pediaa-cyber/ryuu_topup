@@ -1021,9 +1021,10 @@
 
         .qris-composite {
             width: min(100%, 360px);
-            aspect-ratio: 1 / 1;
+            /* Pertahankan bentuk portrait/panjang seperti background QRIS asli. */
+            aspect-ratio: 0.526 / 1;
             margin: 0 auto;
-            padding: 12px;
+            padding: 0;
             background: url("https://files.catbox.moe/sh2bcj.png") center / cover no-repeat;
             border: 3px solid #000;
             border-radius: 24px;
@@ -1047,8 +1048,8 @@
         .qris-image-safe {
             position: relative;
             z-index: 2;
-            width: 38%;
-            max-width: 140px;
+            width: 30%;
+            max-width: 120px;
             aspect-ratio: 1 / 1;
             border: 2px solid #ddd;
             border-radius: 16px;
@@ -1751,17 +1752,20 @@ input,select{
                     loadImageForCanvas(qrUrl)
                 ]);
 
-                const size = 1200;
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                drawCover(ctx, bg, size, size);
+                // Gunakan rasio portrait yang sama dengan background agar hasil download
+                // tidak berubah menjadi gambar persegi.
+                const canvasW = 800;
+                const canvasH = Math.round(canvasW / 0.526);
+                const ctxCanvas = document.createElement('canvas');
+                ctxCanvas.width = canvasW;
+                ctxCanvas.height = canvasH;
+                const ctx = ctxCanvas.getContext('2d');
+                drawCover(ctx, bg, canvasW, canvasH);
 
-                // QR lebih kecil agar desain background tetap terlihat.
-                const qrSize = Math.round(size * 0.50);
-                const qrX = Math.round((size - qrSize) / 2);
-                const qrY = Math.round((size - qrSize) / 2);
+                // QR lebih kecil supaya desain/background panjang tetap terlihat jelas.
+                const qrSize = Math.round(canvasW * 0.30);
+                const qrX = Math.round((canvasW - qrSize) / 2);
+                const qrY = Math.round((canvasH - qrSize) * 0.50);
                 const pad = 32;
                 const box = qrSize;
                 const radius = 34;
@@ -1786,7 +1790,7 @@ input,select{
                 ctx.restore();
                 ctx.drawImage(qr, qrX + pad, qrY + pad, box - (pad * 2), box - (pad * 2));
 
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1));
+                const blob = await new Promise(resolve => ctxCanvas.toBlob(resolve, 'image/png', 1));
                 if (!blob) throw new Error('Gagal membuat PNG.');
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1800,10 +1804,10 @@ input,select{
                 console.warn('PNG composite gagal, menggunakan fallback SVG:', error);
                 // Fallback tetap membuat background dan QR menjadi satu file.
                 const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
-  <image href="${escapeHtml(bgUrl || QRIS_BACKGROUND_URL)}" x="0" y="0" width="1200" height="1200" preserveAspectRatio="xMidYMid slice"/>
-  <rect x="252" y="252" width="696" height="696" rx="34" fill="white" fill-opacity="0.98"/>
-  <image href="${escapeHtml(qrUrl)}" x="315" y="315" width="570" height="570" preserveAspectRatio="xMidYMid meet"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1521" viewBox="0 0 800 1521">
+  <image href="${escapeHtml(bgUrl || QRIS_BACKGROUND_URL)}" x="0" y="0" width="800" height="1521" preserveAspectRatio="xMidYMid slice"/>
+  <rect x="280" y="601" width="240" height="240" rx="22" fill="white" fill-opacity="0.98"/>
+  <image href="${escapeHtml(qrUrl)}" x="300" y="621" width="200" height="200" preserveAspectRatio="xMidYMid meet"/>
 </svg>`;
                 const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
