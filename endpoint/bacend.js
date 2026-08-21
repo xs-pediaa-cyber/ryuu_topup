@@ -34,14 +34,16 @@ const cloudscraperHeaders = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
 };
 
-//=== ROUTE DAFTAR METODE (HANYA PAYINAJA QRIS) ===
+// === ROUTE DAFTAR METODE (HANYA PAYINAJA QRIS) ===
 router.post("/deposit/metode", requireLogin, async (req, res) => {
   try {
     const fullUrl = `${req.protocol}://${req.get("host")}`;
     const role = req.session.role || "user";
 
-    // Fee persen untuk tampilan  
-    let feePersen = role === "reseller" ? "0.1" : "0.2";  
+    // Fee persen untuk tampilan diambil dari .env (dikonversi ke string untuk frontend jika diperlukan)
+    let feePersen = role === "reseller" 
+      ? (process.env.FEE_PERCENT_RESELLER || "2.5") 
+      : (process.env.FEE_PERCENT_USER || "5.5");  
 
     // MENGEMBALIKAN METODE PAYINAJA QRIS  
     const metodeFormatted = [{  
@@ -85,7 +87,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     let response;
     try {
-      // --- UPDATE: Menambahkan User-Agent & Accept agar tidak diblokir server Payinaja ---
       response = await fetch("https://payinaja.com/api/v1/qris/create2", {
         method: "POST",
         headers: { 
@@ -116,23 +117,27 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
     const payData = result.data;
 
-    // --- FIX KALKULASI & ROUNDING ---
+    // --- FIX KALKULASI & ROUNDING BERBASIS .ENV ---
     const nominalAsli = Number(payData.amount_requested) || parsedNominal;
     const feePayinaja = Number(payData.fee) || 0;
     
+    // Ambil persentase dari .env (default: user 5.5%, reseller 2.5%)
+    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER) || 5.5;
+    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER) || 2.5;
+
     let additionalFee = 0;
     if (user.role === "user") {
-        additionalFee = Math.ceil(nominalAsli * 0.002);
+        additionalFee = Math.ceil(nominalAsli * (feePercentUser / 100));
     } else if (user.role === "reseller") {
-        additionalFee = Math.ceil(nominalAsli * 0.001);
+        additionalFee = Math.ceil(nominalAsli * (feePercentReseller / 100));
     }
 
     const totalBayar = Math.ceil(Number(payData.total_amount) || (nominalAsli + feePayinaja));
     const totalFee = feePayinaja + additionalFee;
     const finalGetBalance = nominalAsli - additionalFee;
 
-    // Menggunakan path lokal file background kustom di server
-    const customBgUrl = `${req.protocol}://${req.get('host')}/media/bg.jpg`;
+    // Menggunakan URL background baru dari Catbox secara aman
+    const customBgUrl = "https://files.catbox.moe/sh2bcj.png";
 
     const historyDataForDb = {
       id: payData.payinaja_trx_id,
@@ -161,12 +166,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         get_balance: finalGetBalance,
         qr_image: payData.qris_image_url,
         qris_string: payData.qris_string || payData.qris || "",
-        bg_image: customBgUrl, // URL background lokal dikirim ke frontend
+        bg_image: customBgUrl, 
         status: "pending"
       }
     });
 
-    // POLLING: Diubah menjadi setiap 1 menit (60000 ms) dengan User-Agent agar tidak kena blokir
+    // POLLING: Setiap 1 menit (60000 ms)
     const intervalId = setInterval(async () => {
       try {
         const checkRes = await fetch(`https://payinaja.com/api/v1/transaction/${payData.payinaja_trx_id}`, {
@@ -196,6 +201,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
 // === ROUTE CEK STATUS (ANTI-NaN & SYNC) ===
 router.post("/deposit/status", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
@@ -205,7 +211,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
   if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
 
   try {
-    // 1. Ambil data dari database lokal
     const userWithHistory = await User.findOne(
       { _id: user._id, "historyDeposit.id": id }, 
       { "historyDeposit.$": 1 }
@@ -218,18 +223,14 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const localData = userWithHistory.historyDeposit[0];
     const API_KEY = process.env.PAYINAJA_API_KEY;
 
-    // 2. Ambil data terbaru dari Payinaja
     const response = await fetch(`https://payinaja.com/api/v1/transaction/${id}`, {
         method: "GET",
         headers: { "x-api-key": API_KEY }
     });
     
     const result = await response.json();
-    
-    // Default data jika provider gagal memberikan respon lengkap
     const statusProvider = result?.data?.status?.toLowerCase() || localData.status;
 
-    // 3. Sinkronisasi Saldo Otomatis jika status sukses
     if (statusProvider === "success" && localData.status === "pending") {
         await User.updateOne(
             { _id: user._id, "historyDeposit.id": id },
@@ -240,13 +241,11 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
         );
     }
 
-    // 4. RESPONSE KE FRONTEND (Pastikan menggunakan Number() untuk mencegah NaN)
     return res.status(200).json({
       success: true,
       data: {
         id: id,
         trx_id: id,
-        // Pastikan nominal diambil dari DB lokal jika provider NaN
         nominal: Number(result?.data?.amount_requested) || Number(localData.nominal) || 0,
         total_amount: Number(result?.data?.total_amount) || (Number(localData.nominal) + Number(localData.fee)) || 0,
         fee: Number(localData.fee) || 0,
@@ -259,7 +258,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
 
   } catch (error) {
     console.error("Error Status Check:", error);
-    // Jika error, kirimkan data lokal saja agar tidak tampilan NaN
     res.status(500).json({ success: false, message: "Gagal memuat detail terbaru." });
   }
 });
@@ -273,7 +271,6 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
   if (!id) return res.status(400).json({ success: false, message: "ID diperlukan." });
 
   try {
-    // 1. Pastikan transaksi tersebut memang ada di history user dan statusnya masih pending
     const userHistory = await User.findOne(
       { _id: user._id, "historyDeposit.id": id }, 
       { "historyDeposit.$": 1 }
@@ -285,7 +282,6 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
 
     const currentData = userHistory.historyDeposit[0];
 
-    // 2. Cegah pembatalan jika statusnya sudah bukan pending (misal sudah success atau sudah cancel)
     if (currentData.status !== "pending") {
       return res.status(400).json({ 
         success: false, 
@@ -293,8 +289,6 @@ router.post("/deposit/cancel", requireLogin, async (req, res) => {
       });
     }
 
-    // 3. Update status di database internal saja (Tanpa fetch ke Payinaja)
-    // Menggunakan fungsi helper editHistoryDeposit yang kamu miliki
     await editHistoryDeposit(user._id, id, "cancel");
 
     return res.status(200).json({
