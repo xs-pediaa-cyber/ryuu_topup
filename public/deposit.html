@@ -1047,19 +1047,21 @@
         .qris-image-safe {
             position: relative;
             z-index: 2;
-            width: 48%;
-            max-width: 175px;
-            height: auto;
+            width: 38%;
+            max-width: 140px;
             aspect-ratio: 1 / 1;
-            object-fit: contain;
             border: 2px solid #ddd;
             border-radius: 16px;
             padding: 8px;
-            background: rgba(255,255,255,.97);
+            background-color: rgba(255,255,255,.97);
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
             box-shadow: 0 4px 14px rgba(0,0,0,.18);
             user-select: none;
             -webkit-user-drag: none;
             -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .qris-download-btn {
@@ -1707,7 +1709,7 @@ input,select{
             const safeBg = escapeHtml(bgUrl || QRIS_BACKGROUND_URL);
             return `
                 <div class="qris-composite" style="background-image:url(&quot;${safeBg}&quot;);">
-                    <img class="qris-image-safe" src="${safeQr}" alt="QR Code Pembayaran" draggable="false" oncontextmenu="return false;">
+                    <div class="qris-image-safe" role="img" aria-label="QR Code Pembayaran" style="background-image:url(&quot;${safeQr}&quot;);"></div>
                 </div>
                 <button type="button" class="btn btn-success qris-download-btn" onclick="downloadCompositeQris('${safeQr}', '${safeBg}', this)">
                     <i class="bi bi-download me-2"></i>Download QRIS + Background
@@ -1757,7 +1759,7 @@ input,select{
                 drawCover(ctx, bg, size, size);
 
                 // QR lebih kecil agar desain background tetap terlihat.
-                const qrSize = Math.round(size * 0.58);
+                const qrSize = Math.round(size * 0.50);
                 const qrX = Math.round((size - qrSize) / 2);
                 const qrY = Math.round((size - qrSize) / 2);
                 const pad = 32;
@@ -1801,7 +1803,7 @@ input,select{
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
   <image href="${escapeHtml(bgUrl || QRIS_BACKGROUND_URL)}" x="0" y="0" width="1200" height="1200" preserveAspectRatio="xMidYMid slice"/>
   <rect x="252" y="252" width="696" height="696" rx="34" fill="white" fill-opacity="0.98"/>
-  <image href="${escapeHtml(qrUrl)}" x="284" y="284" width="632" height="632" preserveAspectRatio="xMidYMid meet"/>
+  <image href="${escapeHtml(qrUrl)}" x="315" y="315" width="570" height="570" preserveAspectRatio="xMidYMid meet"/>
 </svg>`;
                 const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
