@@ -404,7 +404,7 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     if (!rawQrImage || !qrisString)
       return res.status(502).json({ success: false, message: "QRIS XS-Pedia tidak lengkap." });
 
-    const trxId = `DEP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const trxId = `XIAO-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const createdAt = new Date();
     const nominalAsli = parsedNominal;
     const feeProvider = 0;
