@@ -154,10 +154,10 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     }
 
     // ID transaksi lokal karena API create XS-Pedia tidak memberi trx_id
-    const localTrxId = `DEP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const localTrxId = `XIAO-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const nominalAsli = parsedNominal;
-    const feeProvider = 0;
+    const feeProvider = 50;
     const totalBayar = providerRequestAmount;
     const totalFee = Math.max(0, totalBayar - nominalAsli);
     const finalGetBalance = nominalAsli;
