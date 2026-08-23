@@ -98,6 +98,67 @@ const User = mongoose.model("User", userSchema);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// ==========================================
+// GMAIL HTML + ALIGHT_MOTION_FEE DARI .ENV
+// Support /gmail DAN /gmail.html
+// ==========================================
+app.get(["/gmail", "/gmail.html"], (req, res) => {
+  try {
+    const gmailPath = path.join(
+      __dirname,
+      "public",
+      "gmail.html"
+    );
+
+    fs.readFile(gmailPath, "utf8", (err, html) => {
+      if (err) {
+        console.error("Gagal membaca gmail.html:", err);
+        return res.status(500).send(
+          "Gagal memuat Gmail HTML."
+        );
+      }
+
+      const fee = Number(
+        process.env.ALIGHT_MOTION_FEE
+      );
+
+      if (!Number.isFinite(fee) || fee <= 0) {
+        console.error(
+          "[GMAIL] ALIGHT_MOTION_FEE tidak valid:",
+          process.env.ALIGHT_MOTION_FEE
+        );
+
+        return res.status(500).send(
+          "ALIGHT_MOTION_FEE belum tersedia di .env"
+        );
+      }
+
+      const injected = html.replace(
+        "</head>",
+        `
+<script>
+  window.ALIGHT_MOTION_FEE = ${fee};
+</script>
+</head>`
+      );
+
+      res
+        .status(200)
+        .type("html")
+        .send(injected);
+    });
+
+  } catch (err) {
+    console.error(
+      "[GMAIL HTML ERROR]",
+      err
+    );
+
+    return res.status(500).send(
+      "Gagal memuat Gmail HTML."
+    );
+  }
+});
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/media", express.static(path.join(__dirname, "media")));
 app.use(
