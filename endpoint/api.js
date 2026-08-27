@@ -353,74 +353,80 @@ async function settleDeposit(userId, trxId, status, balance = 0) {
   return r.modifiedCount > 0;
 }
 
-// ================= CREATE DEPOSIT XS-PEDIA =================
 // ======================================================
-// DEPOSIT CREATE - API KEY - PAYINAJA
+// CREATE DEPOSIT - PAYINAJA
 // ======================================================
-router.get("/deposit/create", validateApiKey, async (req, res) => {
-  const { user } = req;
-  const { nominal } = req.query;
-
-  if (!nominal || isNaN(nominal)) {
-    return res.status(400).json({
-      success: false,
-      message: "Nominal tidak valid."
-    });
-  }
-
-  const parsedNominal = parseInt(nominal, 10);
-
-  if (
-    !Number.isInteger(parsedNominal) ||
-    parsedNominal < 500
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Minimal deposit Rp500"
-    });
-  }
-
-  if (!user?._id) {
-    return res.status(401).json({
-      success: false,
-      message: "User API tidak valid."
-    });
-  }
-
-  const API_KEY = process.env.PAYINAJA_API_KEY;
-
-  if (!API_KEY) {
-    return res.status(500).json({
-      success: false,
-      message: "PAYINAJA_API_KEY belum disetting."
-    });
-  }
-
+router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
+    const user = await User.findById(req.session.userId);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Sesi tidak valid."
+      });
+    }
+
+    const { nominal } = req.body;
+    const parsedNominal = parseInt(nominal, 10);
+
+    if (
+      !nominal ||
+      !Number.isInteger(parsedNominal) ||
+      parsedNominal < 500
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimal deposit Rp500"
+      });
+    }
+
     // ==================================================
-    // FEE SESUAI ROLE
+    // ENV PAYINAJA
     // ==================================================
-    const envPercent = getFeePercentForRole(user.role);
+    const API_KEY = process.env.PAYINAJA_API_KEY;
+
+    if (!API_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "PAYINAJA_API_KEY belum disetting di server."
+      });
+    }
+
+    // ==================================================
+    // FEE ENV
+    // ==================================================
+    const feePercentUser = parseFloat(
+      process.env.FEE_PERCENT_USER
+    );
+
+    const feePercentReseller = parseFloat(
+      process.env.FEE_PERCENT_RESELLER
+    );
+
+    const envPercent =
+      user.role === "reseller"
+        ? (
+            Number.isFinite(feePercentReseller)
+              ? feePercentReseller
+              : 2.5
+          )
+        : (
+            Number.isFinite(feePercentUser)
+              ? feePercentUser
+              : 5.5
+          );
 
     const additionalFee = Math.max(
       0,
-      Math.ceil(
-        parsedNominal * (envPercent / 100)
-      )
+      Math.ceil(parsedNominal * (envPercent / 100))
     );
-
-    /*
-     * Payinaja menerima nominal deposit asli.
-     *
-     * Fee internal kita dicatat terpisah.
-     */
-    const providerAmount = parsedNominal;
 
     // ==================================================
     // REFERENCE ID
     // ==================================================
     const referenceId =
-      `XIAO-API-${Date.now()}-${Math.random()
+      `DEP-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2, 8)
         .toUpperCase()}`;
@@ -428,78 +434,62 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
     // ==================================================
     // CREATE PAYINAJA
     // ==================================================
-    let createRes;
+    let response;
 
     try {
-      createRes = await fetch(
+      response = await fetch(
         "https://payinaja.com/api/v1/qris/create2",
         {
           method: "POST",
-
           headers: {
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json",
-
+            "Content-Type": "application/json",
+            "Accept": "application/json",
             "User-Agent":
               "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
               "AppleWebKit/537.36 (KHTML, like Gecko) " +
               "Chrome/120.0.0.0 Safari/537.36",
-
             "x-api-key": API_KEY
           },
-
           body: JSON.stringify({
-            amount: providerAmount,
-
-            reference_id:
-              referenceId,
-
-            customer_name:
-              user.username || "User"
+            amount: parsedNominal,
+            reference_id: referenceId,
+            customer_name: user.username || "User"
           })
         }
       );
-    } catch (e) {
+    } catch (fetchError) {
       console.error(
         "Payinaja Create Fetch Error:",
-        e
+        fetchError
       );
 
       return res.status(502).json({
         success: false,
-        message:
-          "Koneksi ke Payinaja gagal."
+        message: "Koneksi server ke Payinaja gagal."
       });
     }
 
     // ==================================================
-    // PARSE RESPONSE
+    // PARSE JSON
     // ==================================================
     let result;
 
     try {
-      result = await createRes.json();
-    } catch (e) {
+      result = await response.json();
+    } catch (jsonError) {
       console.error(
-        "Payinaja Response JSON Error:",
-        e
+        "Payinaja JSON Error:",
+        jsonError
       );
 
       return res.status(502).json({
         success: false,
-        message:
-          "Response Payinaja tidak valid."
+        message: "Response Payinaja tidak valid."
       });
     }
 
-    if (
-      !createRes.ok ||
-      !result?.success
-    ) {
-      return res.status(502).json({
+    if (!response.ok || !result?.success) {
+      return res.status(400).json({
         success: false,
         message:
           result?.message ||
@@ -507,65 +497,53 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       });
     }
 
-    const payData =
-      result.data || {};
+    const payData = result.data || {};
 
     // ==================================================
-    // TRANSACTION ID
+    // DATA TRANSAKSI PAYINAJA
     // ==================================================
-    const trxId =
+    const payinajaTrxId =
       payData.payinaja_trx_id ||
       payData.trx_id ||
       payData.id;
 
-    if (!trxId) {
+    if (!payinajaTrxId) {
       return res.status(502).json({
         success: false,
         message:
-          "Payinaja tidak memberikan ID transaksi."
+          "Payinaja tidak mengembalikan ID transaksi."
       });
     }
 
-    // ==================================================
-    // QR DATA
-    // ==================================================
-    const rawQrImage =
+    const qrImage =
       payData.qris_image_url ||
       payData.qris_image ||
       payData.qr_image ||
-      "";
+      null;
 
     const qrisString =
       payData.qris_string ||
       payData.qris ||
       "";
 
-    if (
-      !rawQrImage ||
-      !qrisString
-    ) {
+    if (!qrImage || !qrisString) {
       return res.status(502).json({
         success: false,
         message:
-          "QRIS Payinaja tidak lengkap."
+          "Payinaja tidak mengembalikan data QRIS lengkap."
       });
     }
 
     // ==================================================
-    // DATA NOMINAL / FEE
+    // KALKULASI
     // ==================================================
     const nominalAsli =
-      Number(
-        payData.amount_requested
-      ) || parsedNominal;
+      Number(payData.amount_requested) ||
+      parsedNominal;
 
-    const feeProvider =
+    const feePayinaja =
       Number(payData.fee) || 0;
 
-    /*
-     * Total dibayar ke Payinaja.
-     * Prioritas total_amount dari provider.
-     */
     const providerTotal =
       Number(payData.total_amount);
 
@@ -574,105 +552,55 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
       providerTotal > 0
         ? Math.ceil(providerTotal)
         : Math.ceil(
-            nominalAsli +
-            feeProvider
+            nominalAsli + feePayinaja
           );
 
-    /*
-     * Total fee yang dicatat.
-     */
     const totalFee =
-      feeProvider +
-      additionalFee;
+      feePayinaja + additionalFee;
 
-    /*
-     * Saldo yang diterima user.
-     *
-     * Sama seperti konsep sebelumnya:
-     * nominal asli - fee internal.
-     */
-    const finalBalance =
-      Math.max(
-        0,
-        nominalAsli -
-        additionalFee
-      );
-
-    const createdAt =
-      new Date();
-
-    const bgUrl =
-      DEFAULT_BG_URL;
+    const finalGetBalance = Math.max(
+      0,
+      nominalAsli - additionalFee
+    );
 
     // ==================================================
-    // COMPOSITE QR TETAP
+    // BACKGROUND TETAP
     // ==================================================
-    let compositeQrUrl =
-      rawQrImage;
-
-    try {
-      const generated =
-        await createQrisComposite({
-          trxId: String(trxId),
-
-          qrisImageUrl:
-            rawQrImage,
-
-          qrisString
-        });
-
-      compositeQrUrl =
-        `${req.protocol}://${req.get("host")}` +
-        `/media/generated-qris/${generated.filename}`;
-
-    } catch (e) {
-      console.error(
-        "QR Composite Error:",
-        e.message
-      );
-    }
+    const customBgUrl =
+      "https://files.catbox.moe/sh2bcj.png";
 
     // ==================================================
-    // HISTORY
+    // HISTORY DEPOSIT
     // ==================================================
-    const history = {
-      id: String(trxId),
+    const historyDataForDb = {
+      id: String(payinajaTrxId),
 
-      reference_id:
-        referenceId,
+      reff_id: String(
+        payData.reference_id ||
+        referenceId
+      ),
 
-      reff_id:
-        referenceId,
+      nominal: nominalAsli,
 
-      nominal:
-        nominalAsli,
+      fee: totalFee,
 
-      tambahan:
-        additionalFee,
+      fee_env: additionalFee,
 
-      fee:
-        totalFee,
+      fee_provider: feePayinaja,
 
-      fee_env:
-        additionalFee,
+      tambahan: additionalFee,
 
-      fee_provider:
-        feeProvider,
+      total_amount: totalBayar,
 
-      total_amount:
-        totalBayar,
+      get_balance: finalGetBalance,
 
-      get_balance:
-        finalBalance,
+      provider_amount: nominalAsli,
 
-      provider_amount:
-        providerAmount,
+      provider: "payinaja",
 
-      provider:
-        "payinaja",
-
-      provider_id:
-        String(trxId),
+      provider_id: String(
+        payinajaTrxId
+      ),
 
       provider_reference_id:
         String(
@@ -680,398 +608,435 @@ router.get("/deposit/create", validateApiKey, async (req, res) => {
           referenceId
         ),
 
-      metode:
-        "QRIS",
+      provider_created_at:
+        payData.created_at ||
+        new Date().toISOString(),
 
-      status:
-        "pending",
+      qris_string: qrisString,
 
-      qr_image:
-        compositeQrUrl,
+      metode: "QRIS",
 
-      qr_image_raw:
-        rawQrImage,
+      status: "pending",
 
-      qris_string:
-        qrisString,
+      qr_image: qrImage,
 
-      bg_image:
-        bgUrl,
+      bg_image: customBgUrl,
 
-      created_at:
-        createdAt
+      created_at: new Date()
     };
 
     await tambahHistoryDeposit(
       user._id,
-      history
+      historyDataForDb
     );
 
     // ==================================================
     // RESPONSE
     // ==================================================
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-
-      message:
-        "QRIS berhasil dibuat.",
+      message: "QRIS berhasil dibuat.",
 
       data: {
-        id:
-          String(trxId),
+        id: String(payinajaTrxId),
 
         trx_id:
-          String(trxId),
-
-        reference_id:
-          referenceId,
+          String(payinajaTrxId),
 
         reff_id:
+          payData.reference_id ||
           referenceId,
 
-        metode:
-          "QRIS",
+        reference_id:
+          payData.reference_id ||
+          referenceId,
 
-        nominal:
-          nominalAsli,
+        metode: "QRIS",
 
-        fee:
-          totalFee,
+        nominal: nominalAsli,
 
-        fee_env:
-          additionalFee,
+        fee: totalFee,
 
-        fee_provider:
-          feeProvider,
+        fee_env: additionalFee,
 
-        total_amount:
-          totalBayar,
+        fee_provider: feePayinaja,
 
-        get_balance:
-          finalBalance,
+        total_amount: totalBayar,
 
-        /*
-         * Tetap pakai composite QR
-         */
-        qr_image:
-          compositeQrUrl,
+        get_balance: finalGetBalance,
 
-        qr_image_combined:
-          compositeQrUrl,
+        qr_image: qrImage,
 
-        /*
-         * QR asli dari Payinaja
-         */
-        qr_image_raw:
-          rawQrImage,
+        qr_image_combined: qrImage,
 
-        qris_string:
-          qrisString,
+        qris_string: qrisString,
 
-        /*
-         * Background tetap
-         */
-        bg_image:
-          bgUrl,
+        bg_image: customBgUrl,
 
-        status:
-          "pending",
+        status: "pending",
 
         created_at:
-          createdAt
+          new Date()
       }
     });
 
     // ==================================================
     // POLLING PAYINAJA
     // ==================================================
-    const intervalId =
-      setInterval(
-        async () => {
+    const intervalId = setInterval(
+      async () => {
+        try {
+          const checkRes = await fetch(
+            `https://payinaja.com/api/v1/transaction/${encodeURIComponent(
+              payinajaTrxId
+            )}`,
+            {
+              method: "GET",
+              headers: {
+                "Accept": "application/json",
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                  "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                  "Chrome/120.0.0.0 Safari/537.36",
+                "x-api-key": API_KEY
+              }
+            }
+          );
+
+          if (!checkRes.ok) {
+            return;
+          }
+
+          let checkData;
+
           try {
-            // ------------------------------------------
-            // CEK STATUS LOCAL
-            // ------------------------------------------
-            const h =
-              await User.findOne(
+            checkData =
+              await checkRes.json();
+          } catch {
+            return;
+          }
+
+          const providerData =
+            checkData?.data || {};
+
+          const providerStatus =
+            String(
+              providerData.status || ""
+            ).toLowerCase();
+
+          // ==================================================
+          // SUCCESS
+          // ==================================================
+          if (
+            providerStatus === "success"
+          ) {
+            const updateResult =
+              await User.updateOne(
                 {
                   _id: user._id,
-                  "historyDeposit.id":
-                    String(trxId)
-                },
-                {
-                  "historyDeposit.$":
-                    1
-                }
-              );
 
-            const dep =
-              h?.historyDeposit?.[0];
-
-            const localStatus =
-              String(
-                dep?.status || ""
-              ).toLowerCase();
-
-            if (
-              !dep ||
-              ![
-                "pending",
-                "processing"
-              ].includes(localStatus)
-            ) {
-              clearInterval(
-                intervalId
-              );
-
-              return;
-            }
-
-            // ------------------------------------------
-            // CEK PAYINAJA
-            // ------------------------------------------
-            const checkRes =
-              await fetch(
-                `https://payinaja.com/api/v1/transaction/${encodeURIComponent(
-                  trxId
-                )}`,
-                {
-                  method:
-                    "GET",
-
-                  headers: {
-                    "Accept":
-                      "application/json",
-
-                    "User-Agent":
-                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                      "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                      "Chrome/120.0.0.0 Safari/537.36",
-
-                    "x-api-key":
-                      API_KEY
-                  }
-                }
-              );
-
-            if (
-              !checkRes.ok
-            ) {
-              return;
-            }
-
-            const checkData =
-              await checkRes.json();
-
-            const apiStatus =
-              String(
-                checkData?.data?.status ||
-                ""
-              ).toLowerCase();
-
-            // ------------------------------------------
-            // SUCCESS
-            // ------------------------------------------
-            if (
-              apiStatus ===
-              "success"
-            ) {
-              const updateResult =
-                await User.updateOne(
-                  {
-                    _id: user._id,
-
-                    historyDeposit: {
-                      $elemMatch: {
-                        id:
-                          String(
-                            trxId
-                          ),
-
-                        status: {
-                          $in: [
-                            "pending",
-                            "processing"
-                          ]
-                        }
+                  historyDeposit: {
+                    $elemMatch: {
+                      id: String(
+                        payinajaTrxId
+                      ),
+                      status: {
+                        $in: [
+                          "pending",
+                          "processing"
+                        ]
                       }
                     }
+                  }
+                },
+
+                {
+                  $set: {
+                    "historyDeposit.$.status":
+                      "success",
+
+                    "historyDeposit.$.provider_id":
+                      String(
+                        providerData.payinaja_trx_id ||
+                        providerData.trx_id ||
+                        payinajaTrxId
+                      ),
+
+                    "historyDeposit.$.provider_reference_id":
+                      String(
+                        providerData.reference_id ||
+                        referenceId
+                      )
                   },
 
-                  {
-                    $set: {
-                      "historyDeposit.$.status":
-                        "success",
+                  $inc: {
+                    saldo:
+                      finalGetBalance
+                  }
+                }
+              );
 
-                      "historyDeposit.$.provider_id":
-                        String(
-                          trxId
-                        ),
+            if (
+              updateResult.modifiedCount > 0
+            ) {
+              console.log(
+                `Deposit SUCCESS ${payinajaTrxId} | ` +
+                `Saldo +Rp${finalGetBalance}`
+              );
+            }
 
-                      "historyDeposit.$.provider_reference_id":
-                        String(
-                          checkData?.data
-                            ?.reference_id ||
-                          referenceId
-                        )
-                    },
+            clearInterval(intervalId);
+            return;
+          }
 
-                    $inc: {
-                      saldo:
-                        Number(
-                          finalBalance
-                        ) || 0
+          // ==================================================
+          // FAILED / EXPIRED / CANCEL
+          // ==================================================
+          if (
+            [
+              "failed",
+              "expired",
+              "cancel",
+              "cancelled"
+            ].includes(providerStatus)
+          ) {
+            await User.updateOne(
+              {
+                _id: user._id,
+
+                historyDeposit: {
+                  $elemMatch: {
+                    id: String(
+                      payinajaTrxId
+                    ),
+                    status: {
+                      $in: [
+                        "pending",
+                        "processing"
+                      ]
                     }
                   }
-                );
+                }
+              },
 
-              if (
-                updateResult.modifiedCount >
-                0
-              ) {
-                console.log(
-                  `PAYINAJA DEPOSIT SUCCESS | ${trxId} | +Rp${finalBalance}`
-                );
+              {
+                $set: {
+                  "historyDeposit.$.status":
+                    providerStatus,
+
+                  "historyDeposit.$.provider_id":
+                    String(
+                      providerData.payinaja_trx_id ||
+                      providerData.trx_id ||
+                      payinajaTrxId
+                    ),
+
+                  "historyDeposit.$.provider_reference_id":
+                    String(
+                      providerData.reference_id ||
+                      referenceId
+                    )
+                }
               }
-
-              clearInterval(
-                intervalId
-              );
-
-              return;
-            }
-
-            // ------------------------------------------
-            // FAILED / EXPIRED / CANCEL
-            // ------------------------------------------
-            if (
-              [
-                "failed",
-                "expired",
-                "cancel",
-                "cancelled"
-              ].includes(apiStatus)
-            ) {
-              await settleDeposit(
-                user._id,
-                String(trxId),
-                apiStatus
-              );
-
-              console.log(
-                `PAYINAJA DEPOSIT ${apiStatus.toUpperCase()} | ${trxId}`
-              );
-
-              clearInterval(
-                intervalId
-              );
-            }
-
-          } catch (e) {
-            console.error(
-              "Payinaja Polling Error:",
-              e.message
             );
+
+            console.log(
+              `Deposit ${providerStatus.toUpperCase()} ${payinajaTrxId}`
+            );
+
+            clearInterval(intervalId);
+            return;
           }
-        },
 
-        // 1 menit
-        60000
-      );
-
-    // Maksimal 30 menit
-    setTimeout(
-      () => {
-        clearInterval(
-          intervalId
-        );
+        } catch (e) {
+          console.error(
+            "Payinaja Polling Error:",
+            e.message
+          );
+        }
       },
-      30 * 60 * 1000
+
+      // Cek tiap 60 detik
+      60 * 1000
     );
 
-  } catch (error) {
+    // Maksimal 30 menit
+    setTimeout(() => {
+      clearInterval(intervalId);
+    }, 30 * 60 * 1000);
+
+  } catch (err) {
     console.error(
-      "Payinaja Deposit Create Error:",
-      error
+      "Deposit Create Payinaja Error:",
+      err
     );
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message
+      message: err.message
     });
   }
 });
 
 
 // ======================================================
-// CEK STATUS DEPOSIT - PAYINAJA
+// STATUS DEPOSIT - PAYINAJA
 // ======================================================
-router.get("/deposit/status", validateApiKey, async (req, res) => {
-  const { id } = req.query;
-  const { user } = req;
-
-  if (!user?._id) {
-    return res.status(401).json({
-      success: false,
-      message:
-        "User API tidak valid."
-    });
-  }
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      message:
-        "ID diperlukan."
-    });
-  }
-
-  try {
-    // ==================================================
-    // AMBIL HISTORY LOCAL
-    // ==================================================
-    let h =
-      await User.findOne(
-        {
-          _id: user._id,
-          "historyDeposit.id":
-            String(id)
-        },
-        {
-          "historyDeposit.$":
-            1
-        }
+router.post(
+  "/deposit/status",
+  requireLogin,
+  async (req, res) => {
+    try {
+      const user = await User.findById(
+        req.session.userId
       );
 
-    if (
-      !h?.historyDeposit?.length
-    ) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Data tidak ditemukan di DB."
-      });
-    }
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Sesi tidak valid."
+        });
+      }
 
-    let dep =
-      h.historyDeposit[0];
+      const { id } = req.body;
 
-    let status =
-      String(
-        dep.status ||
-        "pending"
-      ).toLowerCase();
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: "ID diperlukan."
+        });
+      }
 
-    // ==================================================
-    // CEK PROVIDER
-    // ==================================================
-    if (
-      [
-        "pending",
-        "processing"
-      ].includes(status)
-    ) {
+      const transactionId =
+        String(id);
+
+      // ==================================================
+      // AMBIL HISTORY
+      // ==================================================
+      let userWithHistory =
+        await User.findOne(
+          {
+            _id: user._id,
+            "historyDeposit.id":
+              transactionId
+          },
+          {
+            "historyDeposit.$": 1
+          }
+        );
+
+      if (
+        !userWithHistory ||
+        !userWithHistory.historyDeposit?.length
+      ) {
+        return res.status(404).json({
+          success: false,
+          message: "Data tidak ditemukan."
+        });
+      }
+
+      let localData =
+        userWithHistory.historyDeposit[0];
+
+      let localStatus =
+        String(
+          localData.status ||
+          "pending"
+        ).toLowerCase();
+
+      // ==================================================
+      // KALAU SUDAH TERMINAL
+      // ==================================================
+      if (
+        ![
+          "pending",
+          "processing"
+        ].includes(localStatus)
+      ) {
+        const nominal =
+          Number(localData.nominal) || 0;
+
+        const fee =
+          Number(localData.fee) || 0;
+
+        const totalAmount =
+          Number(localData.total_amount) > 0
+            ? Number(localData.total_amount)
+            : Math.max(
+                0,
+                nominal + fee
+              );
+
+        return res.status(200).json({
+          success: true,
+
+          data: {
+            id: transactionId,
+
+            trx_id:
+              transactionId,
+
+            reff_id:
+              localData.reff_id ||
+              localData.reference_id ||
+              "-",
+
+            reference_id:
+              localData.reff_id ||
+              localData.reference_id ||
+              "-",
+
+            nominal,
+
+            fee,
+
+            fee_env:
+              Number(
+                localData.fee_env
+              ) || 0,
+
+            fee_provider:
+              Number(
+                localData.fee_provider
+              ) || 0,
+
+            total_amount:
+              totalAmount,
+
+            get_balance:
+              Number(
+                localData.get_balance
+              ) || 0,
+
+            status:
+              localStatus,
+
+            metode:
+              localData.metode ||
+              "QRIS",
+
+            qr_image:
+              localData.qr_image ||
+              null,
+
+            qris_string:
+              localData.qris_string ||
+              "",
+
+            bg_image:
+              localData.bg_image ||
+              "https://files.catbox.moe/sh2bcj.png",
+
+            created_at:
+              localData.created_at ||
+              null
+          }
+        });
+      }
+
+      // ==================================================
+      // PAYINAJA API KEY
+      // ==================================================
       const API_KEY =
         process.env.PAYINAJA_API_KEY;
 
@@ -1079,48 +1044,33 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
         return res.status(500).json({
           success: false,
           message:
-            "PAYINAJA_API_KEY belum disetting."
+            "PAYINAJA_API_KEY belum disetting di server."
         });
       }
 
-      let response;
+      // ==================================================
+      // CEK PAYINAJA
+      // ==================================================
+      const response =
+        await fetch(
+          `https://payinaja.com/api/v1/transaction/${encodeURIComponent(
+            transactionId
+          )}`,
+          {
+            method: "GET",
 
-      try {
-        response =
-          await fetch(
-            `https://payinaja.com/api/v1/transaction/${encodeURIComponent(
-              id
-            )}`,
-            {
-              method:
-                "GET",
+            headers: {
+              "Accept": "application/json",
 
-              headers: {
-                "Accept":
-                  "application/json",
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                "Chrome/120.0.0.0 Safari/537.36",
 
-                "User-Agent":
-                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                  "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                  "Chrome/120.0.0.0 Safari/537.36",
-
-                "x-api-key":
-                  API_KEY
-              }
+              "x-api-key": API_KEY
             }
-          );
-      } catch (e) {
-        console.error(
-          "Payinaja Status Fetch Error:",
-          e
+          }
         );
-
-        return res.status(502).json({
-          success: false,
-          message:
-            "Koneksi ke Payinaja gagal."
-        });
-      }
 
       if (!response.ok) {
         return res.status(502).json({
@@ -1135,29 +1085,37 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
       try {
         result =
           await response.json();
-      } catch (e) {
+      } catch (jsonError) {
+        console.error(
+          "Payinaja Status JSON Error:",
+          jsonError
+        );
+
         return res.status(502).json({
           success: false,
           message:
-            "Response Payinaja tidak valid."
+            "Response status Payinaja tidak valid."
         });
       }
 
       const providerData =
         result?.data || {};
 
-      const apiStatus =
+      const providerStatus =
         String(
           providerData.status ||
-          status
+          localStatus
         ).toLowerCase();
 
-      // ----------------------------------------------
+      // ==================================================
       // SUCCESS
-      // ----------------------------------------------
+      // ==================================================
       if (
-        apiStatus ===
-        "success"
+        providerStatus === "success" &&
+        [
+          "pending",
+          "processing"
+        ].includes(localStatus)
       ) {
         const updateResult =
           await User.updateOne(
@@ -1166,9 +1124,7 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
 
               historyDeposit: {
                 $elemMatch: {
-                  id:
-                    String(id),
-
+                  id: transactionId,
                   status: {
                     $in: [
                       "pending",
@@ -1188,310 +1144,349 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
                   String(
                     providerData.payinaja_trx_id ||
                     providerData.trx_id ||
-                    id
+                    transactionId
                   ),
 
                 "historyDeposit.$.provider_reference_id":
                   String(
                     providerData.reference_id ||
-                    dep.reference_id ||
-                    id
+                    transactionId
                   )
               },
 
               $inc: {
                 saldo:
                   Number(
-                    dep.get_balance
+                    localData.get_balance
                   ) || 0
               }
             }
           );
 
         if (
-          updateResult.modifiedCount >
-          0
+          updateResult.modifiedCount > 0
         ) {
-          status =
-            "success";
+          localStatus = "success";
         }
       }
 
-      // ----------------------------------------------
+      // ==================================================
       // FAILED / EXPIRED / CANCEL
-      // ----------------------------------------------
+      // ==================================================
       else if (
         [
           "failed",
           "expired",
           "cancel",
           "cancelled"
-        ].includes(apiStatus)
+        ].includes(providerStatus) &&
+        [
+          "pending",
+          "processing"
+        ].includes(localStatus)
       ) {
-        await settleDeposit(
-          user._id,
-          String(id),
-          apiStatus
+        await User.updateOne(
+          {
+            _id: user._id,
+
+            historyDeposit: {
+              $elemMatch: {
+                id: transactionId,
+                status: {
+                  $in: [
+                    "pending",
+                    "processing"
+                  ]
+                }
+              }
+            }
+          },
+
+          {
+            $set: {
+              "historyDeposit.$.status":
+                providerStatus,
+
+              "historyDeposit.$.provider_id":
+                String(
+                  providerData.payinaja_trx_id ||
+                  providerData.trx_id ||
+                  transactionId
+                ),
+
+              "historyDeposit.$.provider_reference_id":
+                String(
+                  providerData.reference_id ||
+                  transactionId
+                )
+            }
+          }
         );
 
-        status =
-          apiStatus;
+        localStatus =
+          providerStatus;
       }
-    }
 
-    // ==================================================
-    // AMBIL DATA TERBARU
-    // ==================================================
-    h =
-      await User.findOne(
-        {
-          _id: user._id,
-          "historyDeposit.id":
-            String(id)
-        },
-        {
-          "historyDeposit.$":
-            1
+      // ==================================================
+      // REFRESH HISTORY
+      // ==================================================
+      const refreshedUser =
+        await User.findOne(
+          {
+            _id: user._id,
+            "historyDeposit.id":
+              transactionId
+          },
+          {
+            "historyDeposit.$": 1
+          }
+        );
+
+      localData =
+        refreshedUser
+          ?.historyDeposit?.[0] ||
+        localData;
+
+      localStatus =
+        String(
+          localData.status ||
+          localStatus
+        ).toLowerCase();
+
+      // ==================================================
+      // RESPONSE DATA
+      // ==================================================
+      const nominal =
+        Number(localData.nominal) ||
+        Number(
+          providerData.amount_requested
+        ) ||
+        0;
+
+      const fee =
+        Number(localData.fee) || 0;
+
+      const totalAmount =
+        Number(
+          localData.total_amount
+        ) > 0
+          ? Number(
+              localData.total_amount
+            )
+          : (
+              Number(
+                providerData.total_amount
+              ) ||
+              Math.max(
+                0,
+                nominal + fee
+              )
+            );
+
+      return res.status(200).json({
+        success: true,
+
+        data: {
+          id: transactionId,
+
+          trx_id:
+            transactionId,
+
+          reff_id:
+            localData.reff_id ||
+            providerData.reference_id ||
+            "-",
+
+          reference_id:
+            localData.reff_id ||
+            providerData.reference_id ||
+            "-",
+
+          nominal,
+
+          fee,
+
+          fee_env:
+            Number(
+              localData.fee_env
+            ) || 0,
+
+          fee_provider:
+            Number(
+              localData.fee_provider
+            ) || 0,
+
+          total_amount:
+            totalAmount,
+
+          get_balance:
+            Number(
+              localData.get_balance
+            ) || 0,
+
+          status:
+            localStatus,
+
+          metode:
+            localData.metode ||
+            "QRIS",
+
+          qr_image:
+            localData.qr_image ||
+            providerData.qris_image_url ||
+            providerData.qris_image ||
+            providerData.qr_image ||
+            null,
+
+          qris_string:
+            localData.qris_string ||
+            providerData.qris_string ||
+            providerData.qris ||
+            "",
+
+          bg_image:
+            localData.bg_image ||
+            "https://files.catbox.moe/sh2bcj.png",
+
+          created_at:
+            localData.created_at ||
+            null
         }
+      });
+
+    } catch (error) {
+      console.error(
+        "Error Status Check Payinaja:",
+        error
       );
 
-    dep =
-      h?.historyDeposit?.[0] ||
-      dep;
-
-    status =
-      String(
-        dep.status ||
-        status
-      ).toLowerCase();
-
-    const nominal =
-      Number(
-        dep.nominal
-      ) || 0;
-
-    const fee =
-      Number(
-        dep.fee
-      ) || 0;
-
-    const totalAmount =
-      Number(
-        dep.total_amount
-      ) > 0
-        ? Number(
-            dep.total_amount
-          )
-        : Math.max(
-            0,
-            nominal + fee
-          );
-
-    // ==================================================
-    // RESPONSE
-    // ==================================================
-    return res.status(200).json({
-      success: true,
-
-      data: {
-        id:
-          String(id),
-
-        trx_id:
-          String(id),
-
-        reference_id:
-          dep.reference_id ||
-          dep.reff_id ||
-          String(id),
-
-        status,
-
-        nominal,
-
-        fee,
-
-        fee_env:
-          Number(
-            dep.fee_env
-          ) || 0,
-
-        fee_provider:
-          Number(
-            dep.fee_provider
-          ) || 0,
-
-        total_amount:
-          totalAmount,
-
-        get_balance:
-          Number(
-            dep.get_balance
-          ) || 0,
-
-        metode:
-          dep.metode ||
-          "QRIS",
-
-        /*
-         * Composite QR
-         */
-        qr_image:
-          dep.qr_image ||
-          "",
-
-        qr_image_combined:
-          dep.qr_image ||
-          "",
-
-        /*
-         * QR asli Payinaja
-         */
-        qr_image_raw:
-          dep.qr_image_raw ||
-          "",
-
-        qris_string:
-          dep.qris_string ||
-          "",
-
-        /*
-         * Background tetap
-         */
-        bg_image:
-          dep.bg_image ||
-          DEFAULT_BG_URL,
-
-        created_at:
-          dep.created_at ||
-          null
-      }
-    });
-
-  } catch (error) {
-    console.error(
-      "Payinaja Status Error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message
-    });
+      return res.status(500).json({
+        success: false,
+        message:
+          "Gagal memuat detail terbaru."
+      });
+    }
   }
-});
+);
 
 
 // ======================================================
-// CANCEL DEPOSIT - LOCAL ONLY
+// CANCEL DEPOSIT - LOCAL
 // ======================================================
-router.get("/deposit/cancel", validateApiKey, async (req, res) => {
-  const { user } = req;
-  const { id } = req.query;
-
-  if (!user?._id) {
-    return res.status(401).json({
-      success: false,
-      message:
-        "User API tidak valid."
-    });
-  }
-
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      message:
-        "ID diperlukan."
-    });
-  }
-
-  try {
-    const userHistory =
-      await User.findOne({
-        _id: user._id,
-        "historyDeposit.id":
-          String(id)
-      });
-
-    if (!userHistory) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Data tidak ditemukan."
-      });
-    }
-
-    const dep =
-      userHistory.historyDeposit.find(
-        x =>
-          String(x.id) ===
-          String(id)
+router.post(
+  "/deposit/cancel",
+  requireLogin,
+  async (req, res) => {
+    try {
+      const user = await User.findById(
+        req.session.userId
       );
 
-    if (!dep) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Data deposit tidak ditemukan."
-      });
-    }
-
-    const currentStatus =
-      String(
-        dep.status ||
-        "pending"
-      ).toLowerCase();
-
-    if (
-      ![
-        "pending",
-        "processing"
-      ].includes(
-        currentStatus
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          `Transaksi tidak bisa dibatalkan karena status sudah ${currentStatus}.`
-      });
-    }
-
-    // ----------------------------------------------
-    // LOCAL ONLY
-    // ----------------------------------------------
-    await editHistoryDeposit(
-      user._id,
-      String(id),
-      "cancel"
-    );
-
-    return res.status(200).json({
-      success: true,
-
-      data: {
-        id:
-          String(id),
-
-        status:
-          "cancel"
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Sesi tidak valid."
+        });
       }
-    });
 
-  } catch (error) {
-    console.error(
-      "Cancel Deposit Error:",
-      error
-    );
+      const { id } = req.body;
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message
-    });
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: "ID diperlukan."
+        });
+      }
+
+      const transactionId =
+        String(id);
+
+      // ==================================================
+      // CEK HISTORY
+      // ==================================================
+      const userHistory =
+        await User.findOne(
+          {
+            _id: user._id,
+            "historyDeposit.id":
+              transactionId
+          },
+          {
+            "historyDeposit.$": 1
+          }
+        );
+
+      if (
+        !userHistory ||
+        !userHistory.historyDeposit?.length
+      ) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Data transaksi tidak ditemukan."
+        });
+      }
+
+      const currentData =
+        userHistory.historyDeposit[0];
+
+      const currentStatus =
+        String(
+          currentData.status ||
+          "pending"
+        ).toLowerCase();
+
+      // ==================================================
+      // CEK STATUS
+      // ==================================================
+      if (
+        currentStatus !== "pending" &&
+        currentStatus !== "processing"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            `Transaksi tidak bisa dibatalkan karena status sudah ${currentStatus}.`
+        });
+      }
+
+      // ==================================================
+      // CANCEL INTERNAL
+      // ==================================================
+      await editHistoryDeposit(
+        user._id,
+        transactionId,
+        "cancel"
+      );
+
+      return res.status(200).json({
+        success: true,
+
+        message:
+          "Deposit berhasil dibatalkan.",
+
+        data: {
+          id: transactionId,
+          trx_id: transactionId,
+          status: "cancel"
+        }
+      });
+
+    } catch (error) {
+      console.error(
+        "Cancel Deposit Error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Terjadi kesalahan: " +
+          error.message
+      });
+    }
   }
-});
+);
 
 // ==========================================
 // ENDPOINT TAHAP 1: KIRIM EMAIL (/am/send)
