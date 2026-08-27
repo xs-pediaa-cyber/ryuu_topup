@@ -1690,6 +1690,19 @@ router.get(
     }
   }
 );
+// Middleware validasi API Key langsung dengan string "free"
+const verifyApiKey = (req, res, next) => {
+  const apiKey = req.headers['x-apikey'] || req.query.apikey;
+  if (!apiKey || apiKey !== "free") {
+    return res.status(401).json({
+      status: false,
+      creator: "@RyuuXiao",
+      source: "xs-pedia",
+      message: "API Key tidak valid atau tidak ditemukan! Gunakan 'free'."
+    });
+  }
+  next();
+};
 
 // ==========================================
 // ENDPOINT TAHAP 1: KIRIM EMAIL (/am/send)
