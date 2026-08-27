@@ -68,8 +68,6 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
     res.status(500).json({ success: false, message: "Gagal mengambil metode." });
   }
 });
-
-
 router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
@@ -77,7 +75,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const parsedNominal = parseInt(nominal, 10);
 
     if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
-    if (!nominal || isNaN(parsedNominal) || parsedNominal < 10)
+    if (!nominal || !Number.isFinite(parsedNominal) || parsedNominal < 10)
       return res.status(400).json({ success: false, message: "Minimal deposit Rp10" });
 
     const XS_BASE = process.env.XS_PEDIA_BASE_URL || "https://xs-pedia-payment.vercel.app";
@@ -88,94 +86,85 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(500).json({ success: false, message: "XS_PEDIA_TOKEN belum disetting di server." });
 
     if (!STATIC_QR)
-      return res.status(500).json({ success: false, message: "XS_PEDIA_STATIC_QR belum disetting di server." });
+      return res.status(500).json({ success: false, message: "XS_PEDIA_STATIC_QR belum dissetting di server." });
 
-    // ================= FEE =================
-    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER);
-    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER);
+    // ================= FEE ENV =================
+    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER || "5.5");
+    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER || "2.5");
+    const isReseller = String(user.role || "").toLowerCase() === "reseller";
+    const envPercent = isReseller ? feePercentReseller : feePercentUser;
 
-    const envPercent = user.role === "reseller"
-      ? (Number.isFinite(feePercentReseller) ? feePercentReseller : 2.5)
-      : (Number.isFinite(feePercentUser) ? feePercentUser : 5.5);
+    if (!Number.isFinite(envPercent) || envPercent < 0)
+      return res.status(500).json({ success: false, message: "Persentase fee ENV tidak valid." });
 
-    const additionalFee = Math.max(0, Math.ceil(parsedNominal * (envPercent / 100)));
-    const providerRequestAmount = parsedNominal + additionalFee;
+    // 5.5% dari nominal
+    const feeEnvRaw = parsedNominal * (envPercent / 100);
+
+    // QRIS harus nominal bulat
+    const feeEnv = Math.ceil(feeEnvRaw);
+
+    // Total yang dibayar provider = nominal + fee ENV
+    const totalBayar = parsedNominal + feeEnv;
+
+    // Saldo user tetap sesuai nominal deposit
+    const saldoDiterima = parsedNominal;
 
     // ================= CREATE XS-PEDIA =================
-    const createUrl =
-      `${XS_BASE}/api/qris/create` +
-      `?amount=${encodeURIComponent(providerRequestAmount)}` +
-      `&static_qr=${encodeURIComponent(STATIC_QR)}`;
+    const createUrl = `${XS_BASE}/api/qris/create?amount=${encodeURIComponent(totalBayar)}&static_qr=${encodeURIComponent(STATIC_QR)}`;
 
     let response;
-
     try {
       response = await fetch(createUrl, {
         method: "GET",
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           "User-Agent": "Mozilla/5.0"
         }
       });
     } catch (fetchError) {
       console.error("XS-Pedia Create Fetch Error:", fetchError);
-      return res.status(502).json({
-        success: false,
-        message: "Koneksi server ke XS-Pedia gagal."
-      });
+      return res.status(502).json({ success: false, message: "Koneksi server ke XS-Pedia gagal." });
     }
 
     let result;
     try {
       result = await response.json();
-    } catch (e) {
-      return res.status(502).json({
-        success: false,
-        message: "Response XS-Pedia tidak valid."
-      });
+    } catch {
+      return res.status(502).json({ success: false, message: "Response XS-Pedia tidak valid." });
     }
 
-    if (!response.ok || !result?.success) {
+    if (!response.ok || !result?.success)
       return res.status(400).json({
         success: false,
         message: result?.message || "Gagal membuat QRIS XS-Pedia."
       });
-    }
 
     const rawQrImage = result.image_url || "";
     const qrisString = result.qr_string || "";
     const providerCreatedAt = result.created_at || new Date().toISOString();
 
-    if (!rawQrImage || !qrisString) {
+    if (!rawQrImage || !qrisString)
       return res.status(502).json({
         success: false,
         message: "XS-Pedia tidak mengembalikan QRIS lengkap."
       });
-    }
 
-    // ID transaksi lokal karena API create XS-Pedia tidak memberi trx_id
+    // ID transaksi lokal
     const localTrxId = `XIAO-WEB-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    const nominalAsli = parsedNominal;
-    const feeProvider = 50;
-    const totalBayar = providerRequestAmount;
-    const totalFee = Math.max(0, totalBayar - nominalAsli);
-    const finalGetBalance = nominalAsli;
-
-    // ================= BACKGROUND TETAP =================
     const customBgUrl = "https://files.catbox.moe/sh2bcj.png";
 
     const historyDataForDb = {
       id: localTrxId,
       reff_id: localTrxId,
-      nominal: nominalAsli,
-      tambahan: additionalFee,
-      fee: totalFee,
-      fee_env: additionalFee,
-      fee_provider: feeProvider,
+      nominal: parsedNominal,
+      tambahan: feeEnv,
+      fee: feeEnv,
+      fee_env: feeEnv,
+      fee_provider: 0,
       total_amount: totalBayar,
-      get_balance: finalGetBalance,
-      provider_amount: providerRequestAmount,
+      get_balance: saldoDiterima,
+      provider_amount: totalBayar,
       provider: "xs-pedia",
       provider_id: null,
       provider_reference_id: null,
@@ -197,12 +186,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         trx_id: localTrxId,
         reff_id: localTrxId,
         metode: "QRIS",
-        nominal: nominalAsli,
-        fee: totalFee,
-        fee_env: additionalFee,
-        fee_provider: feeProvider,
+        nominal: parsedNominal,
+        fee: feeEnv,
+        fee_env: feeEnv,
+        fee_provider: 0,
         total_amount: totalBayar,
-        get_balance: finalGetBalance,
+        get_balance: saldoDiterima,
         qr_image: rawQrImage,
         qris_string: qrisString,
         bg_image: customBgUrl,
@@ -226,12 +215,11 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
           return;
         }
 
-        const historyUrl =
-          `${XS_BASE}/api/history?token=${encodeURIComponent(XS_TOKEN)}`;
+        const historyUrl = `${XS_BASE}/api/history?token=${encodeURIComponent(XS_TOKEN)}`;
 
         const checkRes = await fetch(historyUrl, {
           method: "GET",
-          headers: { "Accept": "application/json" }
+          headers: { Accept: "application/json" }
         });
 
         if (!checkRes.ok) return;
@@ -239,7 +227,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
         const checkData = await checkRes.json();
         if (!checkData?.success || !Array.isArray(checkData.data)) return;
 
-        // Kalau provider_id sudah tersimpan, pakai ID tersebut terlebih dahulu
         let providerTrx = null;
 
         if (latestDeposit.provider_id) {
@@ -248,15 +235,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
           );
         }
 
-        // Kalau belum ada provider_id, cari berdasarkan amount + waktu
         if (!providerTrx) {
           const targetAmount = Number(
             latestDeposit.provider_amount || latestDeposit.total_amount || 0
           );
 
-          const createdTime = new Date(
-            latestDeposit.created_at
-          ).getTime();
+          const createdTime = new Date(latestDeposit.created_at).getTime();
 
           const candidates = checkData.data
             .filter(x => Number(x.amount) === targetAmount)
@@ -266,7 +250,6 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
             })
             .sort((a, b) => new Date(a.time) - new Date(b.time));
 
-          // Cari transaksi yang belum dipakai deposit lain
           for (const candidate of candidates) {
             const alreadyUsed = await User.findOne({
               "historyDeposit.provider_id": String(candidate.id)
@@ -281,11 +264,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
 
         if (!providerTrx) return;
 
-        const providerStatus = String(
-          providerTrx.status || ""
-        ).toLowerCase();
+        const providerStatus = String(providerTrx.status || "").toLowerCase();
 
-        // ================= SUCCESS =================
         if (providerStatus === "success") {
           const updateResult = await User.updateOne(
             {
@@ -310,17 +290,13 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
             }
           );
 
-          if (updateResult.modifiedCount > 0) {
-            console.log(
-              `Deposit SUCCESS ${localTrxId} provider=${providerTrx.id}`
-            );
-          }
+          if (updateResult.modifiedCount > 0)
+            console.log(`Deposit SUCCESS ${localTrxId} provider=${providerTrx.id}`);
 
           clearInterval(intervalId);
           return;
         }
 
-        // ================= FAILED / EXPIRED / CANCEL =================
         if (["failed", "expired", "cancel", "cancelled"].includes(providerStatus)) {
           const updateResult = await User.updateOne(
             {
@@ -342,11 +318,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
             }
           );
 
-          if (updateResult.modifiedCount > 0) {
-            console.log(
-              `Deposit ${providerStatus.toUpperCase()} ${localTrxId}`
-            );
-          }
+          if (updateResult.modifiedCount > 0)
+            console.log(`Deposit ${providerStatus.toUpperCase()} ${localTrxId}`);
 
           clearInterval(intervalId);
         }
@@ -355,17 +328,17 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       }
     }, 10000);
 
-    // Maksimal polling 30 menit
     setTimeout(() => clearInterval(intervalId), 30 * 60 * 1000);
-
   } catch (err) {
     console.error("Deposit Create Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    if (!res.headersSent)
+      return res.status(500).json({
+        success: false,
+        message: err.message
+      });
   }
 });
+
 
 
 // ================= STATUS DEPOSIT =================
