@@ -42,8 +42,8 @@ router.post("/deposit/metode", requireLogin, async (req, res) => {
 
     // Fee persen untuk tampilan diambil dari .env (dikonversi ke string untuk frontend jika diperlukan)
     let feePersen = role === "reseller" 
-      ? (process.env.FEE_PERCENT_RESELLER || "2.5") 
-      : (process.env.FEE_PERCENT_USER || "5.5");  
+      ? (process.env.FEE_PERCENT_RESELLER || "0.105") 
+      : (process.env.FEE_PERCENT_USER || "0.105");  
 
     // MENGEMBALIKAN METODE PAYINAJA QRIS  
     const metodeFormatted = [{  
@@ -72,7 +72,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const { nominal } = req.body;
-    const parsedNominal = parseInt(nominal, 10);
+    const parsedNominal = parseInt(nominal, 0);
 
     if (!user) return res.status(401).json({ success: false, message: "Sesi tidak valid." });
     if (!nominal || !Number.isFinite(parsedNominal) || parsedNominal < 10)
@@ -89,8 +89,8 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(500).json({ success: false, message: "XS_PEDIA_STATIC_QR belum dissetting di server." });
 
     // ================= FEE ENV =================
-    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER || "0.100");
-    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER || "0.100");
+    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER || "0.105");
+    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER || "0.105");
     const isReseller = String(user.role || "").toLowerCase() === "reseller";
     const envPercent = isReseller ? feePercentReseller : feePercentUser;
 
