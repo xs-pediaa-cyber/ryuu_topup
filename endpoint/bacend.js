@@ -89,12 +89,12 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
       return res.status(500).json({ success: false, message: "XS_PEDIA_STATIC_QR belum dissetting di server." });
 
     // ================= FEE ENV =================
-    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER || "10.5");
-    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER || "10.5");
+    const feePercentUser = parseFloat(process.env.FEE_PERCENT_USER || "0.100");
+    const feePercentReseller = parseFloat(process.env.FEE_PERCENT_RESELLER || "0.100");
     const isReseller = String(user.role || "").toLowerCase() === "reseller";
     const envPercent = isReseller ? feePercentReseller : feePercentUser;
 
-    if (!Number.isFinite(envPercent) || envPercent < 0)
+    if (!Number.isFinite(envPercent) || envPercent < 10)
       return res.status(500).json({ success: false, message: "Persentase fee ENV tidak valid." });
 
     // 5.5% dari nominal
