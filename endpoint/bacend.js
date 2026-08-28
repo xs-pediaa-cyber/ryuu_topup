@@ -94,7 +94,7 @@ router.post("/deposit/create", requireLogin, async (req, res) => {
     const isReseller = String(user.role || "").toLowerCase() === "reseller";
     const envPercent = isReseller ? feePercentReseller : feePercentUser;
 
-    if (!Number.isFinite(envPercent) || envPercent < 10)
+    if (!Number.isFinite(envPercent) || envPercent < 0)
       return res.status(500).json({ success: false, message: "Persentase fee ENV tidak valid." });
 
     // 5.5% dari nominal
