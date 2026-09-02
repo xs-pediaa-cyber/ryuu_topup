@@ -386,7 +386,10 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
         data: {
           id,
           trx_id: id,
-          reff_id: localData.reff_id || "-",
+          reff_id:
+            localData.reff_id ||
+            localData.provider_reference_id ||
+            "-",
           nominal: Number(localData.nominal) || 0,
           total_amount:
             Number(localData.total_amount) > 0
@@ -401,14 +404,26 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
           status: localStatus,
           metode: localData.metode || "QRIS",
           qr_image: localData.qr_image || null,
-          bg_image: localData.bg_image || "https://files.catbox.moe/sh2bcj.png",
+          bg_image:
+            localData.bg_image ||
+            "https://files.catbox.moe/sh2bcj.png",
           qris_string: localData.qris_string || "",
-          created_at: localData.created_at || null
+          created_at: localData.created_at || null,
+          provider_id: localData.provider_id || null,
+          provider_reference_id:
+            localData.provider_reference_id || null,
+          provider_amount:
+            Number(localData.provider_amount) || 0,
+          provider_time:
+            localData.provider_time || null
         }
       });
     }
 
-    const XS_BASE = process.env.XS_PEDIA_BASE_URL || "https://xs-pedia-payment.vercel.app";
+    const XS_BASE =
+      process.env.XS_PEDIA_BASE_URL ||
+      "https://xs-pedia-payment.vercel.app";
+
     const XS_TOKEN = process.env.XS_PEDIA_TOKEN;
 
     if (!XS_TOKEN) {
@@ -424,7 +439,9 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
 
     const response = await fetch(historyUrl, {
       method: "GET",
-      headers: { "Accept": "application/json" }
+      headers: {
+        "Accept": "application/json"
+      }
     });
 
     if (!response.ok) {
@@ -446,37 +463,67 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     // ================= CARI TRANSAKSI =================
     let providerTrx = null;
 
-    // Prioritas ID provider jika sudah ada
+    // Prioritas ID provider jika sudah tersimpan
     if (localData.provider_id) {
       providerTrx = result.data.find(
-        x => String(x.id) === String(localData.provider_id)
+        x =>
+          String(x.id) ===
+          String(localData.provider_id)
       );
     }
 
-    // Kalau belum ada provider_id, cari berdasarkan nominal + waktu
-    if (!providerTrx) {
-      const targetAmount = Number(
-        localData.provider_amount ||
-        localData.total_amount ||
-        0
+    // Prioritas reference_id jika tersedia
+    if (!providerTrx && localData.provider_reference_id) {
+      providerTrx = result.data.find(
+        x =>
+          String(x.reference_id) ===
+          String(localData.provider_reference_id)
       );
+    }
+
+    // ================= CARI BERDASARKAN NOMINAL + WAKTU =================
+    if (!providerTrx) {
+      const targetAmount =
+        Number(localData.provider_amount) ||
+        Number(localData.total_amount) ||
+        Number(localData.nominal) ||
+        0;
 
       const createdTime = new Date(
         localData.created_at
       ).getTime();
 
       const candidates = result.data
-        .filter(x => Number(x.amount) === targetAmount)
+        .filter(x => {
+          return Number(x.amount) === targetAmount;
+        })
         .filter(x => {
           const xt = new Date(x.time).getTime();
-          return Number.isFinite(xt) &&
-            xt >= createdTime - 3 * 60 * 1000;
-        })
-        .sort((a, b) => new Date(a.time) - new Date(b.time));
 
+          if (!Number.isFinite(xt)) {
+            return false;
+          }
+
+          if (!Number.isFinite(createdTime)) {
+            return true;
+          }
+
+          return (
+            xt >= createdTime - 3 * 60 * 1000 &&
+            xt <= createdTime + 30 * 60 * 1000
+          );
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.time) -
+            new Date(b.time)
+        );
+
+      // Cari transaksi yang belum digunakan deposit lain
       for (const candidate of candidates) {
         const alreadyUsed = await User.findOne({
-          "historyDeposit.provider_id": String(candidate.id)
+          "historyDeposit.provider_id":
+            String(candidate.id)
         }).select("_id");
 
         if (!alreadyUsed) {
@@ -484,13 +531,15 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
           break;
         }
 
-        // Kalau transaksi ini memang sudah dipakai oleh deposit ini
+        // Jika transaksi memang sudah terhubung
+        // dengan deposit ini
         const sameDeposit = await User.findOne({
           _id: user._id,
-          "historyDeposit": {
+          historyDeposit: {
             $elemMatch: {
               id,
-              provider_id: String(candidate.id)
+              provider_id:
+                String(candidate.id)
             }
           }
         }).select("_id");
@@ -502,6 +551,7 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
       }
     }
 
+    // ================= PROSES STATUS PROVIDER =================
     if (providerTrx) {
       const providerStatus = String(
         providerTrx.status || localStatus
@@ -515,20 +565,36 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
             historyDeposit: {
               $elemMatch: {
                 id,
-                status: { $in: ["pending", "processing"] }
+                status: {
+                  $in: [
+                    "pending",
+                    "processing"
+                  ]
+                }
               }
             }
           },
           {
             $set: {
-              "historyDeposit.$.status": "success",
+              "historyDeposit.$.status":
+                "success",
               "historyDeposit.$.provider_id":
                 String(providerTrx.id),
               "historyDeposit.$.provider_reference_id":
-                String(providerTrx.reference_id || providerTrx.id)
+                String(
+                  providerTrx.reference_id ||
+                  providerTrx.id
+                ),
+              "historyDeposit.$.provider_amount":
+                Number(providerTrx.amount) || 0,
+              "historyDeposit.$.provider_status":
+                providerStatus,
+              "historyDeposit.$.provider_time":
+                providerTrx.time || null
             },
             $inc: {
-              saldo: Number(localData.get_balance) || 0
+              saldo:
+                Number(localData.get_balance) || 0
             }
           }
         );
@@ -540,8 +606,12 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
 
       // ================= FAILED / EXPIRED / CANCEL =================
       else if (
-        ["failed", "expired", "cancel", "cancelled"]
-          .includes(providerStatus)
+        [
+          "failed",
+          "expired",
+          "cancel",
+          "cancelled"
+        ].includes(providerStatus)
       ) {
         await User.updateOne(
           {
@@ -549,17 +619,32 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
             historyDeposit: {
               $elemMatch: {
                 id,
-                status: { $in: ["pending", "processing"] }
+                status: {
+                  $in: [
+                    "pending",
+                    "processing"
+                  ]
+                }
               }
             }
           },
           {
             $set: {
-              "historyDeposit.$.status": providerStatus,
+              "historyDeposit.$.status":
+                providerStatus,
               "historyDeposit.$.provider_id":
                 String(providerTrx.id),
               "historyDeposit.$.provider_reference_id":
-                String(providerTrx.reference_id || providerTrx.id)
+                String(
+                  providerTrx.reference_id ||
+                  providerTrx.id
+                ),
+              "historyDeposit.$.provider_amount":
+                Number(providerTrx.amount) || 0,
+              "historyDeposit.$.provider_status":
+                providerStatus,
+              "historyDeposit.$.provider_time":
+                providerTrx.time || null
             }
           }
         );
@@ -575,10 +660,15 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     );
 
     localData =
-      refreshedUser?.historyDeposit?.[0] || localData;
+      refreshedUser?.historyDeposit?.[0] ||
+      localData;
 
     localStatus =
-      String(localData.status || localStatus).toLowerCase();
+      String(
+        localData.status ||
+        localStatus ||
+        "pending"
+      ).toLowerCase();
 
     const nominal =
       Number(localData.nominal) ||
@@ -591,29 +681,55 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     const totalAmount =
       Number(localData.total_amount) > 0
         ? Number(localData.total_amount)
-        : Math.max(0, nominal + fee);
+        : Math.max(
+            0,
+            nominal + fee
+          );
 
     return res.status(200).json({
       success: true,
       data: {
         id,
         trx_id: id,
-        reff_id: localData.reff_id || "-",
+        reff_id:
+          localData.reff_id ||
+          localData.provider_reference_id ||
+          "-",
         nominal,
         total_amount: totalAmount,
         fee,
-        get_balance: Number(localData.get_balance) || 0,
+        get_balance:
+          Number(localData.get_balance) || 0,
         status: localStatus,
-        metode: localData.metode || "QRIS",
-        qr_image: localData.qr_image || null,
-        bg_image: localData.bg_image || "https://files.catbox.moe/sh2bcj.png",
-        qris_string: localData.qris_string || "",
-        created_at: localData.created_at || null
+        metode:
+          localData.metode || "QRIS",
+        qr_image:
+          localData.qr_image || null,
+        bg_image:
+          localData.bg_image ||
+          "https://files.catbox.moe/sh2bcj.png",
+        qris_string:
+          localData.qris_string || "",
+        created_at:
+          localData.created_at || null,
+        provider_id:
+          localData.provider_id || null,
+        provider_reference_id:
+          localData.provider_reference_id || null,
+        provider_amount:
+          Number(localData.provider_amount) || 0,
+        provider_status:
+          localData.provider_status || null,
+        provider_time:
+          localData.provider_time || null
       }
     });
 
   } catch (error) {
-    console.error("Error Status Check XS-Pedia:", error);
+    console.error(
+      "Error Status Check XS-Pedia:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -621,7 +737,6 @@ router.post("/deposit/status", requireLogin, async (req, res) => {
     });
   }
 });
-
 // === ROUTE CANCEL DEPOSIT (INTERNAL ONLY) ===
 router.post("/deposit/cancel", requireLogin, async (req, res) => {
   const user = await User.findById(req.session.userId);
