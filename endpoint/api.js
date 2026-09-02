@@ -555,8 +555,40 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
     let status = String(dep.status || "pending").toLowerCase();
 
     if (["pending", "processing"].includes(status)) {
-      const list = await getXsHistory();
-      const trx = findXsTransaction(list, dep.provider_amount || dep.total_amount, dep.created_at);
+      const historyResponse = await getXsHistory();
+      const list = Array.isArray(historyResponse)
+        ? historyResponse
+        : Array.isArray(historyResponse?.data)
+          ? historyResponse.data
+          : [];
+
+      const expectedAmount =
+        Number(dep.provider_amount) ||
+        Number(dep.total_amount) ||
+        Number(dep.nominal) ||
+        0;
+
+      const createdAt = dep.created_at ? new Date(dep.created_at) : null;
+
+      const trx = list.find(item => {
+        if (!item) return false;
+
+        const apiStatus = String(item.status || "").toLowerCase();
+        const amount = Number(item.amount) || 0;
+        const trxTime = item.time ? new Date(item.time) : null;
+
+        if (expectedAmount > 0 && amount !== expectedAmount) return false;
+
+        if (createdAt && trxTime && !isNaN(trxTime.getTime())) {
+          const depositTime = createdAt.getTime();
+          const providerTime = trxTime.getTime();
+
+          if (providerTime < depositTime - 60 * 1000) return false;
+          if (providerTime > depositTime + 30 * 60 * 1000) return false;
+        }
+
+        return ["success", "failed", "expired", "cancel", "cancelled"].includes(apiStatus);
+      });
 
       if (trx) {
         const apiStatus = String(trx.status || "").toLowerCase();
@@ -565,7 +597,7 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
           await User.updateOne(
             {
               _id: user._id,
-              "historyDeposit": {
+              historyDeposit: {
                 $elemMatch: {
                   id,
                   status: { $in: ["pending", "processing"] }
@@ -575,12 +607,16 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
             {
               $set: {
                 "historyDeposit.$.status": "success",
-                "historyDeposit.$.provider_id": trx.id,
-                "historyDeposit.$.provider_reference_id": trx.reference_id
+                "historyDeposit.$.provider_id": trx.id || null,
+                "historyDeposit.$.provider_reference_id": trx.reference_id || null,
+                "historyDeposit.$.provider_status": apiStatus,
+                "historyDeposit.$.provider_time": trx.time || null,
+                "historyDeposit.$.provider_amount": Number(trx.amount) || 0
               },
               $inc: { saldo: Number(dep.get_balance) || 0 }
             }
           );
+
           status = "success";
         } else if (["failed", "expired", "cancel", "cancelled"].includes(apiStatus)) {
           await settleDeposit(user._id, id, apiStatus);
@@ -589,11 +625,11 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
       }
     }
 
-    // Ambil data terbaru setelah update
     h = await User.findOne(
       { _id: user._id, "historyDeposit.id": id },
       { "historyDeposit.$": 1 }
     );
+
     dep = h?.historyDeposit?.[0] || dep;
     status = String(dep.status || status).toLowerCase();
 
@@ -619,7 +655,12 @@ router.get("/deposit/status", validateApiKey, async (req, res) => {
         qr_image_raw: dep.qr_image_raw || "",
         qris_string: dep.qris_string || "",
         bg_image: dep.bg_image || DEFAULT_BG_URL,
-        created_at: dep.created_at || null
+        created_at: dep.created_at || null,
+        provider_id: dep.provider_id || null,
+        provider_reference_id: dep.provider_reference_id || null,
+        provider_amount: Number(dep.provider_amount) || 0,
+        provider_status: dep.provider_status || null,
+        provider_time: dep.provider_time || null
       }
     });
 
